@@ -17,8 +17,9 @@
 // la firma, el jugador del partido, retocar textos, el borrador al recargar, el ZIP 4:5 y 9:16,
 // compartir, el vídeo (guion, grabar la voz con el micrófono de prueba, la mezcla y el MP4),
 // «Para tu IA» (copiar y pegar), un partido en juego, uno sin alineaciones ni clasificación,
-// las eliminatorias (campeón, global, quién pasa), saltar a un día con partidos, el móvil y
-// abierto como archivo (con doble clic en index.html, que es como se usa).
+// las eliminatorias (campeón, global, quién pasa), saltar a un día con partidos, el modo en
+// directo (vigilar, avisar y generar a un clic), el móvil y abierto como archivo (con doble clic
+// en index.html, que es como se usa).
 import { spawn, execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -78,7 +79,8 @@ const json = (body, status = 200) => ({ status, contentType: 'application/json',
 
 // strip: claves que se quitan del resumen de ESPN (para probar un partido con menos datos)
 // url: por defecto, la página servida; con pathToFileURL, abierta como archivo (doble clic).
-async function open({ strip = [], viewport = { width: 1280, height: 900 }, url = `${base}/` } = {}) {
+// before: lo que hay que preparar antes de abrir la página (la hora, rutas, el almacenamiento).
+async function open({ strip = [], viewport = { width: 1280, height: 900 }, url = `${base}/`, before } = {}) {
   const ctx = await browser.newContext({ viewport, locale: 'es-ES', timezoneId: 'Europe/Madrid', acceptDownloads: true });
   await ctx.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: base });
   await ctx.addInitScript(() => {
@@ -106,6 +108,7 @@ async function open({ strip = [], viewport = { width: 1280, height: 900 }, url =
     const key = Object.keys(LIBS).find((k) => r.request().url().includes(`/${k}@`));
     return key ? r.fulfill({ status: 200, contentType: 'application/javascript', body: LIBS[key] }) : r.abort();
   });
+  if (before) await before(ctx);
   const page = await ctx.newPage();
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => {
@@ -394,6 +397,45 @@ try {
     const [zip5] = await Promise.all([p5.waitForEvent('download', { timeout: 90000 }), p5.click('#downloadBtn')]);
     check(/\.zip$/.test(zip5.suggestedFilename()), `con «ß» en un apellido, el ZIP se descarga (${zip5.suggestedFilename()})`);
     await c5.close();
+  }
+
+  // ── En directo: vigila, avisa cuando acaba un partido y lo genera a un clic ──
+  {
+    // El Depor-Levante va 74' en la primera vuelta y está acabado en la siguiente.
+    const sb = JSON.parse(readFileSync(join(FIX, 'sb-esp.1-20261016.json')));
+    const ended = JSON.parse(JSON.stringify(sb));
+    for (const e of ended.events) {
+      if (e.id !== '401882844') continue;
+      const st = { ...e.status, displayClock: "90'+4'", type: { ...e.status.type, name: 'STATUS_FULL_TIME', state: 'post', completed: true, description: 'Full Time' } };
+      e.status = st;
+      e.competitions[0].status = st;
+    }
+    let polls = 0;
+    const { ctx: c6, page: p6 } = await open({
+      before: async (ctx) => {
+        await ctx.clock.setFixedTime(new Date('2026-10-16T20:30:00+02:00'));
+        await ctx.addInitScript(() => { if (!sessionStorage.getItem('seeded')) { sessionStorage.setItem('seeded', '1'); localStorage.setItem('fc-live', JSON.stringify({ on: true, leagues: ['esp.1'] })); } });
+        await ctx.route('https://site.api.espn.com/apis/site/v2/sports/soccer/esp.1/scoreboard?dates=20261016', (r) => r.fulfill(json(JSON.stringify(polls++ ? ended : sb))));
+      },
+    });
+    const card = '#liveList .live-card[data-game-id="401882844"]';
+    await p6.waitForSelector(card, { timeout: 10000 });
+    check(await p6.textContent(`${card} .game-status`) === "En juego · 74'" && /Vigilando/.test(await p6.textContent('#liveSub')),
+      `en directo: vigila LaLiga y ve el Depor-Levante en juego (${await p6.textContent(`${card} .game-status`)})`);
+    await p6.click('#liveRefresh');
+    await p6.waitForSelector(`${card}.fresh`, { timeout: 10000 }).catch(() => {});
+    const alert6 = { status: await p6.textContent(`${card} .game-status`), title: await p6.title(), toast: await p6.textContent('#toast') };
+    check(alert6.status === 'Final' && /^\(1\) Final · Depor/.test(alert6.title) && /Final: Depor/.test(alert6.toast),
+      `cuando acaba, avisa en la tarjeta, la pestaña y el aviso (${alert6.title} · ${alert6.toast})`);
+    p6.once('dialog', (d) => d.accept());
+    await p6.click(`${card} [data-open]`);
+    await p6.waitForSelector('#slide-portada', { timeout: 20000 }).catch(() => {});
+    check(await p6.$eval('#gamesList .game-card.selected', (c) => c.dataset.gameId).catch(() => '') === '401882844' && !!(await p6.$('#slide-portada')) && !/^\(/.test(await p6.title()),
+      'y a un clic lo genera (la competición, el día y el partido, solos)');
+    await p6.click('.live-switch');
+    check(await p6.$$eval('#liveList .live-card', (c) => c.length) === 0 && JSON.parse(await p6.evaluate(() => localStorage.getItem('fc-live'))).on === false,
+      'apagarlo deja de vigilar y se recuerda');
+    await c6.close();
   }
 
   // ── Abierto como archivo (doble clic en index.html): genera, guarda y descarga ──

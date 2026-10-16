@@ -12,6 +12,15 @@ Es solo para mí: no es una web publicada. Se abre en el navegador desde el prop
 
 Para tener la última versión, vuelve a descargarlo o haz `git pull`. El borrador, la firma y la competición se guardan en ese navegador.
 
+## En directo
+
+Arriba del todo, «Los partidos de hoy»: eliges qué competiciones vigilar (las de siempre se recuerdan) y activas **Vigilar**. Con la pestaña abierta:
+
+- Cada minuto mira ESPN y enseña los partidos de hoy: en juego (con el minuto), los que faltan y los acabados. De madrugada también enseña los de ayer, porque los de América acaban pasada la medianoche.
+- Cuando acaba un partido, avisa: la tarjeta se ilumina con «Nuevo», la pestaña dice «(1) Final · …», suena un aviso corto y, si el navegador lo permite, sale una notificación.
+- «Generar →» en la tarjeta elige la competición, el día y el partido, y genera el carrusel: en un clic lo tienes listo para revisar y publicar.
+- «↻ Actualizar» mira ESPN en ese momento; «×» deja de vigilar una competición y «+ Añadir competición» suma otra.
+
 ## Cómo se usa
 
 1. **Competición:** 43, cada una con su logo y agrupadas.
@@ -102,7 +111,7 @@ El partido en unos 30 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
   - el Lech-Leverkusen de la Europa League (la clasificación, pedida aparte);
   - el Osnabrück-Bayern de la Copa de Alemania (un apellido con «ß»).
 
-  Prueba las competiciones y sus logos, la lista, las 8 slides, el minuto a minuto sin solapes, la firma, el jugador del partido, el borrador, el ZIP, el 9:16, compartir, el vídeo (guion, grabar la voz con un micrófono de prueba, la mezcla y el MP4), «Para tu IA» (copiar y pegar), un partido en juego, uno con pocos datos, las eliminatorias (campeón, global, quién pasa), saltar a un día con partidos, el móvil y el Studio abierto como archivo (generar, descargar y recuperar el borrador).
+  Prueba el modo en directo (un partido que pasa de en juego a acabado: el aviso y generarlo a un clic), las competiciones y sus logos, la lista, las 8 slides, el minuto a minuto sin solapes, la firma, el jugador del partido, el borrador, el ZIP, el 9:16, compartir, el vídeo (guion, grabar la voz con un micrófono de prueba, la mezcla y el MP4), «Para tu IA» (copiar y pegar), un partido en juego, uno con pocos datos, las eliminatorias (campeón, global, quién pasa), saltar a un día con partidos, el móvil y el Studio abierto como archivo (generar, descargar y recuperar el borrador).
 
 Corre sola en cada push y PR (`.github/workflows/tests.yml`). En local:
 

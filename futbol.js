@@ -1732,11 +1732,14 @@
     if (on) on.parentElement.scrollLeft = on.offsetLeft - on.parentElement.offsetLeft - 16;
   }
 
-  function setLeague(slug) {
-    if (!COMP[slug]) return;
+  function markLeague(slug) {
     state.league = slug;
     try { localStorage.setItem(LEAGUE_KEY, slug); } catch (e) { /* sin almacenamiento: no se recuerda */ }
     document.querySelectorAll('.comp-chip').forEach(b => b.setAttribute('aria-checked', String(b.dataset.league === slug)));
+  }
+  function setLeague(slug) {
+    if (!COMP[slug]) return;
+    markLeague(slug);
     loadGames(state.selectedDate || localIso());
   }
 
@@ -1842,7 +1845,7 @@
   function goToDate(iso) {
     document.getElementById('dateInput').value = iso;
     markPreset(iso);
-    loadGames(iso);
+    return loadGames(iso);
   }
 
   function selectGame(gameId) {
@@ -3458,6 +3461,254 @@ ${inside.length ? `\nDesliza para ver ${listEs(inside)}.\n` : ''}
   }
 
   // ----------------------------------------------------------
+  // EN DIRECTO · vigila las competiciones que elijas: los partidos de hoy y cómo van. Cuando
+  // acaba uno, avisa (en la pestaña, con un sonido y, si el navegador deja, una notificación)
+  // y queda a un clic de generarlo.
+  // ----------------------------------------------------------
+  const LIVE_KEY = 'fc-live';
+  const LIVE_EVERY = 60000; // cada minuto (con la pestaña en segundo plano, Chrome no deja menos)
+  const LIVE_SHOWN = 8;     // los que se ven sin pulsar «Ver los N partidos»
+  const directo = {
+    on: false,
+    leagues: ['esp.1', 'uefa.champions', 'eng.1'],
+    games: [],
+    phases: new Map(),   // id → final · live · pre · off, de la última vuelta
+    fresh: new Set(),    // los que acaban de terminar y aún no has abierto
+    all: false,          // ver todos los partidos o solo los primeros
+    checked: null,       // cuándo se miró ESPN por última vez
+    failed: false,
+    timer: null,
+    seq: 0,
+    audio: null,
+    title: '',
+  };
+
+  function loadDirecto() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(LIVE_KEY) || 'null');
+      if (saved) {
+        directo.on = !!saved.on;
+        directo.leagues = (saved.leagues || []).filter(l => COMP[l]);
+      }
+    } catch (e) { /* sin almacenamiento: lo de por defecto */ }
+  }
+  function saveDirecto() {
+    try { localStorage.setItem(LIVE_KEY, JSON.stringify({ on: directo.on, leagues: directo.leagues })); } catch (e) { /* no se recuerda */ }
+  }
+
+  // Los días que mirar: hoy y, de madrugada, también ayer (los partidos de América acaban pasada
+  // la medianoche en España y ESPN los cuenta en el día anterior).
+  const directoDays = () => (new Date().getHours() < 10 ? [localIso(-1), localIso()] : [localIso()]);
+
+  async function pollDirecto() {
+    if (!directo.on) return;
+    const seq = ++directo.seq;
+    const jobs = directo.leagues.flatMap(league => directoDays().map(day =>
+      fetchGames(league, day).then(gs => gs.map(g => ({ ...g, day }))).catch(() => null)));
+    const results = await Promise.all(jobs);
+    if (seq !== directo.seq || !directo.on) return;
+    const byId = new Map();
+    results.filter(Boolean).flat().forEach(g => byId.set(g.id, g));
+    const games = [...byId.values()];
+    // En la primera vuelta no se avisa de nada: lo que ya había acabado, ya estaba.
+    const first = directo.checked === null;
+    const ended = [];
+    for (const g of games) {
+      const ph = gamePhase(g);
+      const before = directo.phases.get(g.id);
+      if (!first && ph === 'final' && before && before !== 'final') ended.push(g);
+      directo.phases.set(g.id, ph);
+    }
+    ended.forEach(g => directo.fresh.add(g.id));
+    directo.games = games;
+    directo.failed = results.some(r => r === null);
+    directo.checked = new Date();
+    renderDirecto();
+    if (ended.length) announceEnded(ended);
+  }
+
+  const scoreText = (g) => `${g.home.short} ${g.home.score}-${g.away.score} ${g.away.short}`;
+
+  // Dos notas cortas (el sonido se prepara al activar «Vigilar», que es un toque tuyo).
+  function chime() {
+    const ac = directo.audio;
+    if (!ac) return;
+    ac.resume?.().catch(() => {});
+    [[880, 0], [1320, 0.16]].forEach(([f, at]) => {
+      const o = ac.createOscillator(), gn = ac.createGain();
+      o.frequency.value = f;
+      gn.gain.setValueAtTime(0.0001, ac.currentTime + at);
+      gn.gain.exponentialRampToValueAtTime(0.18, ac.currentTime + at + 0.02);
+      gn.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + at + 0.22);
+      o.connect(gn).connect(ac.destination);
+      o.start(ac.currentTime + at);
+      o.stop(ac.currentTime + at + 0.25);
+    });
+  }
+
+  function announceEnded(ended) {
+    showToast(`Final: ${ended.map(scoreText).join(' · ')}. Listo para generar.`, 'success', true);
+    document.title = `(${directo.fresh.size}) Final · ${scoreText(ended[0])}`;
+    chime();
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      ended.forEach(g => {
+        try {
+          const n = new Notification(`Final: ${scoreText(g)}`, { body: `${compOf(g.league).name} · listo para generar`, icon: 'favicon.svg', tag: g.id });
+          n.onclick = () => { window.focus(); n.close(); openFromDirecto(g.id); };
+        } catch (e) { /* sin notificaciones: queda el aviso de la pestaña */ }
+      });
+    }
+  }
+
+  // Del panel al carrusel: la competición, el día, el partido y generar.
+  async function openFromDirecto(id) {
+    const g = directo.games.find(x => x.id === id);
+    if (!g || state.generating) return;
+    directo.fresh.delete(id);
+    if (!directo.fresh.size) document.title = directo.title;
+    renderDirecto();
+    markLeague(g.league);
+    await goToDate(g.day);
+    if (!state.games.some(x => x.id === id)) return showToast('ESPN ya no da ese partido en la lista de su día', 'error');
+    selectGame(id);
+    await generateCarousel();
+    if (state.rendered?.id === id) document.getElementById('slidesPreview').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function renderDirecto() {
+    const sub = document.getElementById('liveSub');
+    const leaguesBox = document.getElementById('liveLeagues');
+    const list = document.getElementById('liveList');
+    document.getElementById('liveToggle').checked = directo.on;
+    document.getElementById('liveRefresh').hidden = !directo.on;
+
+    // Las competiciones que se vigilan (con × para quitarlas) y un desplegable para añadir
+    const others = COMPETITIONS.map(g => ({ ...g, items: g.items.filter(([slug]) => !directo.leagues.includes(slug)) })).filter(g => g.items.length);
+    leaguesBox.innerHTML = `
+      ${directo.leagues.map(slug => `
+        <span class="live-league">${compLogo(slug, true) ? `<img src="${compLogo(slug, true)}" alt="" onerror="this.remove()"/>` : ''}${esc(compOf(slug).chip)}
+          <button type="button" data-drop="${slug}" aria-label="Dejar de vigilar ${esc(compOf(slug).name)}">×</button></span>`).join('')}
+      ${others.length ? `<select class="live-add" aria-label="Vigilar otra competición">
+        <option value="">+ Añadir competición</option>
+        ${others.map(g => `<optgroup label="${esc(g.group)}">${g.items.map(([slug, chip]) => `<option value="${slug}">${esc(chip)}</option>`).join('')}</optgroup>`).join('')}
+      </select>` : ''}`;
+
+    const hhmm = (d) => d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    if (!directo.on) {
+      sub.textContent = 'Elige qué competiciones vigilar y activa «Vigilar»: el Studio mira ESPN cada minuto y, cuando acaba un partido, te avisa y lo tienes a un clic. Deja la pestaña abierta.';
+      list.innerHTML = '';
+      return;
+    }
+    sub.textContent = !directo.checked ? 'Mirando ESPN…'
+      : `Vigilando: mira ESPN cada minuto (última vez, a las ${hhmm(directo.checked)})${directo.failed ? '. ESPN no ha respondido en alguna competición: se reintenta solo' : ''}.`;
+    if (!directo.leagues.length) {
+      list.innerHTML = '<div class="games-empty">Añade alguna competición para vigilarla.</div>';
+      return;
+    }
+    if (!directo.checked) {
+      list.innerHTML = '<div class="games-empty"><span class="loader"></span> Cargando los partidos de hoy…</div>';
+      return;
+    }
+    if (!directo.games.length) {
+      list.innerHTML = '<div class="games-empty">Hoy no juega ninguna de las competiciones que vigilas.</div>';
+      return;
+    }
+    // Primero lo que se juega, luego lo que acaba de terminar, lo que falta y lo ya acabado.
+    const rank = (g) => (directo.fresh.has(g.id) ? 0 : { live: 1, pre: 2, final: 3, off: 4 }[gamePhase(g)]);
+    const sorted = [...directo.games].sort((a, b) => rank(a) - rank(b) || (rank(a) === 3 ? new Date(b.date) - new Date(a.date) : new Date(a.date) - new Date(b.date)));
+    // Con muchos partidos, los 8 primeros (lo que se juega y lo recién acabado van siempre delante)
+    const games = directo.all ? sorted : sorted.slice(0, LIVE_SHOWN);
+    const more = sorted.length > LIVE_SHOWN
+      ? `<button class="slide-reset-btn live-more" type="button" data-more>${directo.all ? 'Ver menos' : `Ver los ${sorted.length} partidos`}</button>` : '';
+    list.innerHTML = games.map(g => {
+      const ph = gamePhase(g);
+      const started = ph === 'final' || ph === 'live';
+      const row = (t, o) => `
+        <div class="live-team${ph === 'final' && t.score < o.score ? ' lost' : ''}">
+          <img src="${t.logo}" alt="" onerror="this.style.opacity=0"/><span>${esc(t.short)}</span><b>${started ? t.score : ''}</b>
+        </div>`;
+      const fresh = directo.fresh.has(g.id);
+      const btn = ph === 'final' ? `<button class="btn btn-primary live-go" type="button" data-open="${g.id}">Generar →</button>`
+        : ph === 'live' ? `<button class="btn btn-ghost live-go" type="button" data-open="${g.id}">Generar ya</button>` : '';
+      return `
+        <div class="live-card ${ph}${fresh ? ' fresh' : ''}" data-game-id="${g.id}">
+          <div class="live-top">
+            ${compLogo(g.league, true) ? `<img src="${compLogo(g.league, true)}" alt="" onerror="this.remove()"/>` : ''}
+            <span class="live-comp">${esc(compOf(g.league).chip)}</span>
+            ${fresh ? '<span class="live-new">Nuevo</span>' : ''}
+            <span class="game-status ${ph}">${statusLabel(g)}</span>
+          </div>
+          ${row(g.home, g.away)}${row(g.away, g.home)}
+          ${btn}
+        </div>`;
+    }).join('') + more;
+  }
+
+  function startDirecto() {
+    clearInterval(directo.timer);
+    directo.timer = null;
+    if (!directo.on) return;
+    directo.timer = setInterval(pollDirecto, LIVE_EVERY);
+    pollDirecto();
+  }
+
+  function setupDirecto() {
+    directo.title = document.title;
+    loadDirecto();
+    const toggle = document.getElementById('liveToggle');
+    toggle.addEventListener('change', () => {
+      directo.on = toggle.checked;
+      if (directo.on) {
+        // Al activarlo (un toque tuyo) se prepara el sonido y se pide permiso para avisar.
+        try { directo.audio ||= new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { /* sin sonido */ }
+        if (typeof Notification !== 'undefined' && Notification.permission === 'default') Notification.requestPermission().catch(() => {});
+      } else {
+        directo.checked = null;
+        directo.phases.clear();
+        directo.fresh.clear();
+        document.title = directo.title;
+      }
+      saveDirecto();
+      renderDirecto();
+      startDirecto();
+    });
+    document.getElementById('liveRefresh').addEventListener('click', pollDirecto);
+    const box = document.getElementById('liveLeagues');
+    box.addEventListener('click', (e) => {
+      const drop = e.target.closest('[data-drop]')?.dataset.drop;
+      if (!drop) return;
+      directo.leagues = directo.leagues.filter(l => l !== drop);
+      directo.games = directo.games.filter(g => g.league !== drop);
+      saveDirecto();
+      renderDirecto();
+    });
+    box.addEventListener('change', (e) => {
+      const add = e.target.closest('.live-add')?.value;
+      if (!add || directo.leagues.includes(add)) return;
+      directo.leagues.push(add);
+      saveDirecto();
+      renderDirecto();
+      pollDirecto();
+    });
+    document.getElementById('liveList').addEventListener('click', (e) => {
+      if (e.target.closest('[data-more]')) {
+        directo.all = !directo.all;
+        renderDirecto();
+        return;
+      }
+      const id = e.target.closest('[data-open]')?.dataset.open;
+      if (id) openFromDirecto(id);
+    });
+    // Al volver a la pestaña: el título normal y, si hace rato que no mira, una vuelta ya.
+    window.addEventListener('focus', () => { if (!directo.fresh.size) document.title = directo.title; });
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && directo.on && directo.checked && Date.now() - directo.checked > LIVE_EVERY / 2) pollDirecto();
+    });
+    renderDirecto();
+    startDirecto();
+  }
+
+  // ----------------------------------------------------------
   // INIT
   // ----------------------------------------------------------
   function init() {
@@ -3467,6 +3718,7 @@ ${inside.length ? `\nDesliza para ver ${listEs(inside)}.\n` : ''}
       state.sign = localStorage.getItem(SIGN_KEY) || '';
     } catch (e) { /* sin almacenamiento: los valores por defecto */ }
     renderCompPicker();
+    setupDirecto();
     const signInput = document.getElementById('signInput');
     signInput.value = state.sign;
     signInput.addEventListener('input', onSignInput);
