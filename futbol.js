@@ -1,9 +1,8 @@
 /* ============================================================
    STUDIO FÚTBOL — carruseles de fútbol con los datos de ESPN
-   El hermano del Studio de la NBA de Charly Mate (repo charlymate-web): eliges competición,
-   día y partido, generas el carrusel, lo retocas y lo descargas. Mismas herramientas (editar
-   textos, ver en grande, borradores, ZIP 4:5 y 9:16, compartir, cambiar foto) y slides
-   pensadas para el fútbol.
+   Eliges competición, día y partido, generas el carrusel, lo retocas y lo descargas: editar
+   textos, ver en grande, borradores, ZIP 4:5 y 9:16, compartir y cambiar la foto de un jugador.
+   Es una herramienta personal: se abre con doble clic en index.html, sin servidor.
    ============================================================ */
 
 (() => {
@@ -12,7 +11,7 @@
   // ----------------------------------------------------------
   // CONFIG
   // ----------------------------------------------------------
-  // ESPN — datos de fútbol gratis, sin auth y con CORS abierto (como los de la NBA)
+  // ESPN — datos de fútbol gratis, sin auth y con CORS abierto (también desde un archivo local)
   const ESPN = 'https://site.api.espn.com/apis/site/v2/sports/soccer';
   const LOGO = (id) => `https://a.espncdn.com/i/teamlogos/soccer/500/${id}.png`;
 
@@ -546,7 +545,7 @@
   };
 
   // ----------------------------------------------------------
-  // COLORES DE CADA EQUIPO (como en el Studio de la NBA)
+  // COLORES DE CADA EQUIPO
   // ----------------------------------------------------------
   const mixHex = (hex, to, f) => {
     const a = parseInt(hex.slice(1), 16), b = parseInt(to.slice(1), 16);
@@ -1159,7 +1158,7 @@
   }
 
   // ----------------------------------------------------------
-  // 6 · JUGADOR DEL PARTIDO · como el MVP de la NBA
+  // 6 · JUGADOR DEL PARTIDO · el mejor del partido con sus 3 números
   // ----------------------------------------------------------
   function keyNumbers(m, p) {
     const v = (k) => p.s[k] || 0;
@@ -2286,7 +2285,6 @@ Desliza para ver el minuto a minuto, las estadísticas, el mapa de tiros y los o
     restoreDraft();
   }
 
-  // El acceso lo controla Cloudflare Access: si la página ha llegado al navegador, se puede usar.
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();

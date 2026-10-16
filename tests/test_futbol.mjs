@@ -12,12 +12,14 @@
 // Comprueba: las competiciones, la lista de partidos y su estado, generar el carrusel (las 8
 // slides, el titular, el minuto a minuto sin tarjetas pisadas, los onces, la clasificación),
 // la firma, el jugador del partido, retocar textos, el borrador al recargar, el ZIP 4:5 y 9:16,
-// compartir, un partido en juego, uno sin alineaciones ni clasificación y el móvil.
+// compartir, un partido en juego, uno sin alineaciones ni clasificación, el móvil y abierto como
+// archivo (con doble clic en index.html, que es como se usa).
 import { spawn, execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const REPO = resolve(new URL('..', import.meta.url).pathname);
 const FIX = join(REPO, 'tests', 'fixtures');
@@ -61,7 +63,8 @@ const check = (ok, msg) => {
 const json = (body, status = 200) => ({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body });
 
 // strip: claves que se quitan del resumen de ESPN (para probar un partido con menos datos)
-async function open({ strip = [], viewport = { width: 1280, height: 900 } } = {}) {
+// url: por defecto, la página servida; con pathToFileURL, abierta como archivo (doble clic).
+async function open({ strip = [], viewport = { width: 1280, height: 900 }, url = `${base}/` } = {}) {
   const ctx = await browser.newContext({ viewport, locale: 'es-ES', timezoneId: 'Europe/Madrid', acceptDownloads: true });
   await ctx.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: base });
   await ctx.addInitScript(() => {
@@ -89,7 +92,7 @@ async function open({ strip = [], viewport = { width: 1280, height: 900 } } = {}
   page.on('console', (m) => {
     if (m.type() === 'error' && !/Failed to load resource|net::|Error loading image/.test(m.text())) errors.push(m.text());
   });
-  await page.goto(`${base}/`);
+  await page.goto(url);
   return { ctx, page };
 }
 
@@ -261,6 +264,20 @@ try {
     check(n2.join(',') === 'Portada,Minuto a minuto,Estadísticas,Cierre', `sin esos datos, solo las slides que se pueden hacer: ${n2.join(', ')}`);
     check(await p2.textContent('#slide-portada h1') === 'El Atlético gana por la mínima', `y el titular sale igual: ${await p2.textContent('#slide-portada h1')}`);
     await c2.close();
+  }
+
+  // ── Abierto como archivo (doble clic en index.html): genera, guarda y descarga ──
+  {
+    const { ctx: c4, page: p4 } = await open({ url: pathToFileURL(join(REPO, 'index.html')).href });
+    await pickDate(p4, '2026-09-20');
+    await generate(p4, '401882865');
+    check((await slideNames(p4)).length === 8, 'abierto como archivo: genera las 8 slides');
+    const [png] = await Promise.all([p4.waitForEvent('download', { timeout: 60000 }), p4.click('[data-slide-id="portada"] .slide-dl-btn')]);
+    check(png.suggestedFilename() === 'futbol-atm-rma-2026-09-20-01-portada.png', `y descarga la PNG (${png.suggestedFilename()})`);
+    await p4.reload();
+    await p4.waitForSelector('#slide-portada', { timeout: 10000 }).catch(() => {});
+    check(/Recuperado/.test(await p4.textContent('#draftStatus')), 'y al volver a abrirlo recupera el borrador');
+    await c4.close();
   }
 
   // ── En el móvil ──
