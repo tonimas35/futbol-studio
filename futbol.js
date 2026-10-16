@@ -347,7 +347,7 @@
   // EL PARTIDO · el resumen de ESPN, en un objeto con todo lo que usan las slides
   // ----------------------------------------------------------
   const SHOT_KIND = {
-    'shot-on-target': 'on', 'shot-off-target': 'off', 'shot-blocked': 'off', 'shot-hit-woodwork': 'off',
+    'shot-on-target': 'on', 'shot-off-target': 'off', 'shot-blocked': 'off', 'shot-hit-woodwork': 'post',
     'penalty---saved': 'on', 'penalty---missed': 'off',
   };
   const isGoalType = (t) => /^goal/.test(t) || t === 'penalty---scored';
@@ -539,6 +539,8 @@
     selectedGame: null,
     rendered: null,       // el partido del preview (lo que leen las slides, las descargas y el borrador)
     jugadorId: null,      // el jugador del partido, si se ha elegido otro en el desplegable
+    script: null,         // guion del vídeo: { idDeEscena: frase } (lo escribe autoScript y lo retocas)
+    scriptGame: null,     // id del partido de ese guion
     photoOverrides: {},   // id del jugador → foto subida (ya sin fondo)
     sign: '',
     generating: false,
@@ -731,8 +733,9 @@
   // ----------------------------------------------------------
   // 1 · PORTADA · el marcador, cada equipo en su mitad, con sus goleadores
   // ----------------------------------------------------------
-  // Los goles de un equipo, juntos por jugador: «Malen 51', 57' (p)»
-  function scorerLines(m, side) {
+  // Los goles de un equipo, juntos por jugador («Malen 51', 57' (p)»), y sus rojas:
+  // [{ text, red }]. scorerLines, lo mismo en HTML para la portada.
+  function scorerList(m, side) {
     const lines = [];
     const byName = new Map();
     for (const g of m.goals.filter(x => x.side === side)) {
@@ -741,11 +744,12 @@
       if (byName.has(who)) byName.get(who).push(min);
       else { byName.set(who, [min]); lines.push(who); }
     }
-    const goals = lines.map(who => `${esc(who)} ${byName.get(who).join(', ')}`);
+    const goals = lines.map(who => ({ text: `${who} ${byName.get(who).join(', ')}`, red: false }));
     const reds = m.cards.filter(c => c.red && c.side === side)
-      .map(c => `<i class="card red"></i>${esc(nameOf(m, c.player, c.name))} ${c.min.label}`);
+      .map(c => ({ text: `${nameOf(m, c.player, c.name)} ${c.min.label}`, red: true }));
     return [...goals, ...reds];
   }
+  const scorerLines = (m, side) => scorerList(m, side).map(x => (x.red ? `<i class="card red"></i>${esc(x.text)}` : esc(x.text)));
 
   function tplPortada(m) {
     const { winner } = sides(m);
@@ -971,7 +975,7 @@
     }
     // ESPN da cada tiro en % del campo, atacando hacia x = 100. El local se gira hacia la izquierda.
     const at = (s, x, y) => (s.side === 'home' ? [(100 - x) / 100 * W, (100 - y) / 100 * H] : [x / 100 * W, y / 100 * H]);
-    const order = { off: 0, on: 1, goal: 2 };
+    const order = { off: 0, post: 0, on: 1, goal: 2 };
     const shots = [...m.shots].sort((a, b) => order[a.kind] - order[b.kind]);
     for (const s of shots) {
       const ink = teamStyle(m[s.side]).ink;
@@ -999,10 +1003,15 @@
     return c.toDataURL('image/png');
   }
 
+  // Tiros y a puerta de cada equipo: los de ESPN y, si no están, los que hay en el mapa.
+  function shotTotals(m, side) {
+    const count = (kinds) => m.shots.filter(s => s.side === side && kinds.includes(s.kind)).length;
+    return { total: m.stats[side]?.totalShots ?? count(['goal', 'on', 'off', 'post']), on: m.stats[side]?.shotsOnTarget ?? count(['goal', 'on']) };
+  }
+
   function tplTiros(m) {
-    const count = (side, kinds) => m.shots.filter(s => s.side === side && kinds.includes(s.kind)).length;
-    const total = (side) => m.stats[side]?.totalShots ?? count(side, ['goal', 'on', 'off']);
-    const onT = (side) => m.stats[side]?.shotsOnTarget ?? count(side, ['goal', 'on']);
+    const total = (side) => shotTotals(m, side).total;
+    const onT = (side) => shotTotals(m, side).on;
     const side = (team, s) => `
       <div class="side ${s === 'home' ? 'l' : 'r'}">
         ${logoTag(team, 'lg')}
@@ -1220,18 +1229,29 @@
     'ger.1': 'la Bundesliga', 'fra.1': 'la Ligue 1', 'por.1': 'la Liga Portugal', 'ned.1': 'la Eredivisie', 'mex.1': 'la Liga MX',
     'arg.1': 'la Liga Argentina', 'bra.1': 'el Brasileirão', 'usa.1': 'la MLS', 'ksa.1': 'la Liga Saudí',
   };
-  function tableRows(m) {
+  // n filas con los dos equipos dentro; si están lejos, las de cada uno con «···» en medio
+  // (null). La slide lleva 12 y el vídeo, 11.
+  function tableRows(m, n = TABLE_ROWS) {
     const rows = m.standings || [];
-    if (rows.length <= TABLE_ROWS) return rows;
+    if (rows.length <= n) return rows;
     const idx = [m.home.id, m.away.id].map(id => rows.findIndex(r => r.id === id)).filter(i => i >= 0).sort((a, b) => a - b);
-    if (!idx.length) return rows.slice(0, TABLE_ROWS);
+    if (!idx.length) return rows.slice(0, n);
     const [a, b = a] = [idx[0], idx[idx.length - 1]];
-    if (b - a < TABLE_ROWS) {
-      const start = Math.max(0, Math.min(rows.length - TABLE_ROWS, a - Math.floor((TABLE_ROWS - (b - a + 1)) / 2)));
-      return rows.slice(start, start + TABLE_ROWS);
+    if (b - a < n) {
+      const start = Math.max(0, Math.min(rows.length - n, a - Math.floor((n - (b - a + 1)) / 2)));
+      return rows.slice(start, start + n);
     }
-    const around = (i) => rows.slice(Math.max(0, Math.min(rows.length - 6, i - 2)), Math.max(0, Math.min(rows.length - 6, i - 2)) + 6);
+    const k = Math.floor(n / 2);
+    const around = (i) => {
+      const start = Math.max(0, Math.min(rows.length - k, i - 2));
+      return rows.slice(start, start + k);
+    };
     return [...around(a), null, ...around(b)];
+  }
+  // «LaLiga», «la Champions», «el grupo B»…
+  function tableName(m) {
+    const group = (m.standingsName || '').match(/group\s+([A-Z0-9]+)/i)?.[1];
+    return group ? `el grupo ${group}` : TABLE_NAMES[m.league] || compOf(m.league).name;
   }
 
   function tplTabla(m) {
@@ -1257,8 +1277,7 @@
           <span class="pts">${r.pts ?? ''}</span>
         </div>`;
     };
-    const group = (m.standingsName || '').match(/group\s+([A-Z0-9]+)/i)?.[1];
-    const what = group ? `el grupo ${group}` : TABLE_NAMES[m.league] || compOf(m.league).name;
+    const what = tableName(m);
     return `
       <div class="fc-in paper">
         <h1 class="title" style="font-size:${what.length > 16 ? 88 : 104}px">Así va<br>${esc(what)}</h1>
@@ -1440,6 +1459,7 @@
       state.rendered = match;
       state.jugadorId = null;
       renderSlides(match);
+      resetVideo();
       afterRender(match);
       contentChanged(true);
       showToast('Carrusel generado · revisa el preview', 'success');
@@ -1460,6 +1480,7 @@
     const info = document.getElementById('renderedInfo');
     info.textContent = `${m.home.short} ${m.home.score}-${m.away.score} ${m.away.short} · ${compOf(m.league).name} · ${fmtDate(m.date)}${live(m) ? ' · en juego' : ''}`;
     info.hidden = false;
+    updateVideoBtn();
   }
 
   // ----------------------------------------------------------
@@ -1698,6 +1719,596 @@
   }
 
   // ----------------------------------------------------------
+  // VÍDEO SHORT · los datos de las slides para video.js, que dibuja y codifica
+  // ----------------------------------------------------------
+  // El grano de las slides va en el CSS en base64 (para que la descarga funcione abriendo el
+  // archivo); el vídeo usa el mismo.
+  let grainCache = null;
+  function grainUrl() {
+    if (grainCache) return grainCache;
+    const box = document.createElement('div');
+    box.className = 'fc';
+    box.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden';
+    const g = document.createElement('div');
+    g.className = 'fc-grain';
+    box.appendChild(g);
+    document.body.appendChild(box);
+    const bg = getComputedStyle(g).backgroundImage;
+    box.remove();
+    grainCache = bg.match(/^url\("?([\s\S]*?)"?\)$/)?.[1] || null;
+    return grainCache;
+  }
+
+  // El texto de la slide tal como está escrito (el CSS lo pone en mayúsculas y los saltos son <br>).
+  function writtenText(sel) {
+    const el = document.querySelector(sel);
+    if (!el) return '';
+    const copy = el.cloneNode(true);
+    copy.querySelectorAll('br').forEach(br => br.replaceWith(' '));
+    return copy.textContent.replace(/\s+/g, ' ').trim();
+  }
+  const listEs = (xs) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} y ${xs[xs.length - 1]}` : xs[0] || '');
+  // «al Real Madrid», «a la Roma», «a España»
+  const toTeam = (t) => (article(t) === 'el ' ? `al ${t.short}` : `a ${article(t)}${t.short}`);
+  const extraTime = (m, evs) => m.status.period > 2 || /AET|EXTRA|PEN/.test(m.status.name) || evs.some(e => e.min.period > 2);
+
+  function videoData(m) {
+    const { winner } = sides(m);
+    const team = (side) => {
+      const t = m[side];
+      return {
+        name: t.name, short: t.short, abbr: t.abbr, score: t.score, shootout: pensWon(m) ? t.shootout : null,
+        logo: t.logo, style: teamStyle(t), won: winner === side, lost: !!winner && winner !== side,
+        the: theTeam(t), to: toTeam(t),
+        lines: scorerList(m, side).map(x => (x.red ? `${x.text} · roja` : x.text)),
+      };
+    };
+    const evs = cronoEvents(m);
+    const p = bestPlayer(m);
+    const keys = p ? keyNumbers(m, p) : [];
+    const rows = statRows(m);
+    const tbl = (m.standings?.length || 0) >= 4 ? tableRows(m, 11) : null;
+    const closingSide = winner || 'home';
+    const c = compOf(m.league);
+    return {
+      home: team('home'),
+      away: team('away'),
+      live: live(m),
+      clock: minuteText(m.status.clock),
+      comp: [c.name, m.phase].filter(Boolean).join(' · '),
+      date: asDate(m.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }),
+      headline: writtenText('#slide-portada .head h1') || headline(m),
+      goals: evs.map(e => ({ side: e.side, min: e.min.label, t: e.min.t, kind: e.kind, name: e.name, how: e.how, score: e.score || null, style: teamStyle(m[e.side]) })),
+      goalsTitle: evs.every(e => e.kind === 'goal') ? 'LOS GOLES' : 'MINUTO A MINUTO',
+      halftime: m.halftime,
+      extraTime: extraTime(m, evs),
+      shots: m.shots.length >= 4 ? {
+        home: shotTotals(m, 'home'), away: shotTotals(m, 'away'),
+        list: m.shots.map(s => ({ side: s.side, kind: s.kind, x: s.x, y: s.y, x2: s.x2, y2: s.y2 })),
+      } : null,
+      jugador: p && {
+        first: p.name.endsWith(surname(p)) ? p.name.slice(0, -surname(p).length).trim() : '',
+        last: surname(p), number: p.jersey,
+        photo: hasPhoto(p) ? [photoSrc(p)] : null,
+        logo: m[p.side].logo, style: teamStyle(m[p.side]),
+        stats: keys.map(s => ({ v: s.text ?? s.v, label: s.label })),
+        scoreLine: scoreLine(m),
+      },
+      stats: rows.length >= 3 ? rows.slice(0, 5).map(r => ({ label: r.label, v: r.v, more: r.more, pct: r.label === 'Posesión' })) : null,
+      table: tbl && {
+        title: `Así va ${tableName(m)}`,
+        rows: tbl.map(r => r && {
+          rank: r.rank, pts: r.pts, logo: r.logo,
+          name: r.id === m.home.id ? m.home.short : r.id === m.away.id ? m.away.short : r.name,
+          me: r.id === m.home.id ? 'home' : r.id === m.away.id ? 'away' : null,
+        }),
+      },
+      closing: {
+        question: writtenText('#slide-cierre .q') || closingQuestion(m),
+        style: teamStyle(m[closingSide]), side: closingSide,
+        photo: p && hasPhoto(p) ? [photoSrc(p)] : null,
+      },
+      sign: state.sign,
+      grain: grainUrl(),
+    };
+  }
+
+  let videoUrl = null;
+  let audioUrl = null;
+  let videoFile = null;
+  let videoBusy = false;
+  function updateVideoBtn() {
+    document.getElementById('videoBtn').disabled = videoBusy || recording || !state.rendered;
+    document.getElementById('mixPreviewBtn').disabled = videoBusy || recording || mixBusy || !state.rendered;
+    syncScript();
+  }
+  function resetVideo() {
+    document.getElementById('videoOut').hidden = true;
+    videoFile = null;
+    document.getElementById('videoPreview').removeAttribute('src');
+    if (videoUrl) URL.revokeObjectURL(videoUrl);
+    if (audioUrl) URL.revokeObjectURL(audioUrl);
+    videoUrl = null;
+    audioUrl = null;
+  }
+  const videoOptions = () => {
+    const withVoice = !!voice && document.getElementById('videoVoice').checked;
+    return {
+      music: document.getElementById('videoMusic').checked,
+      script: state.script, ...mixLevels(), intro: document.getElementById('videoIntro').checked,
+      voice: withVoice ? voice.blob : null, voiceLead: withVoice ? voice.lead || 0 : null, voiceShift: withVoice ? voice.shift || 0 : 0,
+    };
+  };
+
+  async function makeVideo() {
+    const m = state.rendered;
+    if (!m || videoBusy || !window.StudioVideo) return;
+    const btn = document.getElementById('videoBtn');
+    const label = btn.querySelector('.label');
+    videoBusy = true;
+    updateVideoBtn();
+    btn.classList.add('btn-loading');
+    document.activeElement?.blur();
+    try {
+      const out = await window.StudioVideo.render(videoData(m), (p, stage) => {
+        label.textContent = stage || `Creando el vídeo… ${Math.round(p * 100)}%`;
+      }, { ...videoOptions(), captions: document.getElementById('videoSubs').checked });
+      if (state.rendered !== m) {
+        showToast('Has generado otro partido mientras tanto: vuelve a crear el vídeo', 'error');
+        return;
+      }
+      resetVideo();
+      const base = `futbol-${stamp(m)}-short`;
+      videoUrl = URL.createObjectURL(out.blob);
+      const preview = document.getElementById('videoPreview');
+      // Que el preview no se quede en el primer fotograma: el marcador con la cinta.
+      preview.addEventListener('loadedmetadata', () => { preview.currentTime = 2.6 + (out.mix?.lead || 0); }, { once: true });
+      preview.src = videoUrl;
+      const dl = document.getElementById('videoDlBtn');
+      dl.href = videoUrl;
+      dl.download = `${base}.${out.ext}`;
+      videoFile = new File([out.blob], dl.download, { type: out.blob.type });
+      document.getElementById('videoShareBtn').hidden = !(navigator.canShare && navigator.canShare({ files: [videoFile] }));
+      const adl = document.getElementById('audioDlBtn');
+      adl.hidden = !out.audio;
+      if (out.audio) {
+        audioUrl = URL.createObjectURL(out.audio);
+        adl.href = audioUrl;
+        adl.download = `${base}-musica.wav`;
+      }
+      const parts = [out.mix?.voice && 'tu voz', out.mix?.music && 'música', out.mix?.captions && 'subtítulos', out.mix?.intro && 'la apertura con los escudos'].filter(Boolean);
+      document.getElementById('videoMeta').textContent = parts.length ? `Lleva ${listEs(parts)}.` : 'Sin sonido ni subtítulos.';
+      document.getElementById('videoOut').hidden = false;
+      showToast(out.note || 'Vídeo listo · revísalo y descárgalo', out.note ? '' : 'success');
+    } catch (e) {
+      console.error('Vídeo:', e);
+      showToast(`No se pudo crear el vídeo: ${e.message}`, 'error');
+    } finally {
+      videoBusy = false;
+      label.textContent = 'Crear vídeo';
+      btn.classList.remove('btn-loading');
+      updateVideoBtn();
+    }
+  }
+
+  async function shareVideo() {
+    if (!videoFile) return;
+    try {
+      await navigator.share({ files: [videoFile] });
+    } catch (e) {
+      if (e.name !== 'AbortError') showToast(`No se pudo compartir: ${e.message}`, 'error');
+    }
+  }
+
+  // ----------------------------------------------------------
+  // GUION DEL VÍDEO · una frase por escena, escrita sola con los datos del partido. Sale en los
+  // subtítulos (con la palabra que suena resaltada) y es lo que lees si grabas tu voz.
+  // ----------------------------------------------------------
+  const SCENE_NAMES = {
+    score: 'Marcador', goals: 'Los goles', tiros: 'Mapa de tiros', jugador: 'Jugador del partido',
+    stats: 'Estadísticas', tabla: 'Clasificación', outro: 'Cierre',
+  };
+  const NUM_WORDS = ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco'];
+  const ORDINALS = ['', 'primero', 'segundo', 'tercero', 'cuarto', 'quinto', 'sexto', 'séptimo', 'octavo', 'noveno', 'décimo'];
+  const ordinal = (n) => ORDINALS[n] || `${n}.º`;
+
+  function autoScript(d) {
+    const end = (str) => (/[.!?…]$/.test(str) ? str : `${str}.`);
+    const H = d.home, A = d.away;
+    const W2 = H.won ? H : A.won ? A : null, L2 = W2 === H ? A : H;
+    const hl = end(d.headline);
+    let result;
+    if (d.live) result = `De momento, ${H.score}-${A.score}.`;
+    else if (W2 && W2.shootout != null) result = `${cap(W2.the)} gana ${W2.shootout}-${L2.shootout} en los penaltis.`;
+    else if (!W2) result = H.score ? `${cap(H.the)} y ${A.the} empatan a ${H.score}.` : `${cap(H.the)} y ${A.the} no pasan del 0-0.`;
+    else if (plain(hl).includes(plain(W2.short))) result = null; // el titular ya dice quién gana
+    else result = `${cap(W2.the)} gana ${W2.score}-${L2.score} ${L2.to}.`;
+    const script = {
+      score: result ? `${hl} ${result}` : `${hl.replace(/[.!?…]$/, '')}: ${W2.score}-${L2.score} ${L2.to}.`,
+      outro: d.closing.question,
+    };
+
+    const goals = d.goals.filter(e => e.kind === 'goal');
+    if (d.goals.length) {
+      const tally = new Map();
+      goals.forEach(e => tally.set(e.name, (tally.get(e.name) || 0) + 1));
+      const top = [...tally].sort((a, b) => b[1] - a[1])[0];
+      const reds = d.goals.filter(e => e.kind === 'red').map(e => e.name);
+      const parts = [];
+      if (top && top[1] > 1) {
+        const others = [...tally.keys()].filter(n => n !== top[0]);
+        parts.push(`${top[0]} marca ${NUM_WORDS[top[1]] || top[1]}.`);
+        if (others.length) parts.push(`También ${others.length > 1 ? 'marcan' : 'marca'} ${listEs(others)}.`);
+      } else if (tally.size) {
+        parts.push(`${tally.size > 1 ? 'Marcan' : 'Marca'} ${listEs([...tally.keys()])}.`);
+      }
+      if (reds.length) parts.push(`Roja para ${listEs(reds)}.`);
+      script.goals = parts.join(' ') || 'Así fue el partido, minuto a minuto.';
+    }
+    if (d.shots) {
+      script.tiros = `${cap(H.the)}, ${d.shots.home.total} tiros y ${d.shots.home.on} a puerta; ${A.the}, ${d.shots.away.total} y ${d.shots.away.on}.`;
+    }
+    if (d.jugador) {
+      const say = (s) => (s.label === 'Portería a cero' ? 'portería a cero' : `${String(s.v).replace('/', ' de ')} ${s.label.toLocaleLowerCase('es')}`);
+      const [a, b] = d.jugador.stats;
+      script.jugador = `${d.jugador.last}, el mejor del partido${a ? `: ${say(a)}${b ? ` y ${say(b)}` : ''}` : ''}.`;
+    }
+    if (d.stats) {
+      const pos = d.stats.find(r => r.label === 'Posesión');
+      if (pos && pos.v[0] !== pos.v[1]) {
+        const i = pos.v[0] > pos.v[1] ? 0 : 1;
+        script.stats = `${cap((i ? A : H).the)} tuvo el balón: ${Math.round(pos.v[i])}% de posesión.`;
+      } else {
+        script.stats = 'Así fueron las estadísticas.';
+      }
+    }
+    if (d.table) {
+      const rank = (side) => d.table.rows.find(r => r?.me === side)?.rank;
+      const [rh, ra] = [rank('home'), rank('away')];
+      script.tabla = rh && ra ? `${H.short}, ${ordinal(rh)}; ${A.short}, ${ordinal(ra)}.`
+        : rh ? `${cap(H.the)} es ${ordinal(rh)}.` : ra ? `${cap(A.the)} es ${ordinal(ra)}.` : 'Así va la clasificación.';
+    }
+    return script;
+  }
+
+  let scriptData = null;   // los datos del vídeo del partido del guion (para saber sus escenas)
+  let scriptSaveTimer = null;
+  let voice = null;        // { blob, url, gameId, script, lead, shift, autoShift }
+  let recording = false;
+
+  // Cada vez que cambia el partido generado, guion nuevo (y la voz de otro partido, fuera).
+  function syncScript() {
+    const box = document.getElementById('scriptBox');
+    const m = state.rendered;
+    box.hidden = !m || !window.StudioVideo?.plan;
+    if (box.hidden) return;
+    if (state.scriptGame === m.id && scriptData) return;
+    scriptData = videoData(m);
+    if (state.scriptGame !== m.id || !state.script) {
+      state.script = autoScript(scriptData);
+      state.scriptGame = m.id;
+    }
+    if (voice && voice.gameId !== m.id) dropVoice();
+    renderScript();
+  }
+
+  function renderScript() {
+    const list = document.getElementById('scriptLines');
+    const plan = window.StudioVideo.plan(scriptData, state.script);
+    list.innerHTML = '';
+    plan.forEach((sc, i) => {
+      const li = document.createElement('li');
+      li.className = 'script-line';
+      li.dataset.scene = sc.id;
+      const label = document.createElement('span');
+      label.className = 'script-label';
+      label.textContent = `${i + 1} · ${SCENE_NAMES[sc.id] || sc.id} `;
+      const secs = document.createElement('small');
+      secs.textContent = `${sc.dur.toLocaleString('es-ES', { maximumFractionDigits: 1 })} s`;
+      label.append(secs);
+      const area = document.createElement('textarea');
+      area.rows = 2;
+      area.dataset.scene = sc.id;
+      area.value = state.script[sc.id] || '';
+      area.setAttribute('aria-label', `Guion: ${SCENE_NAMES[sc.id] || sc.id}`);
+      const fitEl = document.createElement('span');
+      fitEl.className = 'script-fit';
+      li.append(label, area, fitEl);
+      list.append(li);
+    });
+    updateScriptFit();
+    updateVoiceUi();
+  }
+
+  function updateScriptFit() {
+    const plan = window.StudioVideo.plan(scriptData, state.script);
+    plan.forEach(sc => {
+      const el = document.querySelector(`#scriptLines .script-line[data-scene="${sc.id}"] .script-fit`);
+      if (!el) return;
+      const [cls, msg] = !sc.words ? ['empty', 'Sin frase: esta escena va sin subtítulos']
+        : sc.speed <= 1.1 ? ['ok', 'Cabe a ritmo normal']
+          : sc.speed <= 1.3 ? ['warn', 'Algo rápido: mejor una palabra menos']
+            : ['bad', 'Muy rápido: quita palabras'];
+      el.className = `script-fit ${cls}`;
+      el.textContent = msg;
+    });
+  }
+
+  function onScriptInput(e) {
+    const area = e.target.closest('textarea[data-scene]');
+    if (!area) return;
+    state.script = { ...state.script, [area.dataset.scene]: area.value.replace(/\s*\n\s*/g, ' ') };
+    updateScriptFit();
+    updateVoiceUi();
+    clearTimeout(scriptSaveTimer);
+    scriptSaveTimer = setTimeout(saveDraft, 500);
+  }
+
+  function resetScript() {
+    if (!scriptData) return;
+    scriptData = videoData(state.rendered); // con el titular y la pregunta de ahora
+    state.script = autoScript(scriptData);
+    renderScript();
+    saveDraft();
+  }
+
+  // ─── Tu voz ───
+  const PROMPT_LEAD = 0.2;  // el teleprompter va 0,2 s por delante de los subtítulos
+  const SYNC_STEP = 0.05;
+  const syncText = (shift) => (Math.abs(shift) < SYNC_STEP / 2 ? 'sin mover'
+    : `${Math.abs(shift).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} s ${shift < 0 ? 'antes' : 'después'}`);
+  function saveVoice() {
+    if (!voice) return;
+    const { blob, gameId, script, lead, shift, autoShift } = voice;
+    dbPut('drafts', 'voice', { blob, gameId, script, lead, shift, autoShift, savedAt: Date.now() });
+  }
+  let syncSaveTimer = null;
+  function onSyncInput() {
+    if (!voice) return;
+    voice.shift = Number(document.getElementById('voiceSync').value);
+    document.getElementById('voiceSyncOut').textContent = syncText(voice.shift);
+    mixChanged();
+    clearTimeout(syncSaveTimer);
+    syncSaveTimer = setTimeout(saveVoice, 400);
+  }
+  function autoSync() {
+    if (!voice) return;
+    voice.shift = voice.autoShift || 0;
+    updateVoiceUi();
+    mixChanged();
+    saveVoice();
+  }
+  const sameScript = (a, b) => JSON.stringify(a || {}) === JSON.stringify(b || {});
+  function setVoice(v) {
+    if (voice?.url) URL.revokeObjectURL(voice.url);
+    voice = v ? { ...v, url: URL.createObjectURL(v.blob) } : null;
+    updateVoiceUi();
+  }
+  function dropVoice() {
+    setVoice(null);
+    dbDel('drafts', 'voice');
+  }
+  function updateVoiceUi() {
+    const player = document.getElementById('voicePlayer');
+    const has = !!voice;
+    if (has && player.getAttribute('src') !== voice.url) player.src = voice.url;
+    if (!has) player.removeAttribute('src');
+    player.hidden = !has;
+    document.getElementById('voiceDelBtn').hidden = !has;
+    document.getElementById('videoVoiceLabel').hidden = !has;
+    document.getElementById('voiceSyncRow').hidden = !has;
+    if (has) {
+      document.getElementById('voiceSync').value = voice.shift || 0;
+      document.getElementById('voiceSyncOut').textContent = syncText(voice.shift || 0);
+    }
+    showMix();
+    document.getElementById('voiceRecBtn').querySelector('.label').textContent = has ? 'Repetir grabación' : 'Grabar mi voz';
+    const status = document.getElementById('voiceStatus');
+    status.classList.toggle('warn', has && !sameScript(voice.script, state.script));
+    status.textContent = !has
+      ? 'Lee el guion mientras corre el vídeo: la palabra que toca se resalta, como en los subtítulos. Antes, una cuenta atrás de 3 segundos.'
+      : !sameScript(voice.script, state.script)
+        ? 'Has cambiado el guion después de grabar: vuelve a grabar para que tu voz y los subtítulos digan lo mismo.'
+        : 'Tu voz está lista: va en el vídeo con la música más baja mientras hablas.';
+  }
+
+  // ─── Volumen · por defecto, la música y la voz como suenan siempre (100 %). Las barras se
+  // recuerdan en este navegador y «Escuchar la mezcla» crea solo el sonido para ajustarlas. ───
+  const MIX_KEY = 'fc-mix';
+  let mixBusy = false;
+  let mixUrl = null;
+  const mixLevels = () => ({
+    musicVolume: Number(document.getElementById('musicVol').value) / 100,
+    voiceVolume: Number(document.getElementById('voiceVol').value) / 100,
+  });
+  function showMix() {
+    const music = document.getElementById('musicVol'), voiceVol = document.getElementById('voiceVol');
+    document.getElementById('musicVolOut').textContent = `${music.value}%`;
+    document.getElementById('voiceVolOut').textContent = `${voiceVol.value}%`;
+    music.disabled = !document.getElementById('videoMusic').checked;
+    document.getElementById('voiceVolLabel').hidden = !voice;
+    document.getElementById('mixResetBtn').hidden = music.value === '100' && voiceVol.value === '100';
+  }
+  function loadMix() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(MIX_KEY) || '{}');
+      if (Number.isFinite(saved.music)) document.getElementById('musicVol').value = saved.music;
+      if (Number.isFinite(saved.voice)) document.getElementById('voiceVol').value = saved.voice;
+    } catch (e) { /* sin localStorage: por defecto */ }
+    showMix();
+  }
+  function mixChanged() {
+    showMix();
+    const player = document.getElementById('mixPlayer');
+    player.pause();
+    player.hidden = true;
+    try {
+      localStorage.setItem(MIX_KEY, JSON.stringify({
+        music: Number(document.getElementById('musicVol').value), voice: Number(document.getElementById('voiceVol').value),
+      }));
+    } catch (e) { /* sin localStorage: vale para esta vez */ }
+  }
+  function resetMix() {
+    document.getElementById('musicVol').value = 100;
+    document.getElementById('voiceVol').value = 100;
+    mixChanged();
+  }
+  async function previewMix() {
+    const m = state.rendered;
+    if (!m || mixBusy || videoBusy || recording || !window.StudioVideo?.audio) return;
+    const opts = videoOptions();
+    if (!opts.music && !opts.voice) {
+      showToast('No hay nada que escuchar: activa la música o graba tu voz');
+      return;
+    }
+    const btn = document.getElementById('mixPreviewBtn');
+    mixBusy = true;
+    updateVideoBtn();
+    btn.classList.add('btn-loading');
+    try {
+      const wav = await window.StudioVideo.audio(videoData(m), opts);
+      if (mixUrl) URL.revokeObjectURL(mixUrl);
+      mixUrl = URL.createObjectURL(wav);
+      const player = document.getElementById('mixPlayer');
+      player.src = mixUrl;
+      player.hidden = false;
+      player.play().catch(() => { /* sin permiso para sonar solo: tiene sus controles */ });
+    } catch (e) {
+      console.error('Mezcla:', e);
+      showToast(`No se pudo preparar el sonido: ${e.message}`, 'error');
+    } finally {
+      mixBusy = false;
+      btn.classList.remove('btn-loading');
+      updateVideoBtn();
+    }
+  }
+
+  // El teleprompter: la frase de la escena con lo ya dicho, la palabra que toca y lo que falta,
+  // y debajo la siguiente.
+  let prompterKey = '';
+  function updatePrompterText(words, t) {
+    const i = words.findIndex(w => w.end > t);
+    const scene = i >= 0 ? words[i].scene : -1;
+    const line = words.filter(w => w.scene === scene);
+    const now = line.findIndex(w => t >= w.start && t < w.end);
+    const key = `${scene}:${now}:${line.filter(w => t >= w.end).length}`;
+    if (key === prompterKey) return;
+    prompterKey = key;
+    const lineEl = document.getElementById('prompterLine');
+    lineEl.replaceChildren(...line.flatMap((w, j) => {
+      const span = document.createElement('span');
+      span.textContent = w.text;
+      span.className = j === now ? 'now' : t >= w.end ? 'said' : '';
+      return j ? [' ', span] : [span];
+    }));
+    const nextScene = words.find(w => w.scene > scene)?.scene;
+    document.getElementById('prompterNext').textContent = nextScene == null ? ''
+      : words.filter(w => w.scene === nextScene).map(w => w.text).join(' ');
+  }
+
+  async function recordVoice() {
+    const m = state.rendered;
+    if (!m || videoBusy || recording || !window.StudioVideo?.prepare) return;
+    document.activeElement?.blur();
+    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+      showToast('Este navegador no puede grabar audio: prueba con Chrome', 'error');
+      return;
+    }
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+    } catch (e) {
+      showToast('Sin acceso al micrófono: dale permiso en el navegador', 'error');
+      return;
+    }
+    recording = true;
+    updateVideoBtn();
+    const overlay = document.getElementById('prompter');
+    const count = document.getElementById('prompterCount');
+    const clock = document.getElementById('prompterTime');
+    overlay.classList.remove('live');
+    clock.textContent = 'Preparando…';
+    document.getElementById('prompterLine').textContent = '';
+    document.getElementById('prompterNext').textContent = '';
+    prompterKey = '';
+    overlay.hidden = false;
+    document.body.classList.add('zoom-open');
+    let cancelled = false;
+    const cancel = () => { cancelled = true; };
+    const onKey = (e) => { if (e.key === 'Escape') cancel(); };
+    document.getElementById('prompterStop').onclick = cancel;
+    document.addEventListener('keydown', onKey);
+    try {
+      const script = { ...state.script };
+      // Con la apertura o sin ella, como esté marcado: se apunta para colocar la voz.
+      const prep = await window.StudioVideo.prepare(videoData(m), script, { intro: document.getElementById('videoIntro').checked });
+      const canvas = document.getElementById('prompterCanvas');
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(canvas.width / prep.W, 0, 0, canvas.height / prep.H, 0, 0);
+      prep.draw(ctx, 0);
+      updatePrompterText(prep.words, PROMPT_LEAD);
+      for (const n of [3, 2, 1]) {
+        if (cancelled) break;
+        count.textContent = n;
+        clock.textContent = 'Empieza en…';
+        await new Promise(r => setTimeout(r, 1000));
+      }
+      count.textContent = '';
+      if (cancelled) return;
+      const mime = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/webm', 'audio/ogg;codecs=opus']
+        .find(x => MediaRecorder.isTypeSupported(x));
+      const rec = new MediaRecorder(stream, mime ? { mimeType: mime, audioBitsPerSecond: 128000 } : {});
+      const chunks = [];
+      rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+      const started = new Promise(r => { rec.onstart = r; });
+      const stopped = new Promise(r => { rec.onstop = r; });
+      rec.start(250);
+      await started;
+      const t0 = performance.now();
+      overlay.classList.add('live');
+      await new Promise((resolve) => {
+        const tick = () => {
+          const t = (performance.now() - t0) / 1000;
+          // Lo que ves va un poco adelantado: lees la palabra cuando se ilumina y la dices un
+          // instante después, justo con su subtítulo.
+          prep.draw(ctx, Math.min(t + PROMPT_LEAD, prep.duration));
+          updatePrompterText(prep.words, t + PROMPT_LEAD);
+          clock.textContent = `Grabando · ${Math.floor(Math.min(t, prep.duration))} / ${Math.round(prep.duration)} s`;
+          if (cancelled || t >= prep.duration) resolve();
+          else requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      });
+      rec.stop();
+      await stopped;
+      if (cancelled) {
+        showToast('Grabación cancelada');
+        return;
+      }
+      const blob = new Blob(chunks, { type: rec.mimeType || mime || 'audio/webm' });
+      // Lo que aún llegue tarde (la reacción, el arranque del micro), se adelanta solo.
+      let lag = 0;
+      try { lag = await window.StudioVideo.measureVoiceLag(blob, prep.words); } catch (e) { console.warn('Sincronía:', e); }
+      const shift = -Math.round(lag / SYNC_STEP) * SYNC_STEP;
+      setVoice({ blob, gameId: m.id, script, lead: prep.lead, shift, autoShift: shift });
+      document.getElementById('videoVoice').checked = true;
+      saveVoice();
+      showToast(shift ? `Voz grabada · la he movido ${syncText(shift)} para que vaya con los subtítulos` : 'Voz grabada · escúchala y crea el vídeo', 'success');
+    } catch (e) {
+      console.error('Grabar voz:', e);
+      showToast(`No se pudo grabar: ${e.message}`, 'error');
+    } finally {
+      stream.getTracks().forEach(tr => tr.stop());
+      document.removeEventListener('keydown', onKey);
+      overlay.hidden = true;
+      overlay.classList.remove('live');
+      document.body.classList.remove('zoom-open');
+      recording = false;
+      updateVideoBtn();
+    }
+  }
+
+  // ----------------------------------------------------------
   // BORRADORES · el partido, sus retoques y las fotos subidas se guardan en este navegador
   // (IndexedDB): si se recarga la página, al volver está todo como estaba.
   // ----------------------------------------------------------
@@ -1773,6 +2384,7 @@
       savedAt: Date.now(),
       match: state.rendered,
       jugadorId: state.jugadorId,
+      script: state.scriptGame === state.rendered.id ? state.script : null,
       edits: slideEdits(),
     });
     try { localStorage.removeItem(PENDING_KEY); } catch (e) { /* sin almacenamiento */ }
@@ -1822,6 +2434,8 @@
       if (!d?.match || state.rendered || state.generating) return;
       state.rendered = d.match;
       state.jugadorId = d.jugadorId || null;
+      state.script = d.script || null;
+      state.scriptGame = d.script ? d.match.id : null;
       renderSlides(d.match);
       applyEdits(d.edits);
       const late = takePending(d.match.id, d.savedAt);
@@ -1830,6 +2444,8 @@
         saveDraft();
       }
       afterRender(d.match);
+      const savedVoice = await dbGet('drafts', 'voice');
+      if (savedVoice?.blob && savedVoice.gameId === d.match.id) setVoice(savedVoice);
       const status = document.getElementById('draftStatus');
       status.textContent = `Recuperado del borrador · ${new Date(d.savedAt).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`;
       status.hidden = false;
@@ -2224,7 +2840,7 @@
   function generateCaption(m) {
     const c = compOf(m.league);
     const pens = pensWon(m) ? ` (${m.home.shootout}-${m.away.shootout} pen.)` : '';
-    const goals = ['home', 'away'].map(s => scorerLines(m, s).filter(l => !l.includes('<i')).join(', ')).filter(Boolean);
+    const goals = ['home', 'away'].map(s => scorerList(m, s).filter(x => !x.red).map(x => x.text).join(', ')).filter(Boolean);
     const best = bestPlayer(m);
     const tag = (t) => `#${t.short.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]/g, '')}`;
     return `⚽ ${m.home.name.toUpperCase()} ${m.home.score}-${m.away.score} ${m.away.name.toUpperCase()}${pens}
@@ -2275,6 +2891,21 @@ Desliza para ver el minuto a minuto, las estadísticas, el mapa de tiros y los o
     document.getElementById('downloadVerticalBtn').addEventListener('click', () => downloadCarousel(true));
     document.getElementById('shareCarouselBtn').addEventListener('click', shareCarousel);
     updateShareBtn();
+
+    // El vídeo: guion, voz, volumen
+    document.getElementById('videoBtn').addEventListener('click', makeVideo);
+    document.getElementById('videoShareBtn').addEventListener('click', shareVideo);
+    document.getElementById('scriptLines').addEventListener('input', onScriptInput);
+    document.getElementById('scriptResetBtn').addEventListener('click', resetScript);
+    document.getElementById('voiceRecBtn').addEventListener('click', recordVoice);
+    document.getElementById('voiceDelBtn').addEventListener('click', dropVoice);
+    document.getElementById('voiceSync').addEventListener('input', onSyncInput);
+    document.getElementById('voiceSyncAuto').addEventListener('click', autoSync);
+    ['musicVol', 'voiceVol', 'videoMusic', 'videoVoice', 'videoIntro'].forEach(id => document.getElementById(id).addEventListener('input', mixChanged));
+    document.getElementById('mixResetBtn').addEventListener('click', resetMix);
+    document.getElementById('mixPreviewBtn').addEventListener('click', previewMix);
+    loadMix();
+    updateVideoBtn();
 
     const preview = document.getElementById('slidesPreview');
     setupSlideEditing(preview);

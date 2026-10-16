@@ -6,13 +6,14 @@
 // 20-9-2026 con el Atlético-Real Madrid, la de Champions del 14-10-2026 con el Roma 3-4 Real
 // Madrid, el LASK 3-6 Liverpool y el City 2-4 PSG, un Depor-Levante en juego y partidos sin
 // empezar) y html2canvas y JSZip, de node_modules:
-//   npm install --no-save playwright-core@1 html2canvas@1.4.1 jszip@3.10.1
+//   npm install --no-save playwright-core@1 html2canvas@1.4.1 jszip@3.10.1 mp4-muxer@5.2.1
 // En CI usa el Chrome del runner (CHROME_PATH); en local, el Playwright instalado.
 //
 // Comprueba: las competiciones, la lista de partidos y su estado, generar el carrusel (las 8
 // slides, el titular, el minuto a minuto sin tarjetas pisadas, los onces, la clasificación),
 // la firma, el jugador del partido, retocar textos, el borrador al recargar, el ZIP 4:5 y 9:16,
-// compartir, un partido en juego, uno sin alineaciones ni clasificación, el móvil y abierto como
+// compartir, el vídeo (guion, grabar la voz con el micrófono de prueba, la mezcla y el MP4), un
+// partido en juego, uno sin alineaciones ni clasificación, el móvil y abierto como
 // archivo (con doble clic en index.html, que es como se usa).
 import { spawn, execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
@@ -35,11 +36,15 @@ async function loadChromium() {
 }
 
 const LIBS = {};
-for (const [key, path] of [['html2canvas', 'html2canvas/dist/html2canvas.min.js'], ['jszip', 'jszip/dist/jszip.min.js']]) {
+for (const [key, path] of [
+  ['html2canvas', 'html2canvas/dist/html2canvas.min.js'],
+  ['jszip', 'jszip/dist/jszip.min.js'],
+  ['mp4-muxer', 'mp4-muxer/build/mp4-muxer.js'], // el mismo que sirve jsDelivr, sin minificar
+]) {
   try {
     LIBS[key] = readFileSync(join(REPO, 'node_modules', path));
   } catch (e) {
-    console.error(`Falta ${key}: npm install --no-save html2canvas@1.4.1 jszip@3.10.1`);
+    console.error(`Falta ${key}: npm install --no-save html2canvas@1.4.1 jszip@3.10.1 mp4-muxer@5.2.1`);
     process.exit(1);
   }
 }
@@ -53,7 +58,11 @@ for (let i = 0; i < 50; i++) {
 }
 
 const chromium = await loadChromium();
-const browser = await chromium.launch(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {});
+const browser = await chromium.launch({
+  ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}),
+  // Micrófono de mentira (un pitido) y sin preguntar: para probar la grabación de la voz.
+  args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'],
+});
 const failures = [];
 const errors = [];
 const check = (ok, msg) => {
@@ -233,6 +242,44 @@ try {
   await page.waitForFunction(() => /Toca para compartir/.test(document.querySelector('#shareCarouselBtn .label').textContent), null, { timeout: 120000 });
   await page.click('#shareCarouselBtn');
   check((await page.evaluate(() => window.__shared))[0] === 8, 'compartir manda las 8 imágenes');
+
+  // ── El vídeo: guion automático, grabar la voz, la mezcla y el MP4 ──
+  const script = await page.$$eval('#scriptLines .script-line', (ls) => ls.map((l) => [l.dataset.scene, l.querySelector('textarea').value, l.querySelector('.script-fit').className]));
+  check(script.map(([id]) => id).join(',') === 'score,goals,tiros,jugador,stats,tabla,outro', `guion: una frase por escena (${script.map(([id]) => id).join(', ')})`);
+  check(script[0][1] === 'Remontada del Real Madrid: 4-3 a la Roma.' && /Malen marca dos/.test(script[1][1]), `y escrita con los datos (${script[0][1]} · ${script[1][1]})`);
+  check(script.every(([, , cls]) => /ok/.test(cls)), 'todas caben a ritmo normal');
+  await page.fill('#scriptLines textarea[data-scene="outro"]', '¿Mbappé o Malen?');
+  await page.waitForTimeout(700);
+
+  await page.click('#voiceRecBtn');
+  await page.waitForFunction(() => document.getElementById('prompter').classList.contains('live'), null, { timeout: 20000 });
+  await page.waitForTimeout(2500);
+  const prompter = await page.evaluate(() => ({ now: document.querySelector('#prompterLine .now')?.textContent || '', time: document.getElementById('prompterTime').textContent }));
+  check(/Grabando/.test(prompter.time) && prompter.now !== '', `teleprompter: resalta la palabra que toca («${prompter.now}» · ${prompter.time})`);
+  await page.waitForFunction(() => document.getElementById('prompter').hidden, null, { timeout: 60000 });
+  check(!(await page.$eval('#voicePlayer', (a) => a.hidden)) && await page.$eval('#videoVoice', (c) => c.checked)
+    && !(await page.$eval('#voiceSyncRow', (r) => r.hidden)), 'al acabar, la voz se escucha, va en el vídeo y sale la barra de sincronía');
+
+  await page.click('#mixPreviewBtn');
+  await page.waitForFunction(() => !document.getElementById('mixPlayer').hidden, null, { timeout: 60000 });
+  check(true, '«Escuchar la mezcla» prepara el sonido');
+
+  await page.click('#videoBtn');
+  await page.waitForFunction(() => !document.getElementById('videoOut').hidden || /No se pudo/.test(document.getElementById('toast').textContent), null, { timeout: 400000 });
+  const video = await page.evaluate(async () => {
+    const v = document.getElementById('videoPreview');
+    if (!v.src) return { toast: document.getElementById('toast').textContent };
+    await new Promise((r) => (v.readyState >= 1 ? r() : v.addEventListener('loadedmetadata', r, { once: true })));
+    return { name: document.getElementById('videoDlBtn').download, duration: v.duration, meta: document.getElementById('videoMeta').textContent, toast: document.getElementById('toast').textContent };
+  });
+  check(/^futbol-roma-rma-2026-10-14-short\.(mp4|webm)$/.test(video.name || ''), `vídeo: ${video.name} (${video.toast})`);
+  check(video.duration > 33 && video.duration < 34.2, `dura unos 33,6 s: apertura, 6 escenas y el cierre (${video.duration?.toFixed(1)} s)`);
+  check(video.meta === 'Lleva tu voz, música, subtítulos y la apertura con los escudos.', `lleva todo (${video.meta})`);
+  await page.reload();
+  await page.waitForSelector('#slide-portada');
+  await page.waitForTimeout(500);
+  check(!(await page.$eval('#voicePlayer', (a) => a.hidden)) && await page.inputValue('#scriptLines textarea[data-scene="outro"]') === '¿Mbappé o Malen?',
+    'al recargar siguen la voz y el guion retocado');
 
   // ── LASK 3-6 Liverpool: goleada y defensa de 5 ──
   await pickDate(page, '2026-10-14');

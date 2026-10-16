@@ -23,6 +23,6 @@ jobs:
 
       - name: Test the Studio in the browser
         run: |
-          npm install --no-save --no-package-lock --silent playwright-core@1 html2canvas@1.4.1 jszip@3.10.1
+          npm install --no-save --no-package-lock --silent playwright-core@1 html2canvas@1.4.1 jszip@3.10.1 mp4-muxer@5.2.1
           export CHROME_PATH="$(command -v google-chrome || command -v chromium)"
           node tests/test_futbol.mjs

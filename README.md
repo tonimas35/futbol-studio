@@ -1,6 +1,6 @@
 # Studio Fútbol
 
-Mi herramienta para hacer carruseles de fútbol: eliges competición, día y partido, y sale un carrusel de 8 slides (1080×1350) para Instagram o TikTok con los datos de ESPN. Se retoca en la propia página y se descarga en PNG o ZIP.
+Mi herramienta para hacer contenido de fútbol: eliges competición, día y partido, y sale un carrusel de 8 slides (1080×1350) para Instagram o TikTok y un vídeo short con música, subtítulos y tu voz, con los datos de ESPN. Se retoca en la propia página y se descarga en PNG, ZIP o MP4.
 
 Es solo para mí: no es una web publicada. Se abre en el navegador desde el propio ordenador.
 
@@ -37,6 +37,30 @@ Para tener la última versión, vuelve a descargarlo o haz `git pull`. El borrad
 
 El carrusel, sus retoques y las fotos subidas se guardan solos en el navegador (IndexedDB) y vuelven al abrir la página.
 
+## El vídeo short (paso 4)
+
+El partido en unos 30 segundos, en 1080×1920 para TikTok, Reels y Shorts, con música, subtítulos y, si quieres, tu voz.
+
+- **Escenas:**
+  - **Apertura (1,6 s):** los dos escudos entran desde los lados y chocan en el centro. Se quita con «Apertura con los escudos».
+  - **Marcador:** cada equipo en su mitad, con los goleadores y el titular de la portada en la cinta.
+  - **Los goles:** la línea del partido baja minuto a minuto y cada gol, roja o penalti fallado salta cuando llega a su minuto. Arriba, el marcador cambia con cada gol. Con más goles, la escena dura más.
+  - **Mapa de tiros:** el campo en vertical. Cada balón sale de donde se tiró y vuela a la portería: el gol mueve la red, la parada rebota y el que va fuera se pierde. Los contadores suben con los tiros.
+  - **Jugador del partido:** su foto (o su dorsal) y sus 3 números.
+  - **Estadísticas:** posesión, tiros, a puerta, pases y córners, una fila por pulso.
+  - **Clasificación:** las filas entran una a una, con los dos equipos marcados.
+  - **Cierre:** la pregunta del cierre y tu firma.
+  - Las escenas sin datos no salen.
+- **Música (`audio.js`):** propia, sintetizada en el navegador y sin derechos de autor. Es una base de 150 BPM con un efecto por animación (el golpe del marcador, cada gol, cada tiro…) y va a tiempo: cada escena dura compases enteros.
+- **Guion y subtítulos:** el Studio escribe una frase por escena con los datos del partido («Remontada del Real Madrid: 4-3 a la Roma.»). Se retoca en el paso 4 y cada frase avisa si no cabe a ritmo normal; «↺ Automático» la vuelve a escribir. Los subtítulos salen de dos en dos o de tres en tres palabras, con la que suena en verde lima. Se quitan con «Subtítulos».
+- **Tu voz:** «Grabar mi voz» abre un teleprompter con el vídeo en directo y la frase que toca, tras una cuenta atrás de 3 s.
+  - El teleprompter va 0,2 s por delante.
+  - Al acabar, el Studio mide cuánto llega tarde tu voz y la adelanta.
+  - La barra «Sincronía» la afina a mano.
+  - En el vídeo, la música baja a un tercio mientras hablas.
+- **Volumen:** las barras «Música» y «Tu voz» (se recuerdan) y «Escuchar la mezcla», que crea solo el sonido en un par de segundos.
+- **El archivo:** MP4 (H.264 + AAC) codificado en el navegador con WebCodecs y `mp4-muxer`. Si el navegador no tiene H.264, sale en VP9 y avisa; con Chrome sale en H.264. También se puede bajar la música sola en WAV.
+
 ## Datos y ajustes
 
 - **ESPN**, sin claves ni servidor (tiene CORS abierto, así que funciona abriendo el archivo):
@@ -51,7 +75,9 @@ El carrusel, sus retoques y las fotos subidas se guardan solos en el navegador (
 | Archivo | Qué es |
 |---|---|
 | `index.html` | La página |
-| `futbol.js` | Todo: datos de ESPN, slides, retoques, borradores, descargas |
+| `futbol.js` | Datos de ESPN, slides, retoques, borradores, descargas, y el guion, la voz y el volumen del vídeo |
+| `video.js` | El vídeo: las escenas, los subtítulos, la mezcla con tu voz y la codificación |
+| `audio.js` | La música y los efectos del vídeo |
 | `futbol.css` | La interfaz y las slides (`.fc`); el grano de las slides va dentro, en base64, para que la descarga funcione abriendo el archivo |
 | `tests/` | Las pruebas y los datos de ESPN que usan |
 
@@ -62,11 +88,11 @@ El carrusel, sus retoques y las fotos subidas se guardan solos en el navegador (
   - Champions del 14-10-2026 (Roma 3-4 Real Madrid, LASK 3-6 Liverpool, City 2-4 PSG);
   - un Depor-Levante en juego y partidos sin empezar.
 
-  Prueba las competiciones, la lista, las 8 slides, el minuto a minuto sin solapes, la firma, el jugador del partido, el borrador, el ZIP, el 9:16, compartir, un partido en juego, uno con pocos datos, el móvil y el Studio abierto como archivo (generar, descargar y recuperar el borrador).
+  Prueba las competiciones, la lista, las 8 slides, el minuto a minuto sin solapes, la firma, el jugador del partido, el borrador, el ZIP, el 9:16, compartir, el vídeo (guion, grabar la voz con un micrófono de prueba, la mezcla y el MP4), un partido en juego, uno con pocos datos, el móvil y el Studio abierto como archivo (generar, descargar y recuperar el borrador).
 
 Corre sola en cada push y PR (`.github/workflows/tests.yml`). En local:
 
 ```
-npm install --no-save playwright-core@1 html2canvas@1.4.1 jszip@3.10.1
+npm install --no-save playwright-core@1 html2canvas@1.4.1 jszip@3.10.1 mp4-muxer@5.2.1
 node tests/test_futbol.mjs
 ```

@@ -12,11 +12,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700;800&family=Manrope:wght@400;500;600;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700;800&family=Manrope:wght@400;500;600;700&family=Montserrat:wght@900&display=swap"
     rel="stylesheet"
   />
 
-  <link rel="stylesheet" href="futbol.css?v=1" />
+  <link rel="stylesheet" href="futbol.css?v=2" />
 </head>
 
 <body>
@@ -109,13 +109,117 @@
       <div class="slides-preview" id="slidesPreview"></div>
     </section>
 
+    <!-- Paso 4: el vídeo short -->
+    <section class="section">
+      <div class="section-head">
+        <p class="section-eyebrow">PASO 4</p>
+        <h2 class="section-title">El vídeo <em>short</em></h2>
+        <p class="section-sub">El partido en unos 30 segundos, en vertical (1080×1920) para TikTok, Reels y Shorts. Abre con los dos escudos chocando y lleva música propia, sin derechos de autor, a tiempo con las animaciones. Usa el titular de la portada, la pregunta del cierre y tu firma.</p>
+      </div>
+
+      <!-- Guion: una frase por escena, para los subtítulos y para grabar tu voz -->
+      <div class="script-box" id="scriptBox" hidden>
+        <div class="script-head">
+          <div>
+            <h3 class="script-title">Guion</h3>
+            <p class="script-sub">Una frase por escena: sale en los subtítulos y es lo que lees si grabas tu voz. Escríbela como la dirías.</p>
+          </div>
+          <div class="script-tools">
+            <button class="slide-reset-btn script-reset" id="scriptResetBtn" type="button" title="Volver al guion automático">↺ Automático</button>
+          </div>
+        </div>
+        <ol class="script-lines" id="scriptLines"></ol>
+        <div class="voice-row">
+          <button class="btn btn-ghost" id="voiceRecBtn" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1"/><line x1="12" x2="12" y1="18" y2="22"/>
+            </svg>
+            <span class="label">Grabar mi voz</span>
+          </button>
+          <audio id="voicePlayer" controls hidden></audio>
+          <button class="slide-reset-btn voice-del" id="voiceDelBtn" type="button" hidden>Quitar la voz</button>
+          <div class="voice-sync" id="voiceSyncRow" hidden>
+            <label class="mix-slider" title="Si tu voz va detrás de los subtítulos, muévela antes (a la izquierda)"><span>Sincronía</span><input type="range" id="voiceSync" min="-1" max="0.5" step="0.05" value="0" /><output id="voiceSyncOut">sin mover</output></label>
+            <button class="slide-reset-btn voice-del" id="voiceSyncAuto" type="button" title="Volver al ajuste que calculó el Studio al grabar">Auto</button>
+          </div>
+          <p class="voice-status" id="voiceStatus"></p>
+        </div>
+      </div>
+
+      <div class="actions-row">
+        <button class="btn btn-primary" id="videoBtn" disabled>
+          <span class="label">Crear vídeo</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="6 4 20 12 6 20 6 4"/>
+          </svg>
+        </button>
+        <label class="check"><input type="checkbox" id="videoMusic" checked /> Con música</label>
+        <label class="check"><input type="checkbox" id="videoSubs" checked /> Subtítulos</label>
+        <label class="check"><input type="checkbox" id="videoIntro" checked /> Apertura con los escudos</label>
+        <label class="check" id="videoVoiceLabel" hidden><input type="checkbox" id="videoVoice" checked /> Con mi voz</label>
+      </div>
+
+      <!-- Volumen: por defecto, como suena siempre; las barras se recuerdan en este navegador -->
+      <div class="mix-row">
+        <label class="mix-slider"><span>Música</span><input type="range" id="musicVol" min="0" max="100" step="5" value="100" /><output id="musicVolOut">100%</output></label>
+        <label class="mix-slider" id="voiceVolLabel" hidden><span>Tu voz</span><input type="range" id="voiceVol" min="0" max="150" step="5" value="100" /><output id="voiceVolOut">100%</output></label>
+        <button class="btn btn-ghost" id="mixPreviewBtn" type="button" disabled>
+          <span class="label">Escuchar la mezcla</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/>
+          </svg>
+        </button>
+        <button class="slide-reset-btn mix-reset" id="mixResetBtn" type="button" hidden>↺ Por defecto</button>
+        <audio id="mixPlayer" controls hidden></audio>
+      </div>
+
+      <div class="video-out" id="videoOut" hidden>
+        <video id="videoPreview" controls playsinline loop></video>
+        <p class="video-meta" id="videoMeta"></p>
+        <a class="btn btn-ghost" id="videoDlBtn" download>
+          Descargar vídeo
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>
+          </svg>
+        </a>
+        <button class="btn btn-primary" id="videoShareBtn" type="button" hidden>
+          Compartir
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/>
+          </svg>
+        </button>
+        <a class="btn btn-ghost" id="audioDlBtn" download hidden>
+          Solo la música (WAV)
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+          </svg>
+        </a>
+      </div>
+    </section>
+
   </main>
+
+  <!-- TELEPROMPTER · para grabar tu voz: el vídeo en directo con sus subtítulos y el guion al lado -->
+  <div class="prompter" id="prompter" hidden>
+    <div class="prompter-stage">
+      <canvas id="prompterCanvas" width="540" height="960"></canvas>
+      <div class="prompter-count" id="prompterCount" aria-live="assertive"></div>
+    </div>
+    <div class="prompter-side">
+      <p class="prompter-rec"><span class="dot" aria-hidden="true"></span><span id="prompterTime">Preparando…</span></p>
+      <p class="prompter-line" id="prompterLine"></p>
+      <p class="prompter-next" id="prompterNext"></p>
+      <button class="btn btn-ghost" id="prompterStop" type="button">Parar</button>
+    </div>
+  </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 
-  <script src="futbol.js?v=1"></script>
+  <script src="audio.js?v=1"></script>
+  <script src="video.js?v=1"></script>
+  <script src="futbol.js?v=2"></script>
 </body>
 </html>
