@@ -4,8 +4,11 @@
 //
 // Sin red: ESPN sale de tests/fixtures (datos reales de ESPN: la jornada de LaLiga del
 // 20-9-2026 con el Atlético-Real Madrid, la de Champions del 14-10-2026 con el Roma 3-4 Real
-// Madrid, el LASK 3-6 Liverpool y el City 2-4 PSG, un Depor-Levante en juego y partidos sin
-// empezar) y html2canvas y JSZip, de node_modules:
+// Madrid, el LASK 3-6 Liverpool y el City 2-4 PSG, un Depor-Levante en juego, partidos sin
+// empezar, la final del Mundial 2026, la vuelta del Flamengo-Independiente del Valle de la
+// Libertadores, una eliminatoria de la Copa del Rey sin datos, el Lech-Leverkusen de la Europa
+// League con su clasificación aparte y el Osnabrück-Bayern de la Copa de Alemania) y
+// html2canvas y JSZip, de node_modules:
 //   npm install --no-save playwright-core@1 html2canvas@1.4.1 jszip@3.10.1 mp4-muxer@5.2.1
 // En CI usa el Chrome del runner (CHROME_PATH); en local, el Playwright instalado.
 //
@@ -13,8 +16,9 @@
 // slides, el titular, el minuto a minuto sin tarjetas pisadas, los onces, la clasificación),
 // la firma, el jugador del partido, retocar textos, el borrador al recargar, el ZIP 4:5 y 9:16,
 // compartir, el vídeo (guion, grabar la voz con el micrófono de prueba, la mezcla y el MP4),
-// «Para tu IA» (copiar y pegar), un partido en juego, uno sin alineaciones ni clasificación, el móvil y abierto como
-// archivo (con doble clic en index.html, que es como se usa).
+// «Para tu IA» (copiar y pegar), un partido en juego, uno sin alineaciones ni clasificación,
+// las eliminatorias (campeón, global, quién pasa), saltar a un día con partidos, el móvil y
+// abierto como archivo (con doble clic en index.html, que es como se usa).
 import { spawn, execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -69,6 +73,7 @@ const check = (ok, msg) => {
   console.log(`${ok ? 'OK  ' : 'FAIL'} ${msg}`);
   if (!ok) failures.push(msg);
 };
+const PIXEL = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64');
 const json = (body, status = 200) => ({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body });
 
 // strip: claves que se quitan del resumen de ESPN (para probar un partido con menos datos)
@@ -86,12 +91,17 @@ async function open({ strip = [], viewport = { width: 1280, height: 900 }, url =
     const u = new URL(r.request().url());
     const parts = u.pathname.split('/');
     const summary = u.pathname.endsWith('/summary');
-    const file = summary ? `sum-${u.searchParams.get('event')}.json` : `sb-${parts[parts.length - 2]}-${u.searchParams.get('dates')}.json`;
+    const league = parts[parts.length - 2];
+    // El resumen de un partido, la clasificación aparte o la jornada (sin fecha: la de ahora, con el calendario)
+    const file = summary ? `sum-${u.searchParams.get('event')}.json`
+      : u.pathname.endsWith('/standings') ? `st-${league}.json` : `sb-${league}-${u.searchParams.get('dates') || 'cal'}.json`;
     if (!existsSync(join(FIX, file))) return r.fulfill(summary ? { status: 404, headers: { 'access-control-allow-origin': '*' }, body: '' } : json('{"events":[]}'));
     const data = JSON.parse(readFileSync(join(FIX, file)));
     strip.forEach((k) => delete data[k]);
     return r.fulfill(json(JSON.stringify(data)));
   });
+  // Los logos de las competiciones, una imagen de 1 px (el resto de la red, cortada)
+  await ctx.route('https://a.espncdn.com/i/leaguelogos/**', (r) => r.fulfill({ status: 200, contentType: 'image/png', headers: { 'access-control-allow-origin': '*' }, body: PIXEL }));
   await ctx.route('https://cdn.jsdelivr.net/**', (r) => {
     const key = Object.keys(LIBS).find((k) => r.request().url().includes(`/${k}@`));
     return key ? r.fulfill({ status: 200, contentType: 'application/javascript', body: LIBS[key] }) : r.abort();
@@ -128,7 +138,9 @@ try {
 
   // ── Competiciones ──
   const chips = await page.$$eval('.comp-chip', (cs) => cs.map((c) => [c.dataset.league, c.getAttribute('aria-checked')]));
-  check(chips.length >= 25 && chips.find(([l]) => l === 'esp.1')[1] === 'true', `${chips.length} competiciones y LaLiga marcada por defecto`);
+  check(chips.length >= 40 && chips.find(([l]) => l === 'esp.1')[1] === 'true', `${chips.length} competiciones y LaLiga marcada por defecto`);
+  await page.waitForFunction(() => [...document.querySelectorAll('.comp-chip img')].every((i) => i.complete), null, { timeout: 10000 }).catch(() => {});
+  check(await page.$$eval('.comp-chip img', (i) => i.length) >= 35, `con el logo de cada competición (${await page.$$eval('.comp-chip img', (i) => i.length)})`);
 
   // ── Lista de partidos y su estado ──
   await pickDate(page, '2026-09-20');
@@ -333,6 +345,55 @@ try {
     check(n2.join(',') === 'Portada,Minuto a minuto,Estadísticas,Cierre', `sin esos datos, solo las slides que se pueden hacer: ${n2.join(', ')}`);
     check(await p2.textContent('#slide-portada h1') === 'El Atlético gana por la mínima', `y el titular sale igual: ${await p2.textContent('#slide-portada h1')}`);
     await c2.close();
+  }
+
+  // ── Eliminatorias, finales y competiciones con pocos datos ──
+  {
+    const { ctx: c5, page: p5 } = await open();
+    const tie = async (sel) => p5.textContent(sel).catch(() => '');
+    // Un día sin partidos: botones al día con partidos más cercano (el Mundial, a la final)
+    await pickLeague(p5, 'fifa.world');
+    await p5.waitForSelector('.day-jump', { timeout: 10000 }).catch(() => {});
+    const jumps = await p5.$$eval('.day-jump', (b) => b.map((x) => x.dataset.day));
+    check(jumps.includes('2026-07-19'), `sin partidos ese día: salta al más cercano (${jumps.join(', ')})`);
+    await p5.click('.day-jump[data-day="2026-07-19"]');
+    await p5.waitForSelector('.game-card[data-game-id="760517"]', { timeout: 10000 });
+    await generate(p5, '760517');
+    check(await tie('#slide-portada h1') === 'España, campeona' && /Mundial · Final/.test(await tie('#slide-portada .comp')),
+      `la final del Mundial: «${await tie('#slide-portada h1')}» (${await tie('#slide-portada .comp')})`);
+    const crono5 = await p5.$$eval('#slide-crono .ht', (h) => h.map((x) => x.textContent));
+    check(crono5.includes('Prórroga') && crono5.includes('Final · 1-0'), `con prórroga en el minuto a minuto (${crono5.join(' | ')})`);
+
+    // La vuelta de una eliminatoria: el global y quién pasa
+    await pickLeague(p5, 'conmebol.libertadores');
+    await pickDate(p5, '2026-09-17');
+    check(await tie('.game-card[data-game-id="401912526"] .game-tie') === 'Cuartos · Vuelta · Global 3-1', `la tarjeta del partido: ${await tie('.game-card[data-game-id="401912526"] .game-tie')}`);
+    await generate(p5, '401912526');
+    check(await tie('#slide-portada h1') === 'El Flamengo pasa a semifinales' && await tie('#slide-portada .agg') === 'Global 3-1',
+      `Libertadores, vuelta: «${await tie('#slide-portada h1')}» · ${await tie('#slide-portada .agg')}`);
+    check(/^El Flamengo pasa a semifinales: 3-1 en el global\./.test(await p5.$eval('#scriptLines textarea', (t) => t.value)), 'y el guion lo cuenta con el global');
+
+    // Copa del Rey sin datos de ESPN: solo la portada y el cierre (nada de «Sin goles» con 3-3)
+    await pickLeague(p5, 'esp.copa_del_rey');
+    await pickDate(p5, '2026-10-11');
+    await generate(p5, '401918758');
+    check((await slideNames(p5)).join(',') === 'Portada,Cierre' && await tie('#slide-portada h1') === 'El Hortaleza pasa la eliminatoria',
+      `copa sin datos: ${(await slideNames(p5)).join(', ')} · «${await tie('#slide-portada h1')}»`);
+
+    // Europa League: la clasificación no viene en el resumen y se pide aparte
+    await pickLeague(p5, 'uefa.europa');
+    await pickDate(p5, '2026-10-15');
+    await generate(p5, '401915576');
+    check((await slideNames(p5)).includes('Clasificación') && /Así va\s*la Europa League/.test(await tie('#slide-tabla h1')),
+      'Europa League: con la clasificación (pedida aparte)');
+
+    // Copa de Alemania: un apellido con «ß» (Meißner) no rompe la descarga
+    await pickLeague(p5, 'ger.dfb_pokal');
+    await pickDate(p5, '2026-09-02');
+    await generate(p5, '401875174');
+    const [zip5] = await Promise.all([p5.waitForEvent('download', { timeout: 90000 }), p5.click('#downloadBtn')]);
+    check(/\.zip$/.test(zip5.suggestedFilename()), `con «ß» en un apellido, el ZIP se descarga (${zip5.suggestedFilename()})`);
+    await c5.close();
   }
 
   // ── Abierto como archivo (doble clic en index.html): genera, guarda y descarga ──
