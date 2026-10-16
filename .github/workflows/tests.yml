@@ -1,7 +1,7 @@
 name: Tests
 
 # El Studio en un navegador de verdad (Chrome del runner) y sin red: ESPN sale de tests/fixtures;
-# html2canvas y JSZip, de npm. Y la red de Access de functions/_middleware.js. ~1 min.
+# html2canvas y JSZip, de npm. También abierto como archivo, como lo usa Toni. ~1 min.
 on:
   pull_request:
   push:
@@ -20,9 +20,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-
-      - name: Test the Access guard
-        run: node tests/test_middleware.mjs
 
       - name: Test the Studio in the browser
         run: |

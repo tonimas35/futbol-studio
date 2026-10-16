@@ -1,8 +1,16 @@
 # Studio Fútbol
 
-El Studio de fútbol de Toni: eliges competición, día y partido, y sale un carrusel de 8 slides (1080×1350) para Instagram o TikTok con los datos de ESPN. Se retoca en la propia página y se descarga en PNG o ZIP.
+Mi herramienta para hacer carruseles de fútbol: eliges competición, día y partido, y sale un carrusel de 8 slides (1080×1350) para Instagram o TikTok con los datos de ESPN. Se retoca en la propia página y se descarga en PNG o ZIP.
 
-Es el hermano del Studio de la NBA de Charly Mate (repo `charlymate-web`). Tiene el mismo diseño y las mismas herramientas, pero va aparte y solo entra Toni.
+Es solo para mí: no es una web publicada. Se abre en el navegador desde el propio ordenador.
+
+## Cómo abrirlo
+
+1. Descarga el repo: en GitHub, **Code → Download ZIP** (y descomprímelo), o `git clone`.
+2. Doble clic en `index.html`. Mejor con Chrome o Edge.
+3. Hace falta internet: los partidos vienen de ESPN y las fuentes, de Google Fonts.
+
+Para tener la última versión, vuelve a descargarlo o haz `git pull`. El borrador, la firma y la competición se guardan en ese navegador.
 
 ## Cómo se usa
 
@@ -29,29 +37,9 @@ Es el hermano del Studio de la NBA de Charly Mate (repo `charlymate-web`). Tiene
 
 El carrusel, sus retoques y las fotos subidas se guardan solos en el navegador (IndexedDB) y vuelven al abrir la página.
 
-## Publicarlo (Cloudflare Pages)
-
-Es una web estática (sin build) más una función de Pages (`functions/_middleware.js`).
-
-1. Cloudflare → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**, y elegir `futbol-studio`. Si no aparece, dar acceso al repo a la app de Cloudflare en GitHub.
-2. **Framework preset:** None. **Build command:** vacío. **Build output directory:** `/`.
-3. **Custom domains:** añadir un subdominio de un dominio de la cuenta, por ejemplo `futbol.charlymate.com`.
-4. Cada push a `main` se publica solo.
-
-## Acceso privado (Cloudflare Access)
-
-Solo entra Toni.
-
-1. Zero Trust → **Access controls** → **Applications** → **Add an application** → **Self-hosted**.
-2. Nombre **Studio Fútbol** y, como destino, el dominio del paso 3 de arriba (por ejemplo `futbol.charlymate.com`).
-3. Una regla *Allow* con *Include → Emails* y el email de Toni.
-4. Se entra con el email y un código que llega de `noreply@notify.cloudflare.com`. «Salir», arriba a la derecha, cierra la sesión (`/cdn-cgi/access/logout`).
-
-**Red por si acaso:** `functions/_middleware.js` no sirve nada que llegue sin el pase de Access (la cabecera `Cf-Access-Jwt-Assertion`). Así, la dirección `futbol-studio.pages.dev`, que Access no cubre, y el dominio antes de crear la aplicación responden «Esta página es privada». Quien protege de verdad es Access.
-
 ## Datos y ajustes
 
-- **ESPN**, sin claves ni Worker (tiene CORS abierto, como en el Studio de la NBA):
+- **ESPN**, sin claves ni servidor (tiene CORS abierto, así que funciona abriendo el archivo):
   - `soccer/<código>/scoreboard?dates=AAAAMMDD` para la lista de partidos;
   - `soccer/<código>/summary?event=<id>` para el partido: `keyEvents` (goles, tarjetas y cambios), `commentary` (el sitio de cada tiro), `boxscore`, `rosters` y `standings`.
 - **Añadir una competición:** buscar su código en ESPN (que `site.api.espn.com/apis/site/v2/sports/soccer/<código>/scoreboard` dé partidos) y añadir una línea en `COMPETITIONS` (`futbol.js`) con el nombre del botón, el de las slides y el hashtag.
@@ -64,9 +52,7 @@ Solo entra Toni.
 |---|---|
 | `index.html` | La página |
 | `futbol.js` | Todo: datos de ESPN, slides, retoques, borradores, descargas |
-| `futbol.css` | La interfaz y las slides (`.fc`) |
-| `grano.png` | El grano de las slides |
-| `functions/_middleware.js` | La red de Access |
+| `futbol.css` | La interfaz y las slides (`.fc`); el grano de las slides va dentro, en base64, para que la descarga funcione abriendo el archivo |
 | `tests/` | Las pruebas y los datos de ESPN que usan |
 
 ## Pruebas
@@ -76,13 +62,11 @@ Solo entra Toni.
   - Champions del 14-10-2026 (Roma 3-4 Real Madrid, LASK 3-6 Liverpool, City 2-4 PSG);
   - un Depor-Levante en juego y partidos sin empezar.
 
-  Prueba las competiciones, la lista, las 8 slides, el minuto a minuto sin solapes, la firma, el jugador del partido, el borrador, el ZIP, el 9:16, compartir, un partido en juego, uno con pocos datos y el móvil.
-- `tests/test_middleware.mjs` prueba la red de Access.
+  Prueba las competiciones, la lista, las 8 slides, el minuto a minuto sin solapes, la firma, el jugador del partido, el borrador, el ZIP, el 9:16, compartir, un partido en juego, uno con pocos datos, el móvil y el Studio abierto como archivo (generar, descargar y recuperar el borrador).
 
-Corren solas en cada push y PR (`.github/workflows/tests.yml`). En local:
+Corre sola en cada push y PR (`.github/workflows/tests.yml`). En local:
 
 ```
 npm install --no-save playwright-core@1 html2canvas@1.4.1 jszip@3.10.1
-node tests/test_middleware.mjs
 node tests/test_futbol.mjs
 ```
