@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Studio Fútbol</title>
+  <meta name="description" content="Área privada de creación de carruseles de fútbol." />
+  <meta name="robots" content="noindex,nofollow" />
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700;800&family=Manrope:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="futbol.css?v=1" />
+</head>
+
+<body>
+
+  <!-- El acceso lo pide Cloudflare Access antes de servir la página (solo Toni). -->
+  <main class="studio-main">
+
+    <header class="studio-header">
+      <div class="studio-brand">
+        <span class="studio-brand-name">Fútbol</span>
+        <span class="studio-brand-sub">Studio</span>
+      </div>
+      <div class="studio-actions">
+        <a class="studio-iconbtn" href="/cdn-cgi/access/logout" aria-label="Salir" title="Cerrar la sesión de Cloudflare">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>
+          </svg>
+          Salir
+        </a>
+      </div>
+    </header>
+
+    <!-- Paso 1: competición, fecha y partido -->
+    <section class="section">
+      <div class="section-head">
+        <p class="section-eyebrow">PASO 1</p>
+        <h2 class="section-title">Elige <em>la competición</em> y el partido</h2>
+        <p class="section-sub">Los partidos de ESPN del día que elijas. Los que aún no han empezado no se pueden generar.</p>
+      </div>
+
+      <div class="comp-picker" id="compPicker" role="radiogroup" aria-label="Competición"></div>
+
+      <div class="date-picker">
+        <input type="date" id="dateInput" class="date-input" aria-label="Fecha" />
+        <div class="date-presets">
+          <button class="date-preset" data-offset="-2" type="button">Antes de ayer</button>
+          <button class="date-preset" data-offset="-1" type="button">Ayer</button>
+          <button class="date-preset" data-offset="0" type="button">Hoy</button>
+        </div>
+      </div>
+
+      <div class="games-grid" id="gamesList"></div>
+    </section>
+
+    <!-- Paso 2: generar y descargar -->
+    <section class="section">
+      <div class="section-head">
+        <p class="section-eyebrow">PASO 2</p>
+        <h2 class="section-title">Genera el <em>carrusel</em></h2>
+        <p class="section-sub" id="selectedGameInfo">Selecciona un partido arriba.</p>
+      </div>
+
+      <div class="actions-row">
+        <button class="btn btn-primary" id="generateBtn" disabled>
+          Generar carrusel
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+          </svg>
+        </button>
+        <button class="btn btn-ghost" id="downloadBtn" disabled>
+          Descargar ZIP
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>
+          </svg>
+        </button>
+        <button class="btn btn-primary" id="shareCarouselBtn" type="button" hidden disabled title="Manda las imágenes a Instagram, Fotos o WhatsApp">
+          <span class="label">Compartir</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/>
+          </svg>
+        </button>
+        <button class="btn btn-ghost" id="downloadVerticalBtn" disabled title="Las mismas slides en 1080×1920 para TikTok, Reels o Stories">
+          ZIP 9:16 · TikTok
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Tu firma: sale abajo a la derecha de cada slide y en el cierre. Se recuerda en este navegador. -->
+      <label class="sign-field">
+        <span>Tu firma</span>
+        <input type="text" id="signInput" maxlength="32" placeholder="@tu_usuario" autocomplete="off" spellcheck="false" />
+        <small>Sale en cada slide y en el cierre. Si la dejas vacía, no sale.</small>
+      </label>
+    </section>
+
+    <!-- Paso 3: retocar -->
+    <section class="section">
+      <div class="section-head">
+        <p class="section-eyebrow">PASO 3</p>
+        <h2 class="section-title">Retoca <em>textos y fotos</em></h2>
+        <p class="section-sub">Toca cualquier texto de una slide y escribe encima. En «Jugador del partido», toca al jugador para poner su foto (se le quita el fondo sola). <strong>↺ original</strong> deshace los textos de esa slide.</p>
+        <p class="rendered-info" id="renderedInfo" hidden></p>
+        <p class="draft-status" id="draftStatus" hidden></p>
+      </div>
+
+      <div class="slides-preview" id="slidesPreview"></div>
+    </section>
+
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+  <script src="futbol.js?v=1"></script>
+</body>
+</html>

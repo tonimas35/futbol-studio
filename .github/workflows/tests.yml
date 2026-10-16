@@ -1,0 +1,31 @@
+name: Tests
+
+# El Studio en un navegador de verdad (Chrome del runner) y sin red: ESPN sale de tests/fixtures;
+# html2canvas y JSZip, de npm. Y la red de Access de functions/_middleware.js. ~1 min.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Test the Access guard
+        run: node tests/test_middleware.mjs
+
+      - name: Test the Studio in the browser
+        run: |
+          npm install --no-save --no-package-lock --silent playwright-core@1 html2canvas@1.4.1 jszip@3.10.1
+          export CHROME_PATH="$(command -v google-chrome || command -v chromium)"
+          node tests/test_futbol.mjs
