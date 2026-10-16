@@ -12,8 +12,8 @@
 // Comprueba: las competiciones, la lista de partidos y su estado, generar el carrusel (las 8
 // slides, el titular, el minuto a minuto sin tarjetas pisadas, los onces, la clasificación),
 // la firma, el jugador del partido, retocar textos, el borrador al recargar, el ZIP 4:5 y 9:16,
-// compartir, el vídeo (guion, grabar la voz con el micrófono de prueba, la mezcla y el MP4), un
-// partido en juego, uno sin alineaciones ni clasificación, el móvil y abierto como
+// compartir, el vídeo (guion, grabar la voz con el micrófono de prueba, la mezcla y el MP4),
+// «Para tu IA» (copiar y pegar), un partido en juego, uno sin alineaciones ni clasificación, el móvil y abierto como
 // archivo (con doble clic en index.html, que es como se usa).
 import { spawn, execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
@@ -281,9 +281,31 @@ try {
   check(!(await page.$eval('#voicePlayer', (a) => a.hidden)) && await page.inputValue('#scriptLines textarea[data-scene="outro"]') === '¿Mbappé o Malen?',
     'al recargar siguen la voz y el guion retocado');
 
+  // ── Para tu IA: copiar el contexto y pegar la respuesta ──
+  await page.click('#aiBriefBtn');
+  const brief = await page.evaluate(() => navigator.clipboard.readText());
+  check(/Studio Fútbol · contexto para tu IA/.test(brief) && /\*\*Partido:\*\* Roma 3 – 4 Real Madrid · Champions League/.test(brief)
+    && /- Marcador \(4,8 s\): Remontada del Real Madrid/.test(brief) && /@toni_futbol/.test(brief), '«Para tu IA» copia qué es el Studio, el partido y el guion');
+  await page.evaluate(() => navigator.clipboard.writeText('Claro, aquí va:\n\n```\nTITULAR: Locura en Roma\n**Los goles:** «Siete goles y Malen, doblete.»\n- Cierre: ¿Te esperabas esto?\n```'));
+  await page.click('#aiPasteBtn');
+  await page.waitForSelector('#aiPasteDialog[open]');
+  await page.click('#aiPasteApply');
+  await page.waitForFunction(() => !document.getElementById('aiPasteDialog').open);
+  const pasted = await page.evaluate(() => ({
+    h1: document.querySelector('#slide-portada h1').textContent,
+    goals: document.querySelector('#scriptLines textarea[data-scene="goals"]').value,
+    outro: document.querySelector('#scriptLines textarea[data-scene="outro"]').value,
+    toast: document.getElementById('toast').textContent,
+  }));
+  check(pasted.h1 === 'Locura en Roma' && pasted.goals === 'Siete goles y Malen, doblete.' && pasted.outro === '¿Te esperabas esto?' && /Colocado/.test(pasted.toast),
+    `«Pegar de tu IA» coloca el titular y las frases del guion (${pasted.toast})`);
+
   // ── LASK 3-6 Liverpool: goleada y defensa de 5 ──
   await pickDate(page, '2026-10-14');
+  let discard = '';
+  page.once('dialog', (dlg) => { discard = dlg.message(); dlg.accept(); });
   await generate(page, '401915415');
+  check(/Se perderán los textos/.test(discard), 'generar otro partido con retoques pregunta antes');
   check(await page.textContent('#slide-portada h1') === 'Exhibición del Liverpool', `LASK-Liverpool: ${await page.textContent('#slide-portada h1')}`);
   const five = await page.$$eval('#slide-onces .pl', (ps) => {
     const rows = {};

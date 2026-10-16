@@ -2309,6 +2309,155 @@
   }
 
   // ----------------------------------------------------------
+  // PARA TU IA · un texto que se copia con qué es el Studio, cómo ayudarte y lo que hay ahora
+  // en pantalla. Lo pegas en Claude (o en tu IA) y «Pegar de tu IA» coloca solo lo que te
+  // proponga: el titular, la pregunta del cierre y las frases del guion. Es copiar y pegar: el
+  // Studio no llama a ninguna IA.
+  // ----------------------------------------------------------
+  const AI_SLIDE_TARGETS = {
+    titular: '#slide-portada .head h1',
+    pregunta: '#slide-cierre .q',
+  };
+
+  function aiBrief() {
+    const lines = [
+      '# Studio Fútbol · contexto para tu IA',
+      '',
+      `Ayudas a Toni${state.sign ? ` (${state.sign})` : ''}, que hace contenido de fútbol en español para Instagram y TikTok. Toni usa su Studio Fútbol, una herramienta en su ordenador que convierte un partido (con los datos de ESPN) en un carrusel de Instagram y un vídeo short. Tú no ves el Studio: Toni te pega aquí lo que hay y después copia tus propuestas de vuelta.`,
+      '',
+      '## Qué hace el Studio',
+      '- Pasos 1 y 2: elige competición (LaLiga, Champions, Premier, Mundial…), día y partido.',
+      '- Paso 3: el carrusel (1080×1350): portada con titular, minuto a minuto, estadísticas, mapa de tiros, los onces, jugador del partido, clasificación y cierre con una pregunta para comentarios. Los textos se retocan a mano.',
+      '- Paso 4: el vídeo short (1080×1920, unos 30 s): una escena por slide. Lleva un guion, una frase por escena, que sale en los subtítulos y que Toni lee si graba su voz.',
+      '',
+      '## Cómo ayudar',
+      '- Español de España: cercano, con gancho y sin exagerar.',
+      '- No te inventes datos: usa los de abajo.',
+      '- Guion: una frase por escena que quepa en su tiempo (unas 2,8 palabras por segundo; las cifras cuentan casi el doble). Escríbelo como se dice en voz alta.',
+      '- Titular de portada: de 2 a 5 palabras, que enganche.',
+      '- Pregunta del cierre: corta y que invite a comentar.',
+      '',
+      '## Cómo responder para pegarlo en el Studio',
+      'Además de lo que expliques, deja un bloque con una línea por cambio, solo las que cambies, con estas etiquetas exactas:',
+      '',
+      '```',
+      'TITULAR: …',
+      'PREGUNTA: …',
+      ...Object.values(SCENE_NAMES).map(n => `${n}: …`),
+      '```',
+      '',
+      'Toni lo copia y en el Studio pulsa «Pegar de tu IA»: cada línea va a su sitio.',
+      '',
+      '## Lo que hay ahora en el Studio',
+    ];
+    const m = state.rendered;
+    if (!m) {
+      lines.push('', 'Aún no hay ningún partido generado.');
+      return lines.join('\n');
+    }
+    const d = videoData(m);
+    const plan = window.StudioVideo?.plan ? window.StudioVideo.plan(d, state.script) : [];
+    const pens = d.home.shootout != null ? ` (${d.home.shootout}-${d.away.shootout} en los penaltis)` : '';
+    lines.push('', `**Partido:** ${d.home.name} ${d.home.score} – ${d.away.score} ${d.away.name}${pens} · ${d.comp} · ${d.date}${d.live ? ` · en juego, ${d.clock}` : ''}`);
+    const goals = (side) => scorerList(m, side).filter(x => !x.red).map(x => x.text);
+    if (m.goals.length) lines.push(`**Goles:** ${d.home.short}: ${goals('home').join(', ') || '—'} · ${d.away.short}: ${goals('away').join(', ') || '—'}`);
+    const reds = m.cards.filter(c => c.red).map(c => `${nameOf(m, c.player, c.name)} (${m[c.side]?.short || ''}, ${c.min.label})`);
+    if (reds.length) lines.push(`**Rojas:** ${reds.join(', ')}`);
+    if (d.stats) lines.push(`**Estadísticas (${d.home.short} – ${d.away.short}):** ${d.stats.map(r => `${r.label} ${r.pct ? `${Math.round(r.v[0])}%-${Math.round(r.v[1])}%` : `${r.v[0]}-${r.v[1]}`}`).join(', ')}`);
+    if (d.shots) lines.push(`**Tiros:** ${d.home.short} ${d.shots.home.total} (${d.shots.home.on} a puerta) · ${d.away.short} ${d.shots.away.total} (${d.shots.away.on} a puerta)`);
+    if (d.jugador) lines.push(`**Jugador del partido:** ${[d.jugador.first, d.jugador.last].filter(Boolean).join(' ')}: ${d.jugador.stats.map(x => (x.label === 'Portería a cero' ? 'portería a cero' : `${x.v} ${x.label.toLocaleLowerCase('es')}`)).join(', ')}`);
+    if (d.table) {
+      const mine = d.table.rows.filter(r => r?.me).map(r => `${r.name} ${r.rank}.º (${r.pts} pts)`);
+      if (mine.length) lines.push(`**Clasificación (${tableName(m)}):** ${mine.join(' · ')}`);
+    }
+    lines.push('', `**Titular de la portada:** ${writtenText(AI_SLIDE_TARGETS.titular) || '—'}`);
+    lines.push(`**Pregunta del cierre:** ${writtenText(AI_SLIDE_TARGETS.pregunta) || '—'}`);
+    if (plan.length) {
+      lines.push('', '**Guion del vídeo** (escena, lo que dura y la frase de ahora):');
+      plan.forEach(sc => {
+        const speed = !sc.words ? '' : sc.speed <= 1.1 ? '' : ' — va deprisa, sobran palabras';
+        lines.push(`- ${SCENE_NAMES[sc.id] || sc.id} (${sc.dur.toLocaleString('es-ES', { maximumFractionDigits: 1 })} s): ${state.script?.[sc.id] || '(sin frase)'}${speed}`);
+      });
+    }
+    return lines.join('\n');
+  }
+
+  async function copyText(textValue) {
+    try {
+      await navigator.clipboard.writeText(textValue);
+      return true;
+    } catch (e) {
+      // Sin permiso para el portapapeles: a la antigua.
+      const area = Object.assign(document.createElement('textarea'), { value: textValue });
+      area.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+      document.body.appendChild(area);
+      area.select();
+      const ok = document.execCommand('copy');
+      area.remove();
+      return ok;
+    }
+  }
+
+  async function copyAiBrief() {
+    document.activeElement?.blur();
+    const ok = await copyText(aiBrief());
+    showToast(ok ? 'Copiado · pégalo en Claude (o en tu IA) y pídele lo que necesites' : 'No se pudo copiar', ok ? 'success' : 'error');
+  }
+
+  // Lo que devuelve la IA: «TITULAR: …», «PREGUNTA: …» y una línea por escena del guion
+  // («Marcador: …»). Acepta viñetas, números, negritas y comillas alrededor.
+  function parseAiReply(textValue) {
+    const scenes = Object.fromEntries(Object.entries(SCENE_NAMES).map(([id, name]) => [plain(name), id]));
+    const out = { slides: {}, script: {} };
+    for (const raw of String(textValue).split(/\r?\n/)) {
+      const line = raw.replace(/\*\*/g, '').replace(/^[\s>*\-•]+/, '').replace(/^\d+\s*[·.)\-]\s*/, '').trim();
+      const mm = line.match(/^([^:：]{2,40}?)\s*[:：]\s*(.+)$/);
+      if (!mm) continue;
+      const label = plain(mm[1].replace(/\(.*?\)/g, ''));
+      const value = mm[2].trim().replace(/^[«"“']+|[»"”']+$/g, '').trim();
+      if (!value || value === '…') continue;
+      if (label === 'titular') out.slides.titular = value;
+      else if (label === 'pregunta' || label === 'preguntadelcierre') out.slides.pregunta = value;
+      else if (scenes[label]) out.script[scenes[label]] = value;
+    }
+    return out;
+  }
+
+  function applyAiReply(textValue) {
+    if (!state.rendered) {
+      showToast('Primero genera un partido', 'error');
+      return;
+    }
+    const { slides, script } = parseAiReply(textValue);
+    const done = [];
+    for (const [key, value] of Object.entries(slides)) {
+      const el = document.querySelector(AI_SLIDE_TARGETS[key]);
+      if (!el) continue;
+      el.textContent = value;
+      el.closest('.slide-wrap')?.classList.add('edited');
+      done.push(key === 'titular' ? 'el titular' : 'la pregunta del cierre');
+    }
+    if (done.length) contentChanged();
+    const fresh = Object.entries(script).filter(([id]) => id in (state.script || {}));
+    if (fresh.length) {
+      state.script = { ...state.script, ...Object.fromEntries(fresh) };
+      renderScript();
+      saveDraft();
+      done.push(fresh.length === 1 ? '1 frase del guion' : `${fresh.length} frases del guion`);
+    }
+    showToast(done.length ? `Colocado: ${listEs(done)}` : 'No he encontrado líneas «TITULAR:», «PREGUNTA:» ni del guion («Marcador: …»)', done.length ? 'success' : 'error');
+  }
+
+  async function openAiPaste() {
+    const dialog = document.getElementById('aiPasteDialog');
+    const area = document.getElementById('aiPasteText');
+    area.value = '';
+    try { area.value = await navigator.clipboard.readText(); } catch (e) { /* sin permiso: lo pegas tú */ }
+    dialog.showModal();
+    area.focus();
+  }
+
+  // ----------------------------------------------------------
   // BORRADORES · el partido, sus retoques y las fotos subidas se guardan en este navegador
   // (IndexedDB): si se recarga la página, al volver está todo como estaba.
   // ----------------------------------------------------------
@@ -2906,6 +3055,13 @@ Desliza para ver el minuto a minuto, las estadísticas, el mapa de tiros y los o
     document.getElementById('mixPreviewBtn').addEventListener('click', previewMix);
     loadMix();
     updateVideoBtn();
+
+    // Para tu IA: copiar el contexto y pegar la respuesta (en el mismo clic de «Colocar»)
+    document.getElementById('aiBriefBtn').addEventListener('click', copyAiBrief);
+    document.getElementById('aiPasteBtn').addEventListener('click', openAiPaste);
+    document.querySelector('#aiPasteDialog form').addEventListener('submit', (e) => {
+      if (e.submitter?.value === 'ok') applyAiReply(document.getElementById('aiPasteText').value);
+    });
 
     const preview = document.getElementById('slidesPreview');
     setupSlideEditing(preview);
