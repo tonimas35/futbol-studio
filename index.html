@@ -16,7 +16,7 @@
     rel="stylesheet"
   />
 
-  <link rel="stylesheet" href="futbol.css?v=2" />
+  <link rel="stylesheet" href="futbol.css?v=3" />
 </head>
 
 <body>
@@ -28,6 +28,14 @@
       <div class="studio-brand">
         <span class="studio-brand-name">Fútbol</span>
         <span class="studio-brand-sub">Studio</span>
+      </div>
+      <div class="studio-actions">
+        <button class="studio-iconbtn" id="aiBriefBtn" type="button" title="Copia qué es el Studio y lo que tienes en pantalla, para pegarlo en Claude o en tu IA">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16z"/>
+          </svg>
+          Para tu IA
+        </button>
       </div>
     </header>
 
@@ -125,6 +133,7 @@
             <p class="script-sub">Una frase por escena: sale en los subtítulos y es lo que lees si grabas tu voz. Escríbela como la dirías.</p>
           </div>
           <div class="script-tools">
+            <button class="slide-reset-btn script-reset" id="aiPasteBtn" type="button" title="Pega lo que te haya propuesto tu IA (lo copiado con «Para tu IA»)">Pegar de tu IA</button>
             <button class="slide-reset-btn script-reset" id="scriptResetBtn" type="button" title="Volver al guion automático">↺ Automático</button>
           </div>
         </div>
@@ -213,6 +222,19 @@
     </div>
   </div>
 
+  <!-- PEGAR DE TU IA · la respuesta de Claude (o de otra IA) con «TITULAR:», «PREGUNTA:» y el guion -->
+  <dialog class="ai-dialog" id="aiPasteDialog">
+    <form method="dialog">
+      <h3 class="script-title">Pegar de tu IA</h3>
+      <p class="script-sub">Pega aquí la respuesta. Las líneas «TITULAR:», «PREGUNTA:» y las del guion («Marcador:», «Los goles:»…) van solas a su sitio; el resto se ignora.</p>
+      <textarea id="aiPasteText" rows="10" spellcheck="false" aria-label="Respuesta de tu IA"></textarea>
+      <div class="ai-dialog-actions">
+        <button class="btn btn-ghost" value="cancel">Cancelar</button>
+        <button class="btn btn-primary" id="aiPasteApply" value="ok">Colocar</button>
+      </div>
+    </form>
+  </dialog>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -220,6 +242,6 @@
 
   <script src="audio.js?v=1"></script>
   <script src="video.js?v=1"></script>
-  <script src="futbol.js?v=2"></script>
+  <script src="futbol.js?v=3"></script>
 </body>
 </html>

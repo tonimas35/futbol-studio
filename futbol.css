@@ -618,6 +618,35 @@ body.zoom-open { overflow: hidden; }
 .sign-field input:focus { outline: none; border-color: var(--accent); }
 .sign-field small { flex: 1 1 260px; color: var(--mute); font-size: 13px; }
 
+/* El botón «Para tu IA», arriba a la derecha */
+.studio-actions { display: flex; gap: 8px; }
+.studio-iconbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 14px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-2);
+  border-radius: 12px;
+  color: var(--mute);
+  font-family: var(--label);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.studio-iconbtn:hover { color: var(--text); border-color: var(--text); }
+/* Pegar de tu IA */
+.ai-dialog { width: min(640px, calc(100vw - 32px)); margin: auto; padding: 22px; background: var(--bg-2); color: var(--text); border: 1px solid var(--line-2); border-radius: var(--radius); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6); }
+.ai-dialog::backdrop { background: rgba(6, 6, 6, 0.75); }
+.ai-dialog textarea { width: 100%; margin-top: 14px; padding: 12px; background: var(--bg-3); border: 1px solid var(--line-2); border-radius: 10px; color: var(--text); font: 500 14px/1.5 var(--body); resize: vertical; }
+.ai-dialog textarea:focus { outline: none; border-color: var(--accent); }
+.ai-dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
+
 /* ─── Paso 4 · el vídeo: guion, voz, volumen, teleprompter ─── */
 /* Vídeo short: el vídeo en vertical y las descargas al lado */
 /* Guion del vídeo: una frase por escena, con su aviso de si cabe */
