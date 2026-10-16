@@ -14,22 +14,26 @@ Para tener la última versión, vuelve a descargarlo o haz `git pull`. El borrad
 
 ## Cómo se usa
 
-1. **Competición:** 28, agrupadas.
+1. **Competición:** 43, cada una con su logo y agrupadas.
    - España: LaLiga, LaLiga Hypermotion, Copa del Rey, Supercopa y Liga F.
-   - Europa: Champions, Europa League y Conference.
-   - Grandes ligas: Premier, Serie A, Bundesliga, Ligue 1, Liga Portugal, Eredivisie, FA Cup y Carabao Cup.
-   - Selecciones: Mundial, Eurocopa, Nations League, la clasificación para el Mundial y amistosos.
-   - América y más: Libertadores, Liga MX, Liga Argentina, Brasileirão, MLS, Liga Saudí y Mundial de Clubes.
+   - Europa: Champions, Europa League, Conference, Supercopa de Europa y Champions femenina.
+   - Inglaterra: Premier, Championship, FA Cup y Carabao Cup.
+   - Italia: Serie A, Serie B y Coppa Italia.
+   - Alemania: Bundesliga, 2. Bundesliga y Copa de Alemania.
+   - Francia: Ligue 1, Ligue 2 y Copa de Francia.
+   - Más ligas: Portugal, Países Bajos, Escocia, Turquía, Bélgica, Arabia Saudí y MLS.
+   - Selecciones: Mundial, Eurocopa, Nations League, Copa América, la clasificación para el Mundial y para la Eurocopa, y amistosos.
+   - América y mundo: Libertadores, Sudamericana, Liga MX, Argentina, Brasileirão y Mundial de Clubes.
    - Se recuerda la última elegida.
-2. **Día y partido:** por defecto, hoy. Los que no han empezado o están aplazados no se pueden generar. Uno en juego sí, avisando de que las slides cuentan el marcador de ese momento.
+2. **Día y partido:** por defecto, hoy. Si ese día no hay partidos de la competición, salen botones para saltar al día con partidos anterior y al siguiente (en el Mundial, por ejemplo, a la última final). Los que no han empezado o están aplazados no se pueden generar. Uno en juego sí, avisando de que las slides cuentan el marcador de ese momento. En las eliminatorias, la tarjeta dice la ronda, si es la ida o la vuelta y el global.
 3. **Generar:** salen las slides. Las que no tienen datos no salen; un amistoso sin alineaciones, por ejemplo, se queda en 4.
-   - **Portada:** el marcador con cada equipo en su mitad, los goleadores y las rojas, y un titular automático: remontada, gol decisivo al final, goleada, festival de goles, por la mínima, empate, penaltis…
-   - **Minuto a minuto:** la línea del partido con los goles (cómo y la asistencia), las rojas, los penaltis fallados y el marcador del descanso. Las tarjetas van junto a su minuto sin pisarse.
+   - **Portada:** el marcador con cada equipo en su mitad, los goleadores y las rojas, el logo de la competición con la ronda (y si es la ida o la vuelta, con el global), y un titular automático: remontada, gol decisivo al final, goleada, festival de goles, por la mínima, empate… En las eliminatorias, lo que importa: «El Flamengo pasa a semifinales», «El Palmeiras pasa en los penaltis», «España, campeona».
+   - **Minuto a minuto:** la línea del partido con los goles (cómo y la asistencia), las rojas, los penaltis fallados y el marcador del descanso. Las tarjetas van junto a su minuto sin pisarse. Si ESPN no tiene los goles (pasa en las primeras rondas de alguna copa), no sale.
    - **Estadísticas:** posesión, tiros, a puerta, pases con su precisión, córners, paradas, faltas y tarjetas. El número peor sale apagado.
    - **Mapa de tiros:** el campo entero. El local tira hacia la izquierda y el visitante hacia la derecha; los goles llevan la línea hasta la portería.
    - **Los onces:** las dos alineaciones en el campo con su sistema, los goles, las tarjetas y el minuto del cambio.
    - **Jugador del partido:** sale por goles, asistencias, tiros, paradas y resultado, y el desplegable de la slide deja elegir a otro.
-   - **Clasificación:** 12 filas con los dos equipos marcados, con «···» si están lejos.
+   - **Clasificación:** 12 filas con los dos equipos marcados, con «···» si están lejos. Si el resumen de ESPN no la trae (la Europa League, la Conference…), se pide aparte.
    - **Cierre:** una pregunta para los comentarios y tu firma.
 4. **Retocar:** se toca cualquier texto de una slide y se escribe encima; «↺ original» deshace los de esa slide. El botón de la esquina abre la slide casi a pantalla completa. En «Jugador del partido» se toca al jugador para subir su foto: el fondo se quita en el navegador con `@imgly/background-removal` (licencia AGPL; la primera vez baja el modelo, unos 45 MB). ESPN casi no tiene fotos de futbolistas; sin foto, sale su dorsal en grande.
 5. **Tu firma:** el campo «Tu firma» (por ejemplo, tu @) sale abajo a la derecha de cada slide y en el cierre. Si se deja vacío, no sale.
@@ -67,10 +71,13 @@ El partido en unos 30 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
 
 - **ESPN**, sin claves ni servidor (tiene CORS abierto, así que funciona abriendo el archivo):
   - `soccer/<código>/scoreboard?dates=AAAAMMDD` para la lista de partidos;
-  - `soccer/<código>/summary?event=<id>` para el partido: `keyEvents` (goles, tarjetas y cambios), `commentary` (el sitio de cada tiro), `boxscore`, `rosters` y `standings`.
-- **Añadir una competición:** buscar su código en ESPN (que `site.api.espn.com/apis/site/v2/sports/soccer/<código>/scoreboard` dé partidos) y añadir una línea en `COMPETITIONS` (`futbol.js`) con el nombre del botón, el de las slides y el hashtag.
-- **Nombres en español:** `CLUB_NAMES` (clubes) y `COUNTRY_NAMES` (selecciones). `FEMININE` son los que llevan «la» (la Roma, la Real Sociedad…).
-- **Colores:** los de los clubes más vistos están a mano en `CLUB_COLORS` (por id de ESPN) y `NATIONAL_COLORS`. El resto salen de ESPN, arreglados para que se lean.
+  - `soccer/<código>/summary?event=<id>` para el partido: `keyEvents` (goles, tarjetas y cambios), `commentary` (el sitio de cada tiro), `boxscore`, `rosters` y `standings`;
+  - `apis/v2/sports/soccer/<código>/standings` para la clasificación, cuando el resumen no la trae;
+  - `soccer/<código>/scoreboard` sin fecha para los días con partidos (el calendario de las ligas y la ronda de ahora en las copas).
+- **Añadir una competición:** buscar su código en ESPN (que `site.api.espn.com/apis/site/v2/sports/soccer/<código>/scoreboard` dé partidos) y añadir una línea en `COMPETITIONS` (`futbol.js`) con el nombre del botón, el de las slides, el hashtag y el número de su logo (el de `leaguelogos/soccer/500/<n>.png` que da ese mismo `scoreboard`).
+- **Nombres en español:** `CLUB_NAMES` (clubes: «Nápoles», «Oporto», «Brujas»…) y `COUNTRY_NAMES` (selecciones). Al resto se le quita lo que sobra («FC Utrecht» → «Utrecht», «Mainz 05» → «Mainz»). `FEMININE` son los que llevan «la» (la Roma, la Real Sociedad…). En los jugadores coreanos, el apellido es la primera palabra («Son», no «Heung-Min»).
+- **Colores:** los de unos 130 clubes y casi 50 selecciones están a mano en `CLUB_COLORS` (por id de ESPN) y `NATIONAL_COLORS`. El resto salen de ESPN, arreglados para que se lean. Si los dos equipos salen casi del mismo color (dos blancos, dos rojos), el visitante va con su segundo color, como con la segunda equipación.
+- **Lo que da ESPN según la competición:** en las grandes (LaLiga, Champions, Premier, Serie A, Bundesliga, Ligue 1, Portugal, Países Bajos, Championship, Libertadores, Mundial…) hay de todo. En otras (LaLiga Hypermotion, Liga F, Serie B, 2. Bundesliga, Ligue 2, Escocia, Turquía, Bélgica, Arabia Saudí, Copa de Alemania) no da el sitio de los tiros, así que no sale el mapa de tiros. En las primeras rondas de la Copa del Rey a veces solo da el resultado: sale la portada y el cierre.
 
 ## Archivos
 
@@ -88,9 +95,14 @@ El partido en unos 30 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
 - `tests/test_futbol.mjs` abre el Studio en Chromium sin red, con datos reales de ESPN de `tests/fixtures`:
   - la jornada de LaLiga del 20-9-2026 (Atlético 2-1 Real Madrid);
   - Champions del 14-10-2026 (Roma 3-4 Real Madrid, LASK 3-6 Liverpool, City 2-4 PSG);
-  - un Depor-Levante en juego y partidos sin empezar.
+  - un Depor-Levante en juego y partidos sin empezar;
+  - la final del Mundial 2026 (España 1-0 Argentina, en la prórroga);
+  - la vuelta del Flamengo-Independiente del Valle de la Libertadores (global 3-1);
+  - una eliminatoria de la Copa del Rey de la que ESPN solo da el resultado;
+  - el Lech-Leverkusen de la Europa League (la clasificación, pedida aparte);
+  - el Osnabrück-Bayern de la Copa de Alemania (un apellido con «ß»).
 
-  Prueba las competiciones, la lista, las 8 slides, el minuto a minuto sin solapes, la firma, el jugador del partido, el borrador, el ZIP, el 9:16, compartir, el vídeo (guion, grabar la voz con un micrófono de prueba, la mezcla y el MP4), «Para tu IA» (copiar y pegar), un partido en juego, uno con pocos datos, el móvil y el Studio abierto como archivo (generar, descargar y recuperar el borrador).
+  Prueba las competiciones y sus logos, la lista, las 8 slides, el minuto a minuto sin solapes, la firma, el jugador del partido, el borrador, el ZIP, el 9:16, compartir, el vídeo (guion, grabar la voz con un micrófono de prueba, la mezcla y el MP4), «Para tu IA» (copiar y pegar), un partido en juego, uno con pocos datos, las eliminatorias (campeón, global, quién pasa), saltar a un día con partidos, el móvil y el Studio abierto como archivo (generar, descargar y recuperar el borrador).
 
 Corre sola en cada push y PR (`.github/workflows/tests.yml`). En local:
 

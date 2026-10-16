@@ -578,6 +578,9 @@ body.zoom-open { overflow: hidden; }
 }
 .comp-chips { display: flex; flex-wrap: wrap; gap: 8px; flex: 1; min-width: 0; }
 .comp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   height: 40px;
   padding: 0 14px;
   background: var(--bg-2);
@@ -593,8 +596,32 @@ body.zoom-open { overflow: hidden; }
   cursor: pointer;
   transition: all 0.2s ease;
 }
+.comp-chip img { width: 22px; height: 22px; margin-left: -4px; object-fit: contain; }
 .comp-chip:hover { border-color: var(--accent); color: var(--accent); }
-.comp-chip[aria-checked="true"] { background: var(--accent); border-color: var(--accent); color: #111; }
+/* La elegida: borde y texto lima (con fondo lima, los logos blancos no se verían) */
+.comp-chip[aria-checked="true"] { background: rgba(200, 245, 60, 0.12); border: 2px solid var(--accent); color: var(--accent); }
+
+/* Sin partidos ese día: saltar al anterior o al siguiente con partidos */
+.games-empty { flex-wrap: wrap; justify-content: space-between; }
+.day-jumps { display: flex; flex-wrap: wrap; gap: 8px; }
+.day-jump {
+  height: 38px;
+  padding: 0 14px;
+  background: var(--bg-3, var(--bg-2));
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  color: var(--text);
+  font-family: var(--label);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.day-jump:hover { border-color: var(--accent); color: var(--accent); }
+
+/* La ronda de copa y la ida o la vuelta, en la tarjeta del partido */
+.game-tie { display: block; margin-top: -4px; color: var(--mute); font-family: var(--label); font-weight: 700; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; }
 
 /* La tarjeta del partido: los goleadores debajo, pequeños */
 .game-scorers { font-size: 13px; line-height: 1.4; color: var(--mute); }
@@ -820,6 +847,10 @@ body.zoom-open { overflow: hidden; }
   left: 50%;
   z-index: 11;
   transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 52px;
   background: #fff;
   color: #111;
   font-weight: 800;
@@ -827,7 +858,25 @@ body.zoom-open { overflow: hidden; }
   letter-spacing: 0.05em;
   text-transform: uppercase;
   white-space: nowrap;
-  padding: 8px 20px 6px;
+  padding: 0 20px;
+}
+.fc-portada .comp img { width: 40px; height: 40px; object-fit: contain; }
+.fc-portada .comp span { padding-top: 3px; }
+/* El global de la eliminatoria (en la vuelta) */
+.fc-portada .agg {
+  position: absolute;
+  top: 104px;
+  left: 50%;
+  z-index: 11;
+  transform: translateX(-50%);
+  background: #111;
+  color: #fff;
+  font-weight: 800;
+  font-size: 30px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  padding: 6px 16px 4px;
 }
 .fc-portada .fade { height: 420px; z-index: 5; background: linear-gradient(to top, rgba(0, 0, 0, 0.94) 32%, rgba(0, 0, 0, 0)); }
 .fc-portada .head { position: absolute; left: 64px; right: 64px; bottom: 116px; z-index: 10; color: #fff; }

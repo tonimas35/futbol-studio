@@ -13,54 +13,87 @@
   // ----------------------------------------------------------
   // ESPN — datos de fútbol gratis, sin auth y con CORS abierto (también desde un archivo local)
   const ESPN = 'https://site.api.espn.com/apis/site/v2/sports/soccer';
+  const ESPN_TABLES = 'https://site.api.espn.com/apis/v2/sports/soccer'; // las clasificaciones
   const LOGO = (id) => `https://a.espncdn.com/i/teamlogos/soccer/500/${id}.png`;
 
-  // [código de ESPN, nombre en el botón, nombre en las slides, hashtag]
+  // [código de ESPN, nombre en el botón, nombre en las slides, hashtag, logo de ESPN]
+  // El logo es el número de leaguelogos/soccer/500/<n>.png (y 500-dark/<n>.png, el de fondo oscuro).
   const COMPETITIONS = [
     { group: 'España', items: [
-      ['esp.1', 'LaLiga', 'LaLiga', 'LaLiga'],
-      ['esp.2', 'LaLiga Hypermotion', 'LaLiga Hypermotion', 'LaLigaHypermotion'],
-      ['esp.copa_del_rey', 'Copa del Rey', 'Copa del Rey', 'CopaDelRey'],
-      ['esp.super_cup', 'Supercopa', 'Supercopa de España', 'Supercopa'],
+      ['esp.1', 'LaLiga', 'LaLiga', 'LaLiga', 15],
+      ['esp.2', 'LaLiga Hypermotion', 'LaLiga Hypermotion', 'LaLigaHypermotion', 107],
+      ['esp.copa_del_rey', 'Copa del Rey', 'Copa del Rey', 'CopaDelRey', 80],
+      ['esp.super_cup', 'Supercopa', 'Supercopa de España', 'Supercopa', 431],
       ['esp.w.1', 'Liga F', 'Liga F', 'LigaF'],
     ] },
     { group: 'Europa', items: [
-      ['uefa.champions', 'Champions', 'Champions League', 'ChampionsLeague'],
-      ['uefa.europa', 'Europa League', 'Europa League', 'EuropaLeague'],
-      ['uefa.europa.conf', 'Conference', 'Conference League', 'ConferenceLeague'],
+      ['uefa.champions', 'Champions', 'Champions League', 'ChampionsLeague', 2],
+      ['uefa.europa', 'Europa League', 'Europa League', 'EuropaLeague', 2310],
+      ['uefa.europa.conf', 'Conference', 'Conference League', 'ConferenceLeague', 20296],
+      ['uefa.super_cup', 'Supercopa de Europa', 'Supercopa de Europa', 'SupercopaDeEuropa', 1272],
+      ['uefa.wchampions', 'Champions femenina', 'Champions femenina', 'UWCL', 2408],
     ] },
-    { group: 'Grandes ligas', items: [
-      ['eng.1', 'Premier League', 'Premier League', 'PremierLeague'],
-      ['ita.1', 'Serie A', 'Serie A', 'SerieA'],
-      ['ger.1', 'Bundesliga', 'Bundesliga', 'Bundesliga'],
-      ['fra.1', 'Ligue 1', 'Ligue 1', 'Ligue1'],
-      ['por.1', 'Liga Portugal', 'Liga Portugal', 'LigaPortugal'],
-      ['ned.1', 'Eredivisie', 'Eredivisie', 'Eredivisie'],
-      ['eng.fa', 'FA Cup', 'FA Cup', 'FACup'],
-      ['eng.league_cup', 'Carabao Cup', 'Carabao Cup', 'CarabaoCup'],
+    { group: 'Inglaterra', items: [
+      ['eng.1', 'Premier League', 'Premier League', 'PremierLeague', 23],
+      ['eng.2', 'Championship', 'Championship', 'Championship', 24],
+      ['eng.fa', 'FA Cup', 'FA Cup', 'FACup', 40],
+      ['eng.league_cup', 'Carabao Cup', 'Carabao Cup', 'CarabaoCup', 41],
     ] },
-    { group: 'Selecciones', items: [
-      ['fifa.world', 'Mundial', 'Mundial', 'Mundial'],
-      ['uefa.euro', 'Eurocopa', 'Eurocopa', 'Eurocopa'],
-      ['uefa.nations', 'Nations League', 'Nations League', 'NationsLeague'],
-      ['fifa.worldq.uefa', 'Clasificación Mundial', 'Clasificación para el Mundial', 'Mundial'],
-      ['fifa.friendly', 'Amistosos', 'Amistoso internacional', 'Selección'],
+    { group: 'Italia', items: [
+      ['ita.1', 'Serie A', 'Serie A', 'SerieA', 12],
+      ['ita.2', 'Serie B', 'Serie B', 'SerieB', 99],
+      ['ita.coppa_italia', 'Coppa Italia', 'Coppa Italia', 'CoppaItalia', 2192],
     ] },
-    { group: 'América y más', items: [
-      ['conmebol.libertadores', 'Libertadores', 'Copa Libertadores', 'Libertadores'],
-      ['mex.1', 'Liga MX', 'Liga MX', 'LigaMX'],
-      ['arg.1', 'Liga Argentina', 'Liga Profesional Argentina', 'LigaProfesional'],
-      ['bra.1', 'Brasileirão', 'Brasileirão', 'Brasileirao'],
-      ['usa.1', 'MLS', 'MLS', 'MLS'],
-      ['ksa.1', 'Liga Saudí', 'Liga Saudí', 'SaudiProLeague'],
-      ['fifa.cwc', 'Mundial de Clubes', 'Mundial de Clubes', 'MundialDeClubes'],
+    { group: 'Alemania', items: [
+      ['ger.1', 'Bundesliga', 'Bundesliga', 'Bundesliga', 10],
+      ['ger.2', '2. Bundesliga', '2. Bundesliga', 'Bundesliga2', 97],
+      ['ger.dfb_pokal', 'Copa de Alemania', 'Copa de Alemania', 'DFBPokal', 2061],
+    ] },
+    { group: 'Francia', items: [
+      ['fra.1', 'Ligue 1', 'Ligue 1', 'Ligue1', 9],
+      ['fra.2', 'Ligue 2', 'Ligue 2', 'Ligue2', 96],
+      ['fra.coupe_de_france', 'Copa de Francia', 'Copa de Francia', 'CoupeDeFrance', 182],
+    ] },
+    { group: 'Más ligas', items: [
+      ['por.1', 'Portugal', 'Liga Portugal', 'LigaPortugal', 14],
+      ['ned.1', 'Países Bajos', 'Eredivisie', 'Eredivisie', 11],
+      ['sco.1', 'Escocia', 'Premiership escocesa', 'SPFL', 45],
+      ['tur.1', 'Turquía', 'Superliga turca', 'SuperLig', 18],
+      ['bel.1', 'Bélgica', 'Pro League belga', 'ProLeague', 6],
+      ['ksa.1', 'Arabia Saudí', 'Liga Saudí', 'SaudiProLeague', 2488],
+      ['usa.1', 'MLS', 'MLS', 'MLS', 19],
+    ] },
+    { group: 'Selecciones', national: true, items: [
+      ['fifa.world', 'Mundial', 'Mundial', 'Mundial', 4],
+      ['uefa.euro', 'Eurocopa', 'Eurocopa', 'Eurocopa', 74],
+      ['uefa.nations', 'Nations League', 'Nations League', 'NationsLeague', 2395],
+      ['conmebol.america', 'Copa América', 'Copa América', 'CopaAmerica', 83],
+      ['fifa.worldq.uefa', 'Clasificación Mundial', 'Clasificación para el Mundial', 'Mundial', 67],
+      ['uefa.euroq', 'Clasificación Eurocopa', 'Clasificación para la Eurocopa', 'Eurocopa', 56],
+      ['fifa.friendly', 'Amistosos', 'Amistoso internacional', 'Selección', 53],
+    ] },
+    { group: 'América y mundo', items: [
+      ['conmebol.libertadores', 'Libertadores', 'Copa Libertadores', 'Libertadores', 58],
+      ['conmebol.sudamericana', 'Sudamericana', 'Copa Sudamericana', 'Sudamericana', 1208],
+      ['mex.1', 'Liga MX', 'Liga MX', 'LigaMX', 22],
+      ['arg.1', 'Argentina', 'Liga Profesional Argentina', 'LigaProfesional', 1],
+      ['bra.1', 'Brasileirão', 'Brasileirão', 'Brasileirao', 85],
+      ['fifa.cwc', 'Mundial de Clubes', 'Mundial de Clubes', 'MundialDeClubes', 1932],
     ] },
   ];
   const COMP = {};
-  COMPETITIONS.forEach(g => g.items.forEach(([slug, chip, name, tag]) => { COMP[slug] = { slug, chip, name, tag }; }));
-  const compOf = (slug) => COMP[slug] || { slug, chip: slug, name: slug, tag: 'Futbol' };
-  // Competiciones de selecciones: «España», sin artículo (en los clubes, «el Atlético»).
-  const NATIONAL = new Set(['fifa.world', 'uefa.euro', 'uefa.nations', 'fifa.worldq.uefa', 'fifa.friendly']);
+  COMPETITIONS.forEach(g => g.items.forEach(([slug, chip, name, tag, logo]) => {
+    COMP[slug] = { slug, chip, name, tag, logo: logo || null, national: !!g.national };
+  }));
+  const compOf = (slug) => COMP[slug] || { slug, chip: slug, name: slug, tag: 'Futbol', logo: null, national: false };
+  // El logo de la competición: el normal, para fondo claro, o el de fondo oscuro (los que no lo
+  // tienen llevan su propio fondo y sirven para los dos).
+  const NO_DARK_LOGO = new Set([99, 431, 2192, 97]);
+  const compLogo = (slug, dark = false) => {
+    const n = compOf(slug).logo;
+    if (!n) return '';
+    return `https://a.espncdn.com/i/leaguelogos/soccer/${dark && !NO_DARK_LOGO.has(n) ? '500-dark' : '500'}/${n}.png`;
+  };
   const DEFAULT_LEAGUE = 'esp.1';
   const LEAGUE_KEY = 'fc-league';
   const SIGN_KEY = 'fc-sign';
@@ -68,8 +101,22 @@
   // La fase, en las copas (en las ligas ESPN pone el nombre de la temporada y no se usa).
   const PHASES = {
     'league-phase': 'Fase liga', 'group-stage': 'Fase de grupos', 'knockout-round-playoffs': 'Playoff',
-    'round-of-32': 'Dieciseisavos', 'round-of-16': 'Octavos', 'quarterfinals': 'Cuartos',
+    'playoff-round': 'Playoff', 'qualifying-round': 'Ronda previa', 'preliminary-round': 'Ronda preliminar',
+    'round-of-64': 'Treintaidosavos', 'round-of-32': 'Dieciseisavos', 'round-of-16': 'Octavos', 'quarterfinals': 'Cuartos',
     'semifinals': 'Semifinales', 'final': 'Final', 'third-place': 'Tercer puesto',
+    'torneo-apertura': 'Apertura', 'torneo-clausura': 'Clausura',
+  };
+  // «first-round», «second-round-proper»… → «Primera ronda», «Segunda ronda»…
+  const ROUND_WORDS = { first: 'Primera', second: 'Segunda', third: 'Tercera', fourth: 'Cuarta', fifth: 'Quinta', sixth: 'Sexta' };
+  const phaseName = (slug = '') => {
+    const round = ROUND_WORDS[slug.match(/^([a-z]+)-round/)?.[1]];
+    return PHASES[slug] || (round ? `${round} ronda` : '');
+  };
+  // Las fases de eliminatoria (sin clasificación que enseñar) y la ronda a la que se pasa
+  const KNOCKOUT = /^(Playoff|Ronda|Treintaidosavos|Dieciseisavos|Octavos|Cuartos|Semifinales|Final|Tercer puesto|Primera|Segunda|Tercera|Cuarta|Quinta|Sexta)/;
+  const NEXT_ROUND = {
+    'Playoff': 'octavos', 'Treintaidosavos': 'dieciseisavos', 'Dieciseisavos': 'octavos', 'Octavos': 'cuartos',
+    'Cuartos': 'semifinales', 'Semifinales': 'la final',
   };
 
   // ----------------------------------------------------------
@@ -100,7 +147,102 @@
     'FC Cologne': ['Colonia', 'Colonia'],
     'Sporting CP': ['Sporting de Portugal', 'Sporting'],
     'LASK Linz': ['LASK', 'LASK'],
+    // España
+    'Sporting Gijón': ['Sporting de Gijón', 'Sporting'],
+    'Real Valladolid': ['Real Valladolid', 'Valladolid'],
+    'Real Zaragoza': ['Real Zaragoza', 'Zaragoza'],
+    'Real Oviedo': ['Real Oviedo', 'Oviedo'],
+    // Inglaterra
+    'Wolverhampton Wanderers': ['Wolverhampton', 'Wolves'],
+    'West Ham United': ['West Ham', 'West Ham'],
+    'Queens Park Rangers': ['QPR', 'QPR'],
+    'Sheffield United': ['Sheffield United', 'Sheffield Utd'],
+    'Sheffield Wednesday': ['Sheffield Wednesday', 'Sheffield Wed'],
+    'West Bromwich Albion': ['West Bromwich', 'West Brom'],
+    // Italia
+    'Napoli': ['Nápoles', 'Nápoles'],
+    'Bologna': ['Bolonia', 'Bolonia'],
+    'Venezia': ['Venecia', 'Venecia'],
+    'Genoa': ['Génova', 'Génova'],
+    'Hellas Verona': ['Hellas Verona', 'Verona'],
+    // Alemania
+    'VfL Wolfsburg': ['Wolfsburgo', 'Wolfsburgo'],
+    'SC Freiburg': ['Friburgo', 'Friburgo'],
+    'Hamburg SV': ['Hamburgo', 'Hamburgo'],
+    'FC Augsburg': ['Augsburgo', 'Augsburgo'],
+    'Eintracht Frankfurt': ['Eintracht de Fráncfort', 'Eintracht'],
+    'RB Leipzig': ['RB Leipzig', 'Leipzig'],
+    '1. FC Nürnberg': ['Núremberg', 'Núremberg'],
+    // Francia
+    'AS Monaco': ['Mónaco', 'Mónaco'],
+    'Monaco': ['Mónaco', 'Mónaco'],
+    'Marseille': ['Olympique de Marsella', 'Marsella'],
+    'Olympique Lyonnais': ['Olympique de Lyon', 'Lyon'],
+    'Lyon': ['Olympique de Lyon', 'Lyon'],
+    'Nice': ['Niza', 'Niza'],
+    'Strasbourg': ['Estrasburgo', 'Estrasburgo'],
+    'Stade Rennais': ['Rennes', 'Rennes'],
+    // Resto de Europa
+    'FC Porto': ['Oporto', 'Oporto'],
+    'Club Brugge': ['Brujas', 'Brujas'],
+    'Standard Liege': ['Standard de Lieja', 'Standard'],
+    'Royal Antwerp': ['Amberes', 'Amberes'],
+    'PSV Eindhoven': ['PSV Eindhoven', 'PSV'],
+    'AZ Alkmaar': ['AZ Alkmaar', 'AZ'],
+    'Ajax Amsterdam': ['Ajax', 'Ajax'],
+    'Feyenoord Rotterdam': ['Feyenoord', 'Feyenoord'],
+    'Fenerbahce': ['Fenerbahçe', 'Fenerbahçe'],
+    'Besiktas': ['Beşiktaş', 'Beşiktaş'],
+    'Red Bull Salzburg': ['Salzburgo', 'Salzburgo'],
+    'Dinamo Zagreb': ['Dinamo de Zagreb', 'Dinamo Zagreb'],
+    'Crvena Zvezda': ['Estrella Roja', 'Estrella Roja'],
+    'Red Star Belgrade': ['Estrella Roja', 'Estrella Roja'],
+    'Shakhtar Donetsk': ['Shakhtar Donetsk', 'Shakhtar'],
+    // América
+    'Sarmiento (Junín)': ['Sarmiento', 'Sarmiento'],
+    'Atlético-MG': ['Atlético Mineiro', 'Atlético Mineiro'],
+    'Famalicao': ['Famalicão', 'Famalicão'],
+    'FC Famalicao': ['Famalicão', 'Famalicão'],
+    'Antwerp': ['Amberes', 'Amberes'],
+    'RB Salzburg': ['Salzburgo', 'Salzburgo'],
+    'Racing Genk': ['Genk', 'Genk'],
+    'KAA Gent': ['Gante', 'Gante'],
+    'Bodo/Glimt': ['Bodø/Glimt', 'Bodø/Glimt'],
+    'Slavia Prague': ['Slavia de Praga', 'Slavia'],
+    'Sparta Prague': ['Sparta de Praga', 'Sparta'],
+    'Viktoria Plzen': ['Viktoria Plzeň', 'Plzeň'],
+    'Ferencvaros': ['Ferencváros', 'Ferencváros'],
+    'Union St.-Gilloise': ['Union Saint-Gilloise', 'Union SG'],
+    'Lech Poznan': ['Lech Poznań', 'Lech'],
+    'Jagiellonia Bialystok': ['Jagiellonia', 'Jagiellonia'],
+    'Omonia Nicosia': ['Omonia', 'Omonia'],
+    'VIKING FK': ['Viking', 'Viking'],
+    "Hapoel Be'er": ["Hapoel Be'er Sheva", "Hapoel Be'er Sheva"],
+    'Caykur Rizespor': ['Rizespor', 'Rizespor'],
+    'Istanbul Basaksehir': ['Başakşehir', 'Başakşehir'],
+    'Kasimpasa': ['Kasımpaşa', 'Kasımpaşa'],
+    'Goztepe': ['Göztepe', 'Göztepe'],
+    'Eyupspor': ['Eyüpspor', 'Eyüpspor'],
+    'Genclerbirligi': ['Gençlerbirliği', 'Gençlerbirliği'],
   };
+  // Lo que sobra en el nombre corto de un club: «FC Utrecht» → «Utrecht», «Mainz 05» → «Mainz»,
+  // y en las inglesas, «Leeds United» → «Leeds» (en la MLS, «DC United» se queda como está).
+  const CLUB_PREFIX = /^(?:1\.\s*)?(?:FC|CF|AFC|SC|CD|UD|AC|AS|SS|US|SV|VfB|VfL|TSG|FSV|RCD|SD|CA|FK|NK|SK|KV|KRC|RSC|PFC|GD|CS|OSC|RC|SL|HNK)\s+/;
+  const CLUB_SUFFIX = /\s+(?:FC|CF|AFC|SC|SV|BSC|BK|FK|IF|\d{2,4})$/;
+  const ENGLISH_SUFFIX = /\s+(?:City|United|Town|Rovers|Athletic|Albion|County|Wanderers|Hotspur)$/;
+  function clubNames(espnName, espnShort, league = '') {
+    if (CLUB_NAMES[espnName]) return CLUB_NAMES[espnName];
+    let short = (espnShort || espnName).trim().replace(/\s*\([A-Z]{1,3}\)$/, ''); // «Sarmiento (J)»
+    for (const re of [CLUB_PREFIX, CLUB_SUFFIX]) {
+      const cut = short.replace(re, '');
+      if (cut.length >= 4) short = cut;
+    }
+    if (/^(eng|sco)\./.test(league)) {
+      const cut = short.replace(ENGLISH_SUFFIX, '');
+      if (cut.length >= 4) short = cut;
+    }
+    return [espnName, short];
+  }
   const COUNTRY_NAMES = {
     Spain: 'España', Germany: 'Alemania', France: 'Francia', England: 'Inglaterra', Italy: 'Italia',
     Netherlands: 'Países Bajos', Belgium: 'Bélgica', Croatia: 'Croacia', Brazil: 'Brasil', Morocco: 'Marruecos',
@@ -117,6 +259,14 @@
     Latvia: 'Letonia', Belarus: 'Bielorrusia', Moldova: 'Moldavia', 'Faroe Islands': 'Islas Feroe', Georgia: 'Georgia',
     'New Zealand': 'Nueva Zelanda', 'South Africa': 'Sudáfrica', Jordan: 'Jordania', Uzbekistan: 'Uzbekistán',
     'Cape Verde': 'Cabo Verde', 'DR Congo': 'RD Congo', Haiti: 'Haití', Panama: 'Panamá', Curacao: 'Curazao',
+    'Curaçao': 'Curazao', Iraq: 'Irak', 'United Arab Emirates': 'Emiratos Árabes', 'China PR': 'China', Bahrain: 'Baréin',
+    Oman: 'Omán', Lebanon: 'Líbano', Syria: 'Siria', Palestine: 'Palestina', Thailand: 'Tailandia', Philippines: 'Filipinas',
+    Russia: 'Rusia', 'Trinidad and Tobago': 'Trinidad y Tobago', Suriname: 'Surinam', 'Equatorial Guinea': 'Guinea Ecuatorial',
+    Gabon: 'Gabón', Benin: 'Benín', Libya: 'Libia', Sudan: 'Sudán', Ethiopia: 'Etiopía', Kenya: 'Kenia',
+    Zimbabwe: 'Zimbabue', 'Sierra Leone': 'Sierra Leona', Comoros: 'Comoras', Rwanda: 'Ruanda', Botswana: 'Botsuana',
+    Malawi: 'Malaui', 'North Korea': 'Corea del Norte', 'Korea DPR': 'Corea del Norte', Tajikistan: 'Tayikistán',
+    Kyrgyzstan: 'Kirguistán', Turkmenistan: 'Turkmenistán', Singapore: 'Singapur', Malaysia: 'Malasia', Fiji: 'Fiyi',
+    'New Caledonia': 'Nueva Caledonia', 'Dominican Republic': 'República Dominicana',
   };
   // Los que llevan «la» (la Roma, la Real Sociedad…); el resto de clubes, «el».
   const FEMININE = new Set(['Juventus', 'Roma', 'Lazio', 'Fiorentina', 'Real Sociedad', 'Sampdoria', 'Salernitana',
@@ -178,6 +328,99 @@
     176: { bg: PAPER, acc: '#009cdd', on: '#ffffff', fg: '#111111' },        // Marsella
     167: { bg: PAPER, acc: '#14387f', on: '#ffffff', fg: '#111111' },        // Lyon
     174: { bg: '#e51b22', acc: '#ffffff', on: '#e51b22' },                   // Mónaco
+    172: { bg: PAPER, acc: '#00418d', on: '#ffffff', fg: '#111111' },        // Auxerre
+    175: { bg: '#fbe300', acc: '#e30613', on: '#ffffff', fg: '#111111' },    // Lens
+    166: { bg: '#c2051b', acc: '#1b2d5a', on: '#ffffff' },                   // Lille
+    273: { bg: '#f58113', acc: '#111111', on: '#ffffff' },                   // Lorient
+    169: { bg: '#e13327', acc: '#111111', on: '#ffffff' },                   // Rennes
+    180: { bg: '#009fe3', acc: '#ffffff', on: '#009fe3' },                   // Estrasburgo
+    2502: { bg: '#c8102e', acc: '#111111', on: '#ffffff' },                  // Niza
+    // Más Premier
+    349: { bg: '#da291c', acc: '#111111', on: '#ffffff' },                   // Bournemouth
+    337: { bg: '#e30613', acc: '#ffffff', on: '#e30613' },                   // Brentford
+    331: { bg: '#0057b8', acc: '#ffffff', on: '#0057b8' },                   // Brighton
+    384: { bg: '#1b458f', acc: '#c4122e', on: '#ffffff' },                   // Crystal Palace
+    368: { bg: '#003399', acc: '#ffffff', on: '#003399' },                   // Everton
+    370: { bg: PAPER, acc: '#111111', on: '#ffffff', fg: '#111111' },        // Fulham
+    357: { bg: PAPER, acc: '#1d428a', on: '#ffcd00', fg: '#111111' },        // Leeds
+    393: { bg: '#dd0000', acc: '#ffffff', on: '#dd0000' },                   // Nottingham Forest
+    366: { bg: '#eb172b', acc: '#ffffff', on: '#eb172b' },                   // Sunderland
+    371: { bg: '#7a263a', acc: '#1bb1e7', on: '#111111' },                   // West Ham
+    // Más Serie A
+    107: { bg: '#1a2f48', acc: '#a21c26', on: '#ffffff' },                   // Bolonia
+    3263: { bg: '#a50021', acc: '#002350', on: '#ffffff' },                  // Génova
+    3997: { bg: '#00a752', acc: '#111111', on: '#ffffff' },                  // Sassuolo
+    17530: { bg: '#111111', acc: '#f47b20', on: '#111111' },                 // Venecia
+    // Más Bundesliga
+    268: { bg: '#1b1b1b', acc: '#00a650', on: '#ffffff' },                   // M'gladbach
+    125: { bg: '#111111', acc: '#e1000f', on: '#ffffff' },                   // Eintracht
+    122: { bg: '#ed1c24', acc: '#ffffff', on: '#ed1c24' },                   // Colonia
+    127: { bg: '#0a3f86', acc: '#ffffff', on: '#0a3f86' },                   // Hamburgo
+    133: { bg: '#004d9d', acc: '#ffffff', on: '#004d9d' },                   // Schalke
+    7911: { bg: '#1961b5', acc: '#ffffff', on: '#1961b5' },                  // Hoffenheim
+    // Portugal y Países Bajos
+    1929: { bg: '#e20e0e', acc: '#ffffff', on: '#e20e0e' },                  // Benfica
+    437: { bg: '#00428c', acc: '#ffffff', on: '#00428c' },                   // Oporto
+    2250: { bg: '#008057', acc: '#ffffff', on: '#008057' },                  // Sporting
+    2994: { bg: '#d71920', acc: '#ffffff', on: '#d71920' },                  // Braga
+    139: { bg: PAPER, acc: '#d2122e', on: '#ffffff', fg: '#111111' },        // Ajax
+    148: { bg: '#e2231a', acc: '#ffffff', on: '#e2231a' },                   // PSV
+    142: { bg: '#e3001b', acc: '#111111', on: '#ffffff' },                   // Feyenoord
+    140: { bg: '#d6001c', acc: '#ffffff', on: '#d6001c' },                   // AZ
+    // Escocia y Turquía
+    256: { bg: '#018749', acc: '#ffffff', on: '#018749' },                   // Celtic
+    257: { bg: '#1b458f', acc: '#ffffff', on: '#1b458f' },                   // Rangers
+    432: { bg: '#a90432', acc: '#fdb912', on: '#111111' },                   // Galatasaray
+    436: { bg: '#163962', acc: '#ffed00', on: '#111111' },                   // Fenerbahçe
+    1895: { bg: '#111111', acc: '#ffffff', on: '#111111' },                  // Beşiktaş
+    997: { bg: '#7c1f3a', acc: '#5ba3e0', on: '#111111' },                   // Trabzonspor
+    9078: { bg: '#f37021', acc: '#00843d', on: '#ffffff' },                  // Alanyaspor
+    7656: { bg: '#00843d', acc: '#0057b8', on: '#ffffff' },                  // Rizespor
+    789: { bg: '#ffd200', acc: '#e30613', on: '#ffffff', fg: '#111111' },    // Göztepe
+    6870: { bg: '#003c8c', acc: '#ffffff', on: '#003c8c' },                  // Kasımpaşa
+    995: { bg: '#00843d', acc: '#111111', on: '#ffffff' },                   // Kocaelispor
+    20729: { bg: '#5c2d91', acc: '#ffd200', on: '#111111' },                 // Eyüpspor
+    11429: { bg: '#e30613', acc: '#ffffff', on: '#e30613' },                 // Samsunspor
+    20070: { bg: '#e30613', acc: '#111111', on: '#ffffff' },                 // Gaziantep
+    996: { bg: '#e30613', acc: '#111111', on: '#ffffff' },                   // Gençlerbirliği
+    7648: { bg: '#00843d', acc: '#ffffff', on: '#00843d' },                  // Konyaspor
+    132334: { bg: '#e30613', acc: '#111111', on: '#ffffff' },                // Çorum
+    // Arabia Saudí
+    929: { bg: '#1e4fa3', acc: '#ffffff', on: '#1e4fa3' },                   // Al Hilal
+    817: { bg: '#ffd100', acc: '#1c2b6f', on: '#ffffff', fg: '#111111' },    // Al Nassr
+    2276: { bg: '#ffde00', acc: '#111111', on: '#ffde00', fg: '#111111' },   // Al Ittihad
+    8346: { bg: '#078543', acc: '#ffffff', on: '#078543' },                  // Al Ahli
+    // Argentina, Brasil, México y la MLS
+    5: { bg: '#103f79', acc: '#f3b229', on: '#111111' },                     // Boca
+    16: { bg: PAPER, acc: '#e2231a', on: '#ffffff', fg: '#111111' },         // River
+    18: { bg: '#0b2e7a', acc: '#e30613', on: '#ffffff' },                    // San Lorenzo
+    14: { bg: '#e30613', acc: '#111111', on: '#ffffff' },                    // Newell's
+    17: { bg: '#003a8c', acc: '#ffd200', on: '#111111' },                    // Rosario Central
+    819: { bg: '#c8102e', acc: '#111111', on: '#ffffff' },                   // Flamengo
+    2029: { bg: '#006437', acc: '#ffffff', on: '#006437' },                  // Palmeiras
+    874: { bg: PAPER, acc: '#111111', on: '#ffffff', fg: '#111111' },        // Corinthians
+    2026: { bg: PAPER, acc: '#d0021b', on: '#ffffff', fg: '#111111' },       // São Paulo
+    2022: { bg: '#0033a0', acc: '#ffffff', on: '#0033a0' },                  // Cruzeiro
+    6273: { bg: '#0d80bf', acc: '#111111', on: '#ffffff' },                  // Grêmio
+    227: { bg: '#fff200', acc: '#001c58', on: '#ffffff', fg: '#111111' },    // América
+    218: { bg: '#0047bb', acc: '#ffffff', on: '#0047bb' },                   // Cruz Azul
+    233: { bg: '#0b1f4a', acc: '#d4a54a', on: '#111111' },                   // Pumas
+    232: { bg: '#fdb913', acc: '#0b3d91', on: '#ffffff', fg: '#111111' },    // Tigres
+    20232: { bg: '#f7b5cd', acc: '#231f20', on: '#ffffff', fg: '#231f20' },  // Inter Miami
+    18966: { bg: '#111111', acc: '#c39e6d', on: '#111111' },                 // LAFC
+    187: { bg: '#00245d', acc: '#ffd200', on: '#111111' },                   // LA Galaxy
+    // Resto de Europa (Champions y Europa League)
+    887: { bg: '#ffd200', acc: '#111111', on: '#ffd200', fg: '#111111' },    // AEK
+    2980: { bg: '#ffd200', acc: '#111111', on: '#ffd200', fg: '#111111' },   // Bodø/Glimt
+    570: { bg: '#0b5cad', acc: '#111111', on: '#ffffff' },                   // Brujas
+    493: { bg: '#f26522', acc: '#111111', on: '#ffffff' },                   // Shakhtar
+    494: { bg: PAPER, acc: '#d71920', on: '#ffffff', fg: '#111111' },        // Slavia
+    597: { bg: '#0047bb', acc: '#ffffff', on: '#0047bb' },                   // Dinamo Zagreb
+    435: { bg: '#d01729', acc: '#ffffff', on: '#d01729' },                   // Olympiacos
+    2790: { bg: PAPER, acc: '#d82c3a', on: '#ffffff', fg: '#111111' },       // Salzburgo
+    5807: { bg: '#ffd200', acc: '#0047bb', on: '#ffffff', fg: '#111111' },   // Union SG
+    622: { bg: '#00843d', acc: '#ffffff', on: '#00843d' },                   // Ferencváros
+    11706: { bg: '#0047bb', acc: '#e30613', on: '#ffffff' },                 // Plzeň
   };
   // Selecciones, por abreviatura (solo en competiciones de selecciones)
   const NATIONAL_COLORS = {
@@ -192,6 +435,42 @@
     BRA: { bg: '#fedf00', acc: '#009c3b', on: '#ffffff', fg: '#111111' },
     BEL: { bg: '#c8102e', acc: '#fdda24', on: '#111111' },
     CRO: { bg: '#d0021b', acc: '#ffffff', on: '#d0021b' },
+    URU: { bg: '#5cb3e6', acc: '#111111', on: '#ffffff', fg: '#0b1f3a' },
+    COL: { bg: '#fcd116', acc: '#003893', on: '#ffffff', fg: '#111111' },
+    MEX: { bg: '#006847', acc: '#ce1126', on: '#ffffff' },
+    USA: { bg: '#0a3161', acc: '#b31942', on: '#ffffff' },
+    CAN: { bg: '#d80621', acc: '#ffffff', on: '#d80621' },
+    JPN: { bg: '#0b1f5b', acc: '#ffffff', on: '#0b1f5b' },
+    KOR: { bg: '#c60c30', acc: '#ffffff', on: '#c60c30' },
+    MAR: { bg: '#c1272d', acc: '#006233', on: '#ffffff' },
+    SEN: { bg: '#00853f', acc: '#fdef42', on: '#111111' },
+    SUI: { bg: '#d52b1e', acc: '#ffffff', on: '#d52b1e' },
+    DEN: { bg: '#c8102e', acc: '#ffffff', on: '#c8102e' },
+    SWE: { bg: '#fecc02', acc: '#006aa7', on: '#ffffff', fg: '#0b2a4a' },
+    NOR: { bg: '#ba0c2f', acc: '#00205b', on: '#ffffff' },
+    POL: { bg: PAPER, acc: '#dc143c', on: '#ffffff', fg: '#111111' },
+    SRB: { bg: '#c6363c', acc: '#0c4076', on: '#ffffff' },
+    AUT: { bg: '#ed2939', acc: '#ffffff', on: '#ed2939' },
+    SCO: { bg: '#0b2a6b', acc: '#ffffff', on: '#0b2a6b' },
+    WAL: { bg: '#c8102e', acc: '#00b140', on: '#ffffff' },
+    IRL: { bg: '#169b62', acc: '#ff883e', on: '#111111' },
+    TUR: { bg: '#e30a17', acc: '#ffffff', on: '#e30a17' },
+    UKR: { bg: '#ffd500', acc: '#005bbb', on: '#ffffff', fg: '#0b2a4a' },
+    CZE: { bg: '#d7141a', acc: '#11457e', on: '#ffffff' },
+    GRE: { bg: '#0d5eaf', acc: '#ffffff', on: '#0d5eaf' },
+    HUN: { bg: '#ce2939', acc: '#477050', on: '#ffffff' },
+    ROU: { bg: '#fcd116', acc: '#002b7f', on: '#ffffff', fg: '#111111' },
+    ECU: { bg: '#ffdd00', acc: '#034ea2', on: '#ffffff', fg: '#111111' },
+    CHI: { bg: '#d52b1e', acc: '#0039a6', on: '#ffffff' },
+    PAR: { bg: '#d52b1e', acc: '#0038a8', on: '#ffffff' },
+    PER: { bg: PAPER, acc: '#d91023', on: '#ffffff', fg: '#111111' },
+    AUS: { bg: '#ffcd00', acc: '#00843d', on: '#ffffff', fg: '#111111' },
+    EGY: { bg: '#ce1126', acc: '#111111', on: '#ffffff' },
+    NGA: { bg: '#008751', acc: '#ffffff', on: '#008751' },
+    KSA: { bg: '#006c35', acc: '#ffffff', on: '#006c35' },
+    QAT: { bg: '#8a1538', acc: '#ffffff', on: '#8a1538' },
+    ALB: { bg: '#e41e20', acc: '#111111', on: '#ffffff' },
+    ISL: { bg: '#02529c', acc: '#dc1e35', on: '#ffffff' },
   };
   const DEFAULT_STYLE = { bg: '#1d2b44', acc: '#c8f53c', on: '#111111' };
 
@@ -207,8 +486,9 @@
   };
   const fmtTime = (iso) => new Date(iso).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
   // El día de hoy (o con desfase) en la hora de este ordenador, como AAAA-MM-DD
-  const localIso = (offset = 0) => {
-    const d = new Date();
+  const localIso = (offset = 0, from = new Date()) => {
+    const d = new Date(from);
+    if (Number.isNaN(d.getTime())) return '';
     d.setDate(d.getDate() + offset);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
@@ -239,10 +519,10 @@
   // ----------------------------------------------------------
   const timeoutSignal = (ms) => (typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(ms) : undefined);
 
-  async function espnFetch(path) {
+  async function espnFetch(path, base = ESPN) {
     let res;
     try {
-      res = await fetch(`${ESPN}${path}`, { signal: timeoutSignal(15000) });
+      res = await fetch(`${base}${path}`, { signal: timeoutSignal(15000) });
     } catch (e) {
       throw new Error(e.name === 'TimeoutError' ? 'ESPN no responde, prueba en un momento' : `sin conexión con ESPN (${e.message})`);
     }
@@ -252,11 +532,11 @@
 
   function normalizeTeam(cmp, league) {
     const t = cmp?.team || {};
-    const espnName = t.displayName || t.name || '';
-    const national = NATIONAL.has(league);
+    const espnName = (t.displayName || t.name || '').trim();
+    const national = compOf(league).national;
     const [long, short] = national
-      ? [COUNTRY_NAMES[espnName] || espnName, COUNTRY_NAMES[espnName] || t.shortDisplayName || espnName]
-      : CLUB_NAMES[espnName] || [espnName, t.shortDisplayName || espnName];
+      ? [COUNTRY_NAMES[espnName] || espnName, COUNTRY_NAMES[espnName] || (t.shortDisplayName || espnName).trim()]
+      : clubNames(espnName, t.shortDisplayName, league);
     return {
       id: String(t.id || ''),
       espnName,
@@ -296,6 +576,17 @@
       });
   }
 
+  // Eliminatoria a ida y vuelta: la ida o la vuelta, el global y quién pasa (cuando acaba).
+  function tieOf(c, home, away) {
+    const leg = c.series?.totalCompetitions > 1 ? c.leg?.value || null : null;
+    const sc = c.series?.competitors || [];
+    const of = (team) => sc.find(x => String(x.id) === team.id);
+    const agg = sc.length === 2 && of(home)?.aggregateScore != null && of(away)?.aggregateScore != null && leg > 1
+      ? [num(of(home).aggregateScore), num(of(away).aggregateScore)] : null;
+    const through = c.series?.completed ? (of(home)?.winner ? 'home' : of(away)?.winner ? 'away' : null) : null;
+    return { leg, agg, through };
+  }
+
   function normalizeEvent(e, league) {
     const c = e.competitions?.[0] || {};
     const side = (ha) => (c.competitors || []).find(x => x.homeAway === ha);
@@ -306,10 +597,11 @@
       league,
       date: e.date,
       status: normalizeStatus(c.status || e.status),
-      phase: PHASES[e.season?.slug] || '',
+      phase: phaseName(e.season?.slug),
       venue: c.venue?.fullName || e.venue?.displayName || '',
       home,
       away,
+      ...tieOf(c, home, away),
       scorers: { home: cardScorers(c.details, home.id), away: cardScorers(c.details, away.id) },
     };
   }
@@ -365,6 +657,20 @@
     return { label: extra ? `${base}+${extra}'` : `${base}'`, t: base + Math.min(extra, 9) * 0.1, base, extra, period };
   }
 
+  // El apellido. En los coreanos, ESPN pone el nombre de pila como apellido («Son Heung-Min» →
+  // «Heung-Min»): el apellido es la primera palabra.
+  const KOREAN = new Set(['Kim', 'Lee', 'Park', 'Choi', 'Jung', 'Jeong', 'Kang', 'Cho', 'Jo', 'Yoon', 'Jang', 'Lim', 'Han',
+    'Oh', 'Seo', 'Shin', 'Kwon', 'Hwang', 'Ahn', 'Song', 'Yoo', 'Yu', 'Hong', 'Jeon', 'Ko', 'Moon', 'Yang', 'Son', 'Bae',
+    'Baek', 'Paik', 'Heo', 'Hur', 'Nam', 'Noh', 'Ha', 'Kwak', 'Sung', 'Cha', 'Joo', 'Woo', 'Koo', 'Min', 'Ryu', 'Na',
+    'Jin', 'Um', 'Byun', 'Chae', 'Won', 'Chun', 'Bang', 'Gong', 'Hyun', 'Seol', 'Ji']);
+  function familyName(a) {
+    const full = (a.displayName || '').trim();
+    const last = (a.lastName || '').trim();
+    const first = full.split(' ')[0];
+    if (last && KOREAN.has(first) && /^[A-Z][a-z]+-[A-Za-z][a-z]+$/.test(last) && full.toLowerCase() === `${first} ${last}`.toLowerCase()) return first;
+    return last || full;
+  }
+
   const statsMap = (list) => Object.fromEntries((list || []).map(s => [s.name, num(s.value ?? s.displayValue)]));
 
   function parseMatch(sum, game) {
@@ -388,6 +694,10 @@
       league: game.league,
       date: game.date,
       phase: game.phase,
+      leg: game.leg || null,
+      agg: game.agg || null,
+      through: game.through || null,
+      final: !!comp.isFinal || game.phase === 'Final',
       status: comp.status ? normalizeStatus(comp.status) : game.status,
       venue: sum.gameInfo?.venue?.fullName || game.venue,
       home: team('home'),
@@ -409,7 +719,7 @@
         const player = {
           id: String(a.id || ''),
           name: a.displayName || '',
-          last: a.lastName || a.displayName || '',
+          last: familyName(a),
           short: a.shortName || a.displayName || '',
           jersey: p.jersey || '',
           pos: p.position?.abbreviation || '',
@@ -503,30 +813,43 @@
     }
 
     // ─── Clasificación (la del grupo de los dos equipos, si hay) ───
-    const groups = sum.standings?.groups || [];
-    const group = groups.find(g => (g.standings?.entries || []).some(e => [m.home.id, m.away.id].includes(String(e.id))));
-    if (group) {
-      const stat = (e, n) => num((e.stats || []).find(s => s.name === n || s.type === n)?.value);
-      m.standings = group.standings.entries.map(e => {
-        const espnName = typeof e.team === 'string' ? e.team : e.team?.displayName || '';
-        const named = m.home.national
-          ? [COUNTRY_NAMES[espnName] || espnName]
-          : CLUB_NAMES[espnName] || [espnName];
-        return {
-          id: String(e.id || e.team?.id || ''),
-          name: named[1] || named[0],
-          logo: e.team?.logos?.[0]?.href || (String(e.id) === m.home.id ? m.home.logo : String(e.id) === m.away.id ? m.away.logo : LOGO(e.id)),
-          rank: stat(e, 'rank'), gp: stat(e, 'gamesPlayed'), gd: stat(e, 'pointDifferential'), pts: stat(e, 'points'),
-        };
-      }).filter(r => r.rank != null).sort((a, b) => a.rank - b.rank);
-      m.standingsName = (group.header || '').replace(/Standings$/i, '').trim();
-    }
+    addStandings(m, sum.standings?.groups || []);
+    resolveClash(m);
     return m;
+  }
+
+  // La clasificación del grupo de los dos equipos. groups: los del resumen ({ header, standings })
+  // o los de la clasificación de ESPN ({ name, standings }).
+  function addStandings(m, groups) {
+    const idOf = (e) => String(e.id || e.team?.id || '');
+    const group = groups.find(g => (g.standings?.entries || []).some(e => [m.home.id, m.away.id].includes(idOf(e))));
+    if (!group) return;
+    const stat = (e, n) => num((e.stats || []).find(s => s.name === n || s.type === n)?.value);
+    m.standings = group.standings.entries.map(e => {
+      const id = idOf(e);
+      const espnName = typeof e.team === 'string' ? e.team : e.team?.displayName || '';
+      return {
+        id,
+        name: m.home.national ? COUNTRY_NAMES[espnName] || espnName : clubNames(espnName, e.team?.shortDisplayName, m.league)[1],
+        logo: e.team?.logos?.[0]?.href || (id === m.home.id ? m.home.logo : id === m.away.id ? m.away.logo : LOGO(id)),
+        rank: stat(e, 'rank'), gp: stat(e, 'gamesPlayed'), gd: stat(e, 'pointDifferential'), pts: stat(e, 'points'),
+      };
+    }).filter(r => r.rank != null).sort((a, b) => a.rank - b.rank);
+    m.standingsName = (group.header || group.name || '').replace(/Standings$/i, '').trim();
   }
 
   async function fetchMatch(game) {
     const sum = await espnFetch(`/${game.league}/summary?event=${game.id}`);
-    return parseMatch(sum, game);
+    const m = parseMatch(sum, game);
+    // Algunas competiciones (la Europa League, la Conference…) no traen la clasificación en el
+    // resumen: se pide aparte, salvo en las eliminatorias.
+    if (!m.standings && !KNOCKOUT.test(m.phase)) {
+      try {
+        const table = await espnFetch(`/${game.league}/standings`, ESPN_TABLES);
+        addStandings(m, table.children || (table.standings ? [table] : []));
+      } catch (e) { /* sin clasificación: la slide no sale */ }
+    }
+    return m;
   }
 
   // ----------------------------------------------------------
@@ -586,9 +909,33 @@
     return { bg, acc, on: contrast('#ffffff', acc) >= 4.5 ? '#ffffff' : '#111111' };
   }
 
+  const baseColors = (team) => (team?.national && NATIONAL_COLORS[team.abbr]) || CLUB_COLORS[team?.id] || (team ? autoColors(team.color, team.alt) : DEFAULT_STYLE);
+  // El segundo color de un equipo (como la segunda equipación): el de su acento de fondo o, si el
+  // acento es claro, papel con su color.
+  function altColors(t) {
+    if (t.fg) return { bg: t.acc, acc: contrast(t.on, t.acc) >= 3 ? t.on : '#ffffff', on: t.acc };
+    if (contrast(t.acc, '#ffffff') >= 3) return { bg: t.acc, acc: '#ffffff', on: t.acc };
+    return { bg: PAPER, acc: t.bg, on: contrast('#ffffff', t.bg) >= 4.5 ? '#ffffff' : '#111111', fg: '#111111' };
+  }
+  // ¿Se confunden los dos colores? (dos blancos, dos rojos, negro y azul marino…)
+  const rgbDist = (a, b) => Math.hypot(...[16, 8, 0].map(s => ((parseInt(a.slice(1), 16) >> s) & 255) - ((parseInt(b.slice(1), 16) >> s) & 255)));
+  const clash = (a, b) => rgbDist(a.bg, b.bg) < 90;
+  // Si los dos equipos salen casi del mismo color, el visitante va con su segundo color (y si
+  // aún se confunden, de negro).
+  function resolveClash(m) {
+    const home = baseColors(m.home);
+    let away = baseColors(m.away);
+    if (!clash(home, away)) return;
+    away = altColors(away);
+    if (clash(home, away)) {
+      const acc = contrast(away.acc, '#161616') >= 3 ? away.acc : '#ffffff';
+      away = { bg: '#161616', acc, on: contrast('#ffffff', acc) >= 4.5 ? '#ffffff' : '#111111' };
+    }
+    m.away.colors = away;
+  }
+
   function teamStyle(team) {
-    const t = team?.bg ? team
-      : (team?.national && NATIONAL_COLORS[team.abbr]) || CLUB_COLORS[team?.id] || (team ? autoColors(team.color, team.alt) : DEFAULT_STYLE);
+    const t = team?.bg ? team : team?.colors || baseColors(team);
     const light = !!t.fg;
     return {
       ...t,
@@ -608,23 +955,33 @@
   // ----------------------------------------------------------
   // CÓMO SE NOMBRA A UN EQUIPO · «el Atlético», «la Roma», «España»
   // ----------------------------------------------------------
-  const article = (t) => (t.national ? '' : FEMININE.has(t.short) || FEMININE.has(t.name) ? 'la ' : 'el ');
+  const NO_ARTICLE = new Set(['Las Palmas']);
+  const article = (t) => (t.national || NO_ARTICLE.has(t.short) ? '' : FEMININE.has(t.short) || FEMININE.has(t.name) ? 'la ' : 'el ');
   const theTeam = (t) => `${article(t)}${t.short}`;
   const ofTeam = (t) => (article(t) === 'el ' ? `del ${t.short}` : `de ${article(t)}${t.short}`);
 
   // ----------------------------------------------------------
   // LECTURAS DEL PARTIDO
   // ----------------------------------------------------------
+  // Quién pasa la eliminatoria: el de la serie de ESPN (ida y vuelta) o, en un partido único que
+  // acaba en empate, el que ESPN marca como ganador (por penaltis, aunque no dé su resultado).
+  const throughOf = (m) => {
+    if (m.through) return m.through;
+    if (m.leg || m.status.state !== 'post' || m.home.score !== m.away.score) return null;
+    return m.home.winner === true ? 'home' : m.away.winner === true ? 'away' : null;
+  };
+  // El que gana la tanda de penaltis
+  const pensSide = (m) => (pensWon(m) && m.home.shootout !== m.away.shootout ? (m.home.shootout > m.away.shootout ? 'home' : 'away') : null);
   const sides = (m) => {
     const h = m.home.score, a = m.away.score;
     let winner = h > a ? 'home' : a > h ? 'away' : null;
-    if (!winner && m.home.shootout != null && m.away.shootout != null && m.home.shootout !== m.away.shootout) {
-      winner = m.home.shootout > m.away.shootout ? 'home' : 'away';
-    }
+    if (!winner) winner = pensSide(m) || (m.leg ? null : throughOf(m));
     return { winner, loser: winner && (winner === 'home' ? 'away' : 'home'), draw: h === a };
   };
   const live = (m) => m.status.state === 'in';
   const pensWon = (m) => m.home.shootout != null && m.away.shootout != null;
+  const legLabel = (m) => (m.leg === 1 ? 'Ida' : m.leg === 2 ? 'Vuelta' : '');
+  const champion = (t) => (t.national || article(t) === 'la ' ? 'campeona' : 'campeón');
   const playerById = (m, id) => [...m.home.players, ...m.away.players].find(p => p.id === String(id));
   const surname = (p) => p?.last || p?.name || '';
   const nameOf = (m, id, fallback) => surname(playerById(m, id)) || (fallback || '').split(' ').slice(-1)[0];
@@ -647,7 +1004,13 @@
     const { winner, draw } = sides(m);
     const h = m.home.score, a = m.away.score;
     if (live(m)) return 'Así va el partido';
-    if (pensWon(m) && winner) return `${cap(theTeam(m[winner]))} pasa en los penaltis`;
+    // Las eliminatorias: el campeón, el que pasa en los penaltis o el que pasa en el global
+    const pens = pensSide(m);
+    const through = pens || throughOf(m);
+    const the = (side) => cap(theTeam(m[side]));
+    if (m.final && (through || (winner && !m.leg))) return `${the(through || winner)}, ${champion(m[through || winner])}`;
+    if (pens || (through && draw && !m.leg)) return `${the(through)} pasa en los penaltis`;
+    if (through && m.leg) return NEXT_ROUND[m.phase] ? `${the(through)} pasa a ${NEXT_ROUND[m.phase]}` : `${the(through)} pasa la eliminatoria`;
     if (draw) {
       const last = m.goals[m.goals.length - 1];
       if (h === 0) return 'Empate sin goles';
@@ -767,12 +1130,14 @@
         </div>`;
     };
     const c = compOf(m.league);
-    const chip = [c.name, m.phase, live(m) ? `En juego · ${minuteText(m.status.clock)}` : ''].filter(Boolean).join(' · ');
+    const chip = [c.name, m.phase, legLabel(m), live(m) ? `En juego · ${minuteText(m.status.clock)}` : ''].filter(Boolean).join(' · ');
+    const logo = compLogo(m.league);
     return `
       ${half(m.home, 'home')}
       ${half(m.away, 'away')}
       <div class="fade"></div>
-      <div class="comp">${esc(chip)}</div>
+      <div class="comp">${logo ? `<img src="${logo}" alt="" crossorigin="anonymous" onerror="this.remove()"/>` : ''}<span>${esc(chip)}</span></div>
+      ${m.agg ? `<div class="agg">Global ${m.agg[0]}-${m.agg[1]}</div>` : ''}
       <div class="head"><h1>${esc(headline(m))}</h1></div>
       ${foot(m)}${grain}`;
   }
@@ -867,6 +1232,9 @@
     if (et) marks.push({ y: Math.round(yOf(90.5)), text: 'Prórroga' });
     if (live(m)) marks.push({ y: Math.round(yOf(clockMinute(m))), text: `Ahora · ${minuteText(m.status.clock)}` });
     if (live(m) && clockMinute(m) < 46) marks.shift(); // aún no ha llegado el descanso
+    // «Sin goles», en un hueco de la línea sin marcas: la primera parte o, en juego antes del
+    // descanso, lo que queda por jugar.
+    const noneY = (live(m) && clockMinute(m) < 46 ? (yOf(clockMinute(m)) + CRONO.bottom) / 2 : (CRONO.top + yOf(45.5)) / 2) - 64;
     placeEvents(evs, yOf, marks.map(k => ({ y0: k.y - 26, y1: k.y + 26 })));
     const ev = (e) => {
       const st = teamStyle(m[e.side]);
@@ -886,7 +1254,7 @@
         <div class="ht" style="top:${CRONO.top - 6}px">0'</div>
         ${marks.map(k => `<div class="ht" style="top:${k.y}px">${k.text}</div>`).join('')}
         ${live(m) ? '' : `<div class="ht" style="top:${CRONO.bottom + 44}px">Final · ${m.home.score}-${m.away.score}</div>`}
-        ${evs.length ? evs.map(ev).join('') : '<div class="none">Sin goles</div>'}
+        ${evs.length ? evs.map(ev).join('') : `<div class="none" style="top:${Math.round(noneY)}px">Sin goles</div>`}
         ${foot(m)}${grain}
       </div>`;
   }
@@ -1054,6 +1422,14 @@
     if (/^R/.test(p)) return 2;
     return 0;
   }
+  // El apellido en el campo: de los compuestos largos, el primero («Pacheco Ruiz» → «Pacheco»),
+  // salvo si empieza por partícula («De la Fuente», «Van Dijk», «San Bartolo»).
+  const PARTICLE = /^(de|del|da|das|do|dos|di|van|von|der|den|ter|ten|le|la|el|al|ben|mac|mc|st\.?|san|santa|dal|della|dalla)$/i;
+  const lineupName = (p) => {
+    const last = surname(p);
+    const words = last.split(' ');
+    return last.length > 11 && words.length > 1 && !PARTICLE.test(words[0]) ? words[0] : last;
+  };
   const starters = (team) => team.players.filter(p => p.starter);
   const lineupOk = (team) => starters(team).length === 11 && starters(team).some(p => depthOf(p.pos) === 0);
 
@@ -1129,9 +1505,11 @@
         row.forEach((p, i) => spots.push({ p, x: (i + 1) / (row.length + 1), y, n: row.length }));
       });
       for (const { p, x, y, n } of spots) {
-        // En una línea de 5 los nombres tienen menos sitio: más pequeños y más estrechos.
-        const nameW = Math.min(170, Math.floor(W / (n + 1)) - 8);
-        const nameSize = n >= 5 ? 23 : 27;
+        // En una línea de 5 los nombres tienen menos sitio: más pequeños y más estrechos. Los
+        // apellidos largos, más pequeños aún, para que no se toquen con el de al lado.
+        const nameW = Math.min(170, Math.floor(W / (n + 1)) - 12);
+        const nm = lineupName(p);
+        const nameSize = Math.max(17, Math.min(n >= 5 ? 23 : 27, Math.floor(nameW / (nm.length * 0.5))));
         // El local abajo, atacando hacia arriba; el visitante arriba y girado.
         const px = left + (side === 'home' ? x : 1 - x) * W;
         const py = top + (side === 'home' ? H - y * half : y * half);
@@ -1143,7 +1521,7 @@
         players.push(`
           <div class="pl${p === gk ? ' gk' : ''}" style="left:${Math.round(px)}px;top:${Math.round(py - 41)}px;${styleVars(st)}">
             <div class="dot">${esc(p.jersey)}</div>
-            <div class="nm" style="max-width:${nameW}px;font-size:${nameSize}px">${esc(surname(p))}</div>
+            <div class="nm" style="max-width:${nameW}px;font-size:${nameSize}px">${esc(nm)}</div>
             ${tags ? `<div class="tags">${tags}</div>` : ''}
             ${off ? `<div class="sub">▼ ${off.min.label}</div>` : ''}
           </div>`);
@@ -1228,6 +1606,8 @@
     'uefa.europa': 'la Europa League', 'uefa.europa.conf': 'la Conference', 'eng.1': 'la Premier', 'ita.1': 'la Serie A',
     'ger.1': 'la Bundesliga', 'fra.1': 'la Ligue 1', 'por.1': 'la Liga Portugal', 'ned.1': 'la Eredivisie', 'mex.1': 'la Liga MX',
     'arg.1': 'la Liga Argentina', 'bra.1': 'el Brasileirão', 'usa.1': 'la MLS', 'ksa.1': 'la Liga Saudí',
+    'eng.2': 'la Championship', 'ita.2': 'la Serie B', 'ger.2': 'la 2. Bundesliga', 'fra.2': 'la Ligue 2',
+    'sco.1': 'la liga escocesa', 'tur.1': 'la liga turca', 'bel.1': 'la liga belga', 'uefa.wchampions': 'la Champions',
   };
   // n filas con los dos equipos dentro; si están lejos, las de cada uno con «···» en medio
   // (null). La slide lleva 12 y el vídeo, 11.
@@ -1317,7 +1697,8 @@
   // ----------------------------------------------------------
   const SLIDE_DEFS = [
     { id: 'portada', name: 'Portada', cls: 'fc fc-portada', tpl: tplPortada },
-    { id: 'crono', name: 'Minuto a minuto', cls: 'fc fc-crono', tpl: tplCrono },
+    // Sin los goles (ESPN no los tiene de algunos partidos de copa), no sale: diría «Sin goles».
+    { id: 'crono', name: 'Minuto a minuto', cls: 'fc fc-crono', tpl: tplCrono, show: (m) => m.goals.length > 0 || m.home.score + m.away.score === 0 },
     { id: 'stats', name: 'Estadísticas', cls: 'fc fc-stats', tpl: tplStats, show: (m) => statRows(m).length >= 3 },
     { id: 'tiros', name: 'Mapa de tiros', cls: 'fc fc-tiros', tpl: tplTiros, show: (m) => m.shots.length >= 4 },
     { id: 'onces', name: 'Los onces', cls: 'fc fc-onces', tpl: tplOnces, show: (m) => lineupOk(m.home) && lineupOk(m.away) },
@@ -1339,13 +1720,16 @@
       <div class="comp-group">
         <span class="comp-group-name">${g.group}</span>
         <div class="comp-chips">
-          ${g.items.map(([slug, chip]) => `<button class="comp-chip" type="button" role="radio" data-league="${slug}" aria-checked="${slug === state.league}">${chip}</button>`).join('')}
+          ${g.items.map(([slug, chip]) => `<button class="comp-chip" type="button" role="radio" data-league="${slug}" aria-checked="${slug === state.league}">${compLogo(slug, true) ? `<img src="${compLogo(slug, true)}" alt="" loading="lazy" onerror="this.remove()"/>` : ''}${chip}</button>`).join('')}
         </div>
       </div>`).join('');
     wrap.addEventListener('click', (e) => {
       const btn = e.target.closest('.comp-chip');
       if (btn) setLeague(btn.dataset.league);
     });
+    // En el móvil cada grupo se desliza de lado: que se vea la elegida aunque esté al final.
+    const on = wrap.querySelector('.comp-chip[aria-checked="true"]');
+    if (on) on.parentElement.scrollLeft = on.offsetLeft - on.parentElement.offsetLeft - 16;
   }
 
   function setLeague(slug) {
@@ -1356,10 +1740,49 @@
     loadGames(state.selectedDate || localIso());
   }
 
+  // Los días con partidos de una competición, para no ir probando fechas a ciegas: los del
+  // calendario de ESPN (en las ligas) y los de la jornada o ronda de ahora (en las copas).
+  const matchDaysCache = {};
+  async function matchDays(league) {
+    if (!matchDaysCache[league]) {
+      matchDaysCache[league] = espnFetch(`/${league}/scoreboard`).then(data => {
+        const day = (iso) => localIso(0, new Date(iso));
+        const days = new Set((data.events || []).map(e => day(e.date)));
+        (data.leagues?.[0]?.calendar || []).forEach(c => { if (typeof c === 'string') days.add(day(c)); });
+        return [...days].filter(Boolean).sort();
+      }).catch(() => { delete matchDaysCache[league]; return []; });
+    }
+    return matchDaysCache[league];
+  }
+  // «dom 19 jul» (y el año, si no es este)
+  const fmtDay = (iso) => {
+    const d = asDate(iso);
+    const part = (o) => d.toLocaleDateString('es-ES', o).replace('.', '');
+    return [part({ weekday: 'short' }), d.getDate(), part({ month: 'short' }), iso.slice(0, 4) !== localIso().slice(0, 4) ? d.getFullYear() : ''].filter(Boolean).join(' ');
+  };
+
+  async function showNearbyDays(iso, seq) {
+    const days = await matchDays(state.league);
+    if (seq !== gamesSeq) return;
+    const prev = days.filter(d => d < iso).pop();
+    const next = days.find(d => d > iso);
+    const box = document.querySelector('#gamesList .games-empty');
+    if (!box) return;
+    const btn = (d, text) => `<button class="day-jump" type="button" data-day="${d}">${text}</button>`;
+    box.insertAdjacentHTML('beforeend', prev || next
+      ? `<div class="day-jumps">${prev ? btn(prev, `← ${esc(fmtDay(prev))}`) : ''}${next ? btn(next, `${esc(fmtDay(next))} →`) : ''}</div>`
+      : '');
+    box.querySelectorAll('.day-jump').forEach(b => b.addEventListener('click', () => goToDate(b.dataset.day)));
+  }
+
+  // «Octavos · Vuelta · Global 3-1» en la tarjeta del partido
+  const tieNote = (g) => [g.phase, legLabel(g), g.agg && gamePhase(g) === 'final' ? `Global ${g.agg[0]}-${g.agg[1]}` : ''].filter(Boolean).join(' · ');
+
   function renderGamesList(games) {
     const wrap = document.getElementById('gamesList');
     if (!games.length) {
-      wrap.innerHTML = `<div class="games-empty">No hay partidos de ${esc(compOf(state.league).name)} este día. Prueba con otra fecha.</div>`;
+      wrap.innerHTML = `<div class="games-empty"><span>No hay partidos de ${esc(compOf(state.league).name)} este día.</span></div>`;
+      showNearbyDays(state.selectedDate, gamesSeq);
       return;
     }
     wrap.innerHTML = games.map(g => {
@@ -1378,6 +1801,7 @@
           aria-label="${esc(g.home.name)} contra ${esc(g.away.name)}, ${statusLabel(g)}"
           style="--c1:${tint(g.home)};--c2:${tint(g.away)}">
           <span class="game-status ${ph}">${statusLabel(g)}</span>
+          ${tieNote(g) ? `<span class="game-tie">${esc(tieNote(g))}</span>` : ''}
           <div class="game-teams">${row(g.home, g.away)}${row(g.away, g.home)}</div>
           <div class="game-scorers">${esc(scorers)}</div>
         </div>`;
@@ -1412,6 +1836,13 @@
       console.error(e);
       wrap.innerHTML = `<div class="games-empty">Error cargando partidos: ${esc(e.message)}. Reintenta en unos segundos.</div>`;
     }
+  }
+
+  const markPreset = (iso) => document.querySelectorAll('.date-preset').forEach(b => b.classList.toggle('active', localIso(Number(b.dataset.offset)) === iso));
+  function goToDate(iso) {
+    document.getElementById('dateInput').value = iso;
+    markPreset(iso);
+    loadGames(iso);
   }
 
   function selectGame(gameId) {
@@ -1775,7 +2206,9 @@
       away: team('away'),
       live: live(m),
       clock: minuteText(m.status.clock),
-      comp: [c.name, m.phase].filter(Boolean).join(' · '),
+      comp: [c.name, m.phase, legLabel(m)].filter(Boolean).join(' · '),
+      through: live(m) ? null : pensSide(m) || throughOf(m),
+      agg: m.agg,
       date: asDate(m.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }),
       headline: writtenText('#slide-portada .head h1') || headline(m),
       goals: evs.map(e => ({ side: e.side, min: e.min.label, t: e.min.t, kind: e.kind, name: e.name, how: e.how, score: e.score || null, style: teamStyle(m[e.side]) })),
@@ -1915,18 +2348,26 @@
   function autoScript(d) {
     const end = (str) => (/[.!?…]$/.test(str) ? str : `${str}.`);
     const H = d.home, A = d.away;
-    const W2 = H.won ? H : A.won ? A : null, L2 = W2 === H ? A : H;
     const hl = end(d.headline);
-    let result;
-    if (d.live) result = `De momento, ${H.score}-${A.score}.`;
-    else if (W2 && W2.shootout != null) result = `${cap(W2.the)} gana ${W2.shootout}-${L2.shootout} en los penaltis.`;
-    else if (!W2) result = H.score ? `${cap(H.the)} y ${A.the} empatan a ${H.score}.` : `${cap(H.the)} y ${A.the} no pasan del 0-0.`;
-    else if (plain(hl).includes(plain(W2.short))) result = null; // el titular ya dice quién gana
-    else result = `${cap(W2.the)} gana ${W2.score}-${L2.score} ${L2.to}.`;
-    const script = {
-      score: result ? `${hl} ${result}` : `${hl.replace(/[.!?…]$/, '')}: ${W2.score}-${L2.score} ${L2.to}.`,
-      outro: d.closing.question,
-    };
+    const bare = hl.replace(/[.!?…]$/, '');
+    const says = (t) => plain(hl).includes(plain(t.short)); // el titular ya dice quién gana o pasa
+    const T = d.through ? d[d.through] : null, O = T === H ? A : H; // el que pasa la eliminatoria
+    let score;
+    if (d.live) {
+      score = `${hl} De momento, ${H.score}-${A.score}.`;
+    } else if (T && T.shootout != null) {
+      score = says(T) ? `${bare}: ${T.shootout}-${O.shootout}.` : `${hl} ${cap(T.the)} gana ${T.shootout}-${O.shootout} en los penaltis.`;
+    } else if (T && d.agg) {
+      const [x, y] = T === H ? d.agg : [d.agg[1], d.agg[0]];
+      score = says(T) ? `${bare}: ${x}-${y} en el global.` : `${hl} ${cap(T.the)} pasa con un ${x}-${y} en el global.`;
+    } else if (H.score === A.score) {
+      score = /^Empate (a|sin)/.test(bare) ? `${bare} entre ${H.the} y ${A.the}.`
+        : `${hl} ${H.score ? `${cap(H.the)} y ${A.the} empatan a ${H.score}.` : `${cap(H.the)} y ${A.the} no pasan del 0-0.`}`;
+    } else {
+      const W = H.score > A.score ? H : A, L = W === H ? A : H;
+      score = says(W) ? `${bare}: ${W.score}-${L.score} ${L.to}.` : `${hl} ${cap(W.the)} gana ${W.score}-${L.score} ${L.to}.`;
+    }
+    const script = { score, outro: d.closing.question };
 
     const goals = d.goals.filter(e => e.kind === 'goal');
     if (d.goals.length) {
@@ -2326,7 +2767,7 @@
       `Ayudas a Toni${state.sign ? ` (${state.sign})` : ''}, que hace contenido de fútbol en español para Instagram y TikTok. Toni usa su Studio Fútbol, una herramienta en su ordenador que convierte un partido (con los datos de ESPN) en un carrusel de Instagram y un vídeo short. Tú no ves el Studio: Toni te pega aquí lo que hay y después copia tus propuestas de vuelta.`,
       '',
       '## Qué hace el Studio',
-      '- Pasos 1 y 2: elige competición (LaLiga, Champions, Premier, Mundial…), día y partido.',
+      '- Pasos 1 y 2: elige competición (LaLiga, Champions, Premier, Serie A, Mundial, Libertadores…), día y partido.',
       '- Paso 3: el carrusel (1080×1350): portada con titular, minuto a minuto, estadísticas, mapa de tiros, los onces, jugador del partido, clasificación y cierre con una pregunta para comentarios. Los textos se retocan a mano.',
       '- Paso 4: el vídeo short (1080×1920, unos 30 s): una escena por slide. Lleva un guion, una frase por escena, que sale en los subtítulos y que Toni lee si graba su voz.',
       '',
@@ -2359,6 +2800,10 @@
     const plan = window.StudioVideo?.plan ? window.StudioVideo.plan(d, state.script) : [];
     const pens = d.home.shootout != null ? ` (${d.home.shootout}-${d.away.shootout} en los penaltis)` : '';
     lines.push('', `**Partido:** ${d.home.name} ${d.home.score} – ${d.away.score} ${d.away.name}${pens} · ${d.comp} · ${d.date}${d.live ? ` · en juego, ${d.clock}` : ''}`);
+    if (d.agg || d.through) {
+      const who = d.through ? `pasa ${theTeam(m[d.through])}` : '';
+      lines.push(`**Eliminatoria:** ${[d.agg ? `global ${d.agg[0]}-${d.agg[1]} (${d.home.short} – ${d.away.short})` : '', who].filter(Boolean).join(' · ')}`);
+    }
     const goals = (side) => scorerList(m, side).filter(x => !x.red).map(x => x.text);
     if (m.goals.length) lines.push(`**Goles:** ${d.home.short}: ${goals('home').join(', ') || '—'} · ${d.away.short}: ${goals('away').join(', ') || '—'}`);
     const reds = m.cards.filter(c => c.red).map(c => `${nameOf(m, c.player, c.name)} (${m[c.side]?.short || ''}, ${c.min.label})`);
@@ -2873,6 +3318,8 @@
     scaleSlides();
   }
 
+  const LONG_UPPER = /[ßŉǰﬀ-ﬆ]/;
+  const LONG_UPPER_ALL = /[ßŉǰﬀ-ﬆ]/g;
   async function captureCanvas(slideEl) {
     await waitForImages(slideEl);
     if (document.fonts) await document.fonts.ready;
@@ -2885,6 +3332,14 @@
       return await html2canvas(slideEl, {
         width: 1080, height: 1350, scale: 1, backgroundColor: '#0B0B0B',
         useCORS: true, allowTaint: true, imageTimeout: 8000,
+        // html2canvas se rompe con las letras que cambian de largo al pasar a mayúsculas
+        // («Meißner» → «MEISSNER»): en la copia que dibuja, ya separadas («Meissner»).
+        onclone: (doc) => {
+          const walk = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
+          for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+            if (LONG_UPPER.test(n.nodeValue)) n.nodeValue = n.nodeValue.replace(LONG_UPPER_ALL, (c) => c.toUpperCase().toLowerCase());
+          }
+        },
       });
     } finally {
       slideEl.style.transform = prevTransform;
@@ -2992,12 +3447,13 @@
     const goals = ['home', 'away'].map(s => scorerList(m, s).filter(x => !x.red).map(x => x.text).join(', ')).filter(Boolean);
     const best = bestPlayer(m);
     const tag = (t) => `#${t.short.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]/g, '')}`;
+    // Lo que hay dentro del carrusel (las slides que han salido)
+    const INSIDE = { crono: 'el minuto a minuto', stats: 'las estadísticas', tiros: 'el mapa de tiros', onces: 'los onces', tabla: 'la clasificación' };
+    const inside = slideDefs().map(d => INSIDE[d.id]).filter(Boolean);
     return `⚽ ${m.home.name.toUpperCase()} ${m.home.score}-${m.away.score} ${m.away.name.toUpperCase()}${pens}
-${c.name}${m.phase ? ` · ${m.phase}` : ''} · ${fmtDateLong(m.date)}
+${[c.name, m.phase, legLabel(m), m.agg ? `Global ${m.agg[0]}-${m.agg[1]}` : ''].filter(Boolean).join(' · ')} · ${fmtDateLong(m.date)}
 ${goals.length ? `\nGoles: ${goals.join(' · ')}` : ''}${best ? `\nJugador del partido: ${best.name}` : ''}
-
-Desliza para ver el minuto a minuto, las estadísticas, el mapa de tiros y los onces.
-
+${inside.length ? `\nDesliza para ver ${listEs(inside)}.\n` : ''}
 #Futbol #${c.tag} ${tag(m.home)} ${tag(m.away)}`;
   }
 
@@ -3019,7 +3475,6 @@ Desliza para ver el minuto a minuto, las estadísticas, el mapa de tiros y los o
     const today = localIso();
     const dateInput = document.getElementById('dateInput');
     dateInput.value = today;
-    const markPreset = (iso) => document.querySelectorAll('.date-preset').forEach(b => b.classList.toggle('active', localIso(Number(b.dataset.offset)) === iso));
     markPreset(today);
     dateInput.addEventListener('change', () => {
       if (!dateInput.value) return;
@@ -3027,12 +3482,7 @@ Desliza para ver el minuto a minuto, las estadísticas, el mapa de tiros y los o
       loadGames(dateInput.value);
     });
     document.querySelectorAll('.date-preset').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const iso = localIso(Number(btn.dataset.offset));
-        dateInput.value = iso;
-        markPreset(iso);
-        loadGames(iso);
-      });
+      btn.addEventListener('click', () => goToDate(localIso(Number(btn.dataset.offset))));
     });
 
     document.getElementById('generateBtn').addEventListener('click', generateCarousel);

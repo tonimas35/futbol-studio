@@ -379,18 +379,24 @@
     const dur = bars * BAR;
     const drawStart = BEAT, drawEnd = dur - BAR / 2;
     const at = (t) => drawStart + ((yOf(t) - TOP) / (BOTTOM - TOP)) * (drawEnd - drawStart);
-    // Las tarjetas de cada lado, cerca de su minuto y sin pisarse.
+    // Las tarjetas de cada lado, cerca de su minuto, sin pisarse ni tapar las marcas de la línea
+    // (el descanso y la prórroga).
     const placed = evs.map(e => ({ ...e, h: e.kind === 'goal' ? 112 : 84, appear: snap(at(e.t)) }));
+    const bands = [yOf(45.5), ...(d.extraTime ? [yOf(90.5)] : [])].map(y => ({ y0: y - 30, y1: y + 30 }));
+    const clear = (y, h, down) => {
+      for (const b of bands) if (y < b.y1 && y + h > b.y0) y = down ? b.y1 + 8 : b.y0 - 8 - h;
+      return y;
+    };
     for (const side of ['home', 'away']) {
       const list = placed.filter(e => e.side === side);
       list.forEach((e, i) => {
         let y = Math.max(yOf(e.t) - e.h / 2, TOP - 30);
         if (i) y = Math.max(y, list[i - 1].y + list[i - 1].h + 10);
-        e.y = y;
+        e.y = clear(y, e.h, true);
       });
       for (let i = list.length - 1; i >= 0; i--) {
         const limit = i === list.length - 1 ? BOTTOM + 40 - list[i].h : list[i + 1].y - 10 - list[i].h;
-        list[i].y = Math.min(list[i].y, limit);
+        if (list[i].y > limit) list[i].y = clear(limit, list[i].h, false);
       }
     }
     // El marcador de arriba: el de cada gol cuando aparece.
@@ -445,10 +451,14 @@
           text(ctx, label, AX, y + 11, BARLOW(32), '#ffffff', 'center');
           ctx.restore();
         };
-        mark("0'", TOP - 4, k);
-        mark(d.halftime ? `DESCANSO · ${d.halftime[0]}-${d.halftime[1]}` : 'DESCANSO', yOf(45.5), easeOut(prog(now, yOf(45.5) - 10, 40)));
-        if (d.extraTime) mark('PRÓRROGA', yOf(90.5), easeOut(prog(now, yOf(90.5) - 10, 40)));
-        mark(d.live ? `AHORA · ${d.clock}` : `FINAL · ${finalScore[0]}-${finalScore[1]}`, BOTTOM + 40, easeOut(prog(t, drawEnd, 0.3)));
+        // Las marcas de la línea, encima de todo (como en la slide): un gol en el descuento queda
+        // debajo de su marca y su tarjeta, al lado.
+        const marks = () => {
+          mark("0'", TOP - 4, k);
+          mark(d.halftime ? `DESCANSO · ${d.halftime[0]}-${d.halftime[1]}` : 'DESCANSO', yOf(45.5), easeOut(prog(now, yOf(45.5) - 10, 40)));
+          if (d.extraTime) mark('PRÓRROGA', yOf(90.5), easeOut(prog(now, yOf(90.5) - 10, 40)));
+          mark(d.live ? `AHORA · ${d.clock}` : `FINAL · ${finalScore[0]}-${finalScore[1]}`, BOTTOM + 40, easeOut(prog(t, drawEnd, 0.3)));
+        };
         // Cada suceso: el punto en su minuto, la línea hasta su tarjeta y la tarjeta.
         for (const e of placed) {
           const p = prog(t, e.appear, 0.35);
@@ -509,6 +519,7 @@
           }
           ctx.restore();
         }
+        marks();
       },
     };
   }
