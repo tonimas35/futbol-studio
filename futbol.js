@@ -818,24 +818,33 @@
     return m;
   }
 
-  // La clasificación del grupo de los dos equipos. groups: los del resumen ({ header, standings })
-  // o los de la clasificación de ESPN ({ name, standings }).
-  function addStandings(m, groups) {
+  // La clasificación del grupo con más de los equipos que se buscan (ids). groups: los del
+  // resumen ({ header, standings }) o los de la clasificación de ESPN ({ name, standings }).
+  function tableOf(groups, ids, league, logos = {}) {
     const idOf = (e) => String(e.id || e.team?.id || '');
-    const group = groups.find(g => (g.standings?.entries || []).some(e => [m.home.id, m.away.id].includes(idOf(e))));
-    if (!group) return;
+    const hits = (g) => (g.standings?.entries || []).filter(e => ids.includes(idOf(e))).length;
+    const group = [...groups].sort((a, b) => hits(b) - hits(a))[0];
+    if (!group || !hits(group)) return null;
     const stat = (e, n) => num((e.stats || []).find(s => s.name === n || s.type === n)?.value);
-    m.standings = group.standings.entries.map(e => {
+    const national = compOf(league).national;
+    const rows = group.standings.entries.map(e => {
       const id = idOf(e);
       const espnName = typeof e.team === 'string' ? e.team : e.team?.displayName || '';
       return {
         id,
-        name: m.home.national ? COUNTRY_NAMES[espnName] || espnName : clubNames(espnName, e.team?.shortDisplayName, m.league)[1],
-        logo: e.team?.logos?.[0]?.href || (id === m.home.id ? m.home.logo : id === m.away.id ? m.away.logo : LOGO(id)),
+        name: national ? COUNTRY_NAMES[espnName] || espnName : clubNames(espnName, e.team?.shortDisplayName, league)[1],
+        logo: e.team?.logos?.[0]?.href || logos[id] || LOGO(id),
+        zone: /^#[0-9a-f]{6}$/i.test(e.note?.color || '') ? e.note.color : '',
         rank: stat(e, 'rank'), gp: stat(e, 'gamesPlayed'), gd: stat(e, 'pointDifferential'), pts: stat(e, 'points'),
       };
     }).filter(r => r.rank != null).sort((a, b) => a.rank - b.rank);
-    m.standingsName = (group.header || group.name || '').replace(/Standings$/i, '').trim();
+    return rows.length ? { rows, name: (group.header || group.name || '').replace(/Standings$/i, '').trim() } : null;
+  }
+  function addStandings(m, groups) {
+    const t = tableOf(groups, [m.home.id, m.away.id], m.league, { [m.home.id]: m.home.logo, [m.away.id]: m.away.logo });
+    if (!t) return;
+    m.standings = t.rows;
+    m.standingsName = t.name;
   }
 
   async function fetchMatch(game) {
@@ -1077,7 +1086,7 @@
     ? `<img class="${cls}" src="${team.logo}" alt="" crossorigin="anonymous" onerror="this.style.display='none'"/>`
     : '');
   const grain = '<div class="fc-grain"></div>';
-  const footLeft = (m) => `${compOf(m.league).name} · ${fmtFooterDate(m.date)}`;
+  const footLeft = (m) => `${compOf(m.league).name} · ${m.kind === 'jornada' ? fmtRange(m.from, m.to) : fmtFooterDate(m.date)}`;
   // Tu logo (si lo has subido): junto a la firma y, grande, en el cierre.
   const brandTag = (cls) => `<img class="${cls}" data-brand data-noedit src="${state.brandLogo || BLANK}" alt=""${state.brandLogo ? '' : ' hidden'}/>`;
   const foot = (m) => `<div class="fc-foot"><span>${esc(footLeft(m))}</span><span class="fc-mark">${brandTag('fc-brand')}<span class="fc-sign" data-noedit>${esc(state.sign)}</span></span></div>`;
@@ -1787,6 +1796,7 @@
 
   function renderGamesList(games) {
     const wrap = document.getElementById('gamesList');
+    document.getElementById('jornadaBar').hidden = !games.some(g => ['final', 'live'].includes(gamePhase(g)));
     if (!games.length) {
       wrap.innerHTML = `<div class="games-empty"><span>No hay partidos de ${esc(compOf(state.league).name)} este día.</span></div>`;
       showNearbyDays(state.selectedDate, gamesSeq);
@@ -1830,6 +1840,7 @@
     state.selectedDate = iso;
     state.selectedGame = null;
     const wrap = document.getElementById('gamesList');
+    document.getElementById('jornadaBar').hidden = true;
     wrap.innerHTML = '<div class="games-empty"><span class="loader"></span> Cargando partidos…</div>';
     document.getElementById('selectedGameInfo').textContent = 'Selecciona un partido arriba.';
     updateGenerateBtn();
@@ -3522,6 +3533,341 @@ ${inside.length ? `\nDesliza para ver ${listEs(inside)}.\n` : ''}
   }
 
   // ----------------------------------------------------------
+  // RESUMEN DE LA JORNADA · todos los resultados con sus goleadores, lo más destacado y la
+  // clasificación, en un carrusel aparte (no toca el del partido).
+  // ----------------------------------------------------------
+  const JORNADA_STYLE = { bg: '#12151c', acc: '#c8f53c', on: '#111111' };
+  const JORNADA_PER_SLIDE = 5;
+  const jornada = { data: null, defs: [], seq: 0 };
+
+  // La jornada del día elegido: sus partidos y los de los días de alrededor (hasta 4 días antes o
+  // después) mientras ningún equipo repita, que es lo que separa una jornada de la siguiente
+  // (ESPN no da el número de jornada).
+  async function fetchJornada(league, iso) {
+    const games = new Map(), teams = new Set();
+    const add = (gs) => gs.forEach(g => { games.set(g.id, g); teams.add(g.home.id); teams.add(g.away.id); });
+    // Los 4 días de antes y los 4 de después, a la vez; luego, hacia fuera desde el día elegido.
+    const around = [-1, 1].map(dir => [1, 2, 3, 4].map(k => localIso(dir * k, asDate(iso))));
+    const [mine, ...near] = await Promise.all([fetchGames(league, iso), ...around.flat().map(d => fetchGames(league, d).catch(() => []))]);
+    add(mine);
+    [near.slice(0, 4), near.slice(4)].forEach(side => {
+      for (const gs of side) {
+        if (gs.some(g => teams.has(g.home.id) || teams.has(g.away.id))) break;
+        add(gs);
+      }
+    });
+    const list = [...games.values()].filter(g => gamePhase(g) !== 'off').sort((a, b) => new Date(a.date) - new Date(b.date));
+    const isos = list.map(g => localIso(0, new Date(g.date))).filter(Boolean).sort();
+    let table = null;
+    if (!KNOCKOUT.test(list[0]?.phase || '')) {
+      try {
+        const data = await espnFetch(`/${league}/standings`, ESPN_TABLES);
+        const logos = Object.fromEntries(list.flatMap(g => [[g.home.id, g.home.logo], [g.away.id, g.away.logo]]));
+        table = tableOf(data.children || (data.standings ? [data] : []), [...teams], league, logos);
+      } catch (e) { /* sin clasificación: la slide no sale */ }
+    }
+    return { kind: 'jornada', league, date: list[0]?.date || iso, from: isos[0] || iso, to: isos[isos.length - 1] || iso, games: list, table };
+  }
+
+  // «17 oct 2026», «17-20 oct 2026», «30 sep-2 oct 2026»
+  function fmtRange(from, to) {
+    const a = asDate(from), b = asDate(to);
+    const mon = (d) => d.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '');
+    if (from === to) return `${a.getDate()} ${mon(a)} ${a.getFullYear()}`;
+    return a.getMonth() === b.getMonth()
+      ? `${a.getDate()}-${b.getDate()} ${mon(b)} ${b.getFullYear()}`
+      : `${a.getDate()} ${mon(a)}-${b.getDate()} ${mon(b)} ${b.getFullYear()}`;
+  }
+  // «A. Grimaldo 53' (p)» → «Grimaldo 53' (p)»
+  const scorerShort = (txt) => txt.replace(/^[A-ZÀ-Ý]\.\s+/, '');
+
+  // Lo más destacado: los goles, la mayor goleada, los dobletes y hat-tricks, el partido con más
+  // goles y cómo han ido los locales y los visitantes.
+  function jornadaFacts(j) {
+    const done = j.games.filter(g => gamePhase(g) === 'final');
+    const total = (g) => g.home.score + g.away.score;
+    const margin = (g) => Math.abs(g.home.score - g.away.score);
+    const goals = done.reduce((sum, g) => sum + total(g), 0);
+    const line = (g) => `${g.home.short} ${g.home.score}-${g.away.score} ${g.away.short}`;
+    const facts = [];
+    const big = [...done].sort((a, b) => margin(b) - margin(a) || total(b) - total(a))[0];
+    if (big && margin(big) >= 3) facts.push(`La mayor goleada: ${line(big)}`);
+    const multi = [];
+    done.forEach(g => ['home', 'away'].forEach(side => {
+      const count = new Map();
+      g.scorers[side].filter(t => !/\(p\.p\.\)/.test(t)).forEach(t => {
+        const who = scorerShort(t).replace(/\s+\d.*$/, '').trim();
+        count.set(who, (count.get(who) || 0) + 1);
+      });
+      count.forEach((n, who) => { if (n >= 2) multi.push({ who, n, team: g[side] }); });
+    }));
+    multi.sort((a, b) => b.n - a.n);
+    const hat = multi.filter(x => x.n >= 3), dbl = multi.filter(x => x.n === 2);
+    if (hat.length) facts.push(`${hat.length > 1 ? 'Hat-tricks' : 'Hat-trick'} de ${listEs(hat.map(x => `${x.who} (${x.team.short})`))}`);
+    if (dbl.length && facts.length < 3) facts.push(`${dbl.length > 1 ? 'Dobletes' : 'Doblete'} de ${listEs(dbl.slice(0, 3).map(x => x.who))}`);
+    const most = [...done].sort((a, b) => total(b) - total(a))[0];
+    if (most && total(most) >= 5 && most !== big && facts.length < 3) facts.push(`El partido con más goles: ${line(most)}`);
+    if (facts.length < 3 && done.length >= 3) {
+      const h = done.filter(g => g.home.score > g.away.score).length, a = done.filter(g => g.away.score > g.home.score).length;
+      facts.push(`${h} ${h === 1 ? 'victoria' : 'victorias'} en casa, ${done.length - h - a} ${done.length - h - a === 1 ? 'empate' : 'empates'} y ${a} fuera`);
+    }
+    const pending = j.games.length - done.length;
+    if (pending) facts.push(`${pending === 1 ? 'Queda 1 partido' : `Quedan ${pending} partidos`} por jugar`);
+    return { done, goals, facts: facts.slice(0, 4) };
+  }
+
+  const jWatermark = (j) => (compLogo(j.league, true) ? `<img class="jwm" src="${compLogo(j.league, true)}" alt="" crossorigin="anonymous" onerror="this.remove()"/>` : '');
+
+  function tplJornadaPortada(j) {
+    const f = jornadaFacts(j);
+    const c = compOf(j.league);
+    return `
+      <div class="fc-in" style="${styleVars(teamStyle(JORNADA_STYLE))}">
+        ${jWatermark(j)}
+        <div class="jt-comp">${compLogo(j.league, true) ? `<img src="${compLogo(j.league, true)}" alt="" crossorigin="anonymous" onerror="this.remove()"/>` : ''}<span>${esc(c.name)}</span></div>
+        <h1 class="jt-title">Así fue<br>la jornada</h1>
+        <div class="jt-dates">${esc(fmtRange(j.from, j.to))}</div>
+        <div class="jt-big"><span class="n">${f.goals}</span><span class="l">${f.goals === 1 ? 'gol' : 'goles'} en ${f.done.length} ${f.done.length === 1 ? 'partido' : 'partidos'}</span></div>
+        <div class="jt-facts">${f.facts.map(x => `<div>${esc(x)}</div>`).join('')}</div>
+        ${foot(j)}${grain}
+      </div>`;
+  }
+
+  function tplJornadaResultados(j, games, page, pages) {
+    const cell = (g) => {
+      const ph = gamePhase(g);
+      if (ph === 'pre') return `<div class="jr-score pre">${esc(cap(asDate(g.date).toLocaleDateString('es-ES', { weekday: 'short' }).replace('.', '')))} ${fmtTime(g.date)}</div>`;
+      const pens = g.home.shootout != null && g.away.shootout != null ? `<small>${g.home.shootout}-${g.away.shootout} pen.</small>` : '';
+      const now = ph === 'live' ? `<small class="now">${esc(minuteText(g.status.clock))}</small>` : '';
+      return `<div class="jr-score ${ph}"><b>${g.home.score}-${g.away.score}</b>${pens}${now}</div>`;
+    };
+    const team = (g, side) => {
+      const t = g[side], o = g[side === 'home' ? 'away' : 'home'];
+      const lost = gamePhase(g) === 'final' && (t.score < o.score || (t.score === o.score && t.shootout != null && t.shootout < o.shootout));
+      return `<div class="jr-team ${side === 'home' ? 'l' : 'r'}${lost ? ' lost' : ''}">${logoTag(t, 'lg')}<span class="nm">${esc(t.short)}</span></div>`;
+    };
+    return `
+      <div class="fc-in paper">
+        <h1 class="title">Resultados</h1>
+        <div class="jr-sub">${esc(compOf(j.league).name)} · ${esc(fmtRange(j.from, j.to))}${pages > 1 ? ` · ${page + 1}/${pages}` : ''}</div>
+        <div class="jr-list">
+          ${games.map(g => `
+            <div class="jr-row">
+              ${team(g, 'home')}${cell(g)}${team(g, 'away')}
+              <div class="jr-sc l">${esc(g.scorers.home.map(scorerShort).join(', '))}</div>
+              <div class="jr-sc r">${esc(g.scorers.away.map(scorerShort).join(', '))}</div>
+            </div>`).join('')}
+        </div>
+        ${foot(j)}${grain}
+      </div>`;
+  }
+
+  function tplJornadaTabla(j, rows, page, pages) {
+    const what = TABLE_NAMES[j.league] || compOf(j.league).name;
+    const playing = new Set(j.games.flatMap(g => [g.home.id, g.away.id]));
+    const h = Math.min(66, Math.floor(930 / (rows.length + 1)));
+    return `
+      <div class="fc-in paper">
+        <h1 class="title" style="font-size:${what.length > 16 ? 76 : 88}px">Así queda<br>${esc(what)}</h1>
+        <div class="jt-tbl" style="--rh:${h}px">
+          <div class="row head"><span class="rk">#</span><span></span><span>Equipo${pages > 1 ? ` · ${page + 1}/${pages}` : ''}</span><span class="c">PJ</span><span class="c">DG</span><span class="pts">Pts</span></div>
+          ${rows.map(r => {
+            const gd = r.gd == null ? '' : r.gd > 0 ? `+${r.gd}` : `${r.gd}`;
+            return `
+            <div class="row${playing.has(r.id) ? '' : ' rest'}" style="--z:${r.zone || 'transparent'}">
+              <span class="rk">${r.rank}</span>
+              <img class="lg" src="${r.logo}" alt="" crossorigin="anonymous" onerror="this.style.visibility='hidden'"/>
+              <span class="tn">${esc(r.name)}</span>
+              <span class="c">${r.gp ?? ''}</span>
+              <span class="c">${gd}</span>
+              <span class="pts">${r.pts ?? ''}</span>
+            </div>`;
+          }).join('')}
+        </div>
+        ${foot(j)}${grain}
+      </div>`;
+  }
+
+  function tplJornadaCierre(j) {
+    return `
+      <div class="fc-in" style="${styleVars(teamStyle(JORNADA_STYLE))}">
+        ${jWatermark(j)}
+        <div class="fade"></div>
+        <div class="qwrap"><h1 class="q">¿Cuál fue el partido de la jornada?</h1><div class="sub">Te leo en comentarios</div></div>
+        <div class="handle">
+          ${brandTag('brand-big')}
+          <span class="fc-chip">Sígueme para más fútbol</span>
+          <div class="h fc-sign" data-noedit>${esc(state.sign)}</div>
+        </div>
+        ${grain}
+      </div>`;
+  }
+
+  function jornadaDefs(j) {
+    const pages = [];
+    for (let i = 0; i < j.games.length; i += JORNADA_PER_SLIDE) pages.push(j.games.slice(i, i + JORNADA_PER_SLIDE));
+    const rows = j.table?.rows || [];
+    const half = Math.ceil(rows.length / 2);
+    const tables = rows.length < 4 ? [] : rows.length > 20 ? [rows.slice(0, half), rows.slice(half)] : [rows];
+    return [
+      { id: 'j-portada', name: 'Portada', cls: 'fc fc-jportada', html: () => tplJornadaPortada(j) },
+      ...pages.map((p, i) => ({ id: `j-resultados-${i + 1}`, name: pages.length > 1 ? `Resultados ${i + 1}/${pages.length}` : 'Resultados', cls: 'fc fc-jresultados', html: () => tplJornadaResultados(j, p, i, pages.length) })),
+      ...tables.map((r, i) => ({ id: `j-tabla-${i + 1}`, name: tables.length > 1 ? `Clasificación ${i + 1}/${tables.length}` : 'Clasificación', cls: 'fc fc-jtabla', html: () => tplJornadaTabla(j, r, i, tables.length) })),
+      { id: 'j-cierre', name: 'Cierre', cls: 'fc fc-cierre', html: () => tplJornadaCierre(j) },
+    ];
+  }
+
+  const jornadaStamp = (j) => `jornada-${j.league.replace(/\./g, '-')}-${j.from}`;
+  const jornadaPng = (def, i) => `futbol-${jornadaStamp(jornada.data)}-${String(i + 1).padStart(2, '0')}-${def.id.replace(/^j-/, '')}.png`;
+
+  function renderJornada() {
+    const j = jornada.data;
+    const preview = document.getElementById('jornadaPreview');
+    jornada.defs = jornadaDefs(j);
+    preview.innerHTML = jornada.defs.map((def, i) => `
+      <div class="slide-wrap" data-slide-id="${def.id}">
+        <div class="slide-label">
+          <span class="slide-label-name">${i + 1} · ${def.name}</span>
+          <button class="slide-reset-btn" type="button" title="Deshacer los cambios de esta slide">↺ original</button>
+        </div>
+        <div class="slide-preview-wrap">
+          <div class="ab slide ${def.cls}" id="slide-${def.id}">${def.html()}</div>
+          ${ZOOM_BTN}
+        </div>
+        <div class="slide-foot">
+          <button class="slide-dl-btn" data-jornada-dl="${i}" aria-label="Descargar ${def.name} como PNG">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>
+            </svg>
+            descargar PNG
+          </button>
+        </div>
+      </div>`).join('');
+    preview.querySelectorAll('.slide').forEach(makeSlideEditable);
+    const f = jornadaFacts(j);
+    document.getElementById('jornadaInfo').textContent = `${compOf(j.league).name} · ${fmtRange(j.from, j.to)} · ${j.games.length} partidos${f.done.length < j.games.length ? ` (${f.done.length} acabados)` : ''}${j.table ? '' : ' · sin clasificación'}`;
+    const section = document.getElementById('jornadaSection');
+    section.hidden = false;
+    setTimeout(scaleSlides, 50);
+  }
+
+  async function generateJornada() {
+    const btn = document.getElementById('jornadaBtn');
+    const seq = ++jornada.seq;
+    btn.disabled = true;
+    btn.classList.add('btn-loading');
+    try {
+      const j = await fetchJornada(state.league, state.selectedDate || localIso());
+      if (seq !== jornada.seq) return;
+      if (!j.games.length) return showToast('No hay partidos en esta jornada', 'error');
+      jornada.data = j;
+      renderJornada();
+      document.getElementById('jornadaSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      showToast('Resumen de la jornada listo · revísalo y descárgalo', 'success');
+    } catch (e) {
+      console.error(e);
+      showToast(`No se pudo hacer el resumen: ${e.message}`, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove('btn-loading');
+    }
+  }
+
+  // El pie de foto: los resultados uno por línea, los goles y los hashtags.
+  function jornadaCaption(j) {
+    const c = compOf(j.league);
+    const f = jornadaFacts(j);
+    const res = j.games.map(g => (gamePhase(g) === 'pre'
+      ? `${g.home.short} - ${g.away.short} (${cap(asDate(g.date).toLocaleDateString('es-ES', { weekday: 'long' }))}, ${fmtTime(g.date)})`
+      : `${g.home.short} ${g.home.score}-${g.away.score} ${g.away.short}`));
+    return `⚽ RESULTADOS · ${c.name.toUpperCase()} · ${fmtRange(j.from, j.to)}
+
+${res.join('\n')}
+
+${f.goals} ${f.goals === 1 ? 'gol' : 'goles'} en ${f.done.length} ${f.done.length === 1 ? 'partido' : 'partidos'}.${f.facts.length ? `\n${f.facts.join('.\n')}.` : ''}
+
+¿Cuál fue el partido de la jornada? 👇
+
+#Futbol #${c.tag}`;
+  }
+
+  async function downloadJornada(vertical = false) {
+    const j = jornada.data;
+    if (!j || !lockCapture()) return;
+    const btn = document.getElementById(vertical ? 'jornadaZipVBtn' : 'jornadaZipBtn');
+    btn.disabled = true;
+    btn.classList.add('btn-loading');
+    showToast('Renderizando slides… (10-30s)');
+    try {
+      const zip = new JSZip();
+      for (let i = 0; i < jornada.defs.length; i++) {
+        const el = document.getElementById(`slide-${jornada.defs[i].id}`);
+        if (!el) continue;
+        const canvas = await captureCanvas(el);
+        zip.file(jornadaPng(jornada.defs[i], i), await new Promise(r => (vertical ? toVertical(canvas) : canvas).toBlob(r, 'image/png')));
+      }
+      zip.file('caption.txt', jornadaCaption(j));
+      triggerDownload(await zip.generateAsync({ type: 'blob' }), `futbol-${jornadaStamp(j)}${vertical ? '-9x16' : ''}.zip`);
+      showToast(vertical ? 'Jornada 9:16 descargada · lista para TikTok' : 'Jornada descargada · sube las PNG a IG', 'success');
+    } catch (e) {
+      console.error(e);
+      showToast(`Error descargando: ${e.message}`, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove('btn-loading');
+      unlockCapture();
+    }
+  }
+
+  async function downloadJornadaSlide(i, btn) {
+    const def = jornada.defs[i];
+    const el = def && document.getElementById(`slide-${def.id}`);
+    if (!el || !lockCapture()) return;
+    btn.disabled = true;
+    try {
+      triggerDownload(await captureSlide(el), jornadaPng(def, i));
+    } catch (e) {
+      console.error(e);
+      showToast(`Error: ${e.message}`, 'error');
+    } finally {
+      btn.disabled = false;
+      unlockCapture();
+    }
+  }
+
+  function setupJornada() {
+    document.getElementById('jornadaBtn').addEventListener('click', generateJornada);
+    document.getElementById('jornadaZipBtn').addEventListener('click', () => downloadJornada());
+    document.getElementById('jornadaZipVBtn').addEventListener('click', () => downloadJornada(true));
+    document.getElementById('jornadaCloseBtn').addEventListener('click', () => {
+      document.getElementById('jornadaSection').hidden = true;
+      document.getElementById('jornadaPreview').innerHTML = '';
+      jornada.data = null;
+    });
+    const preview = document.getElementById('jornadaPreview');
+    preview.addEventListener('click', (e) => {
+      const dl = e.target.closest('[data-jornada-dl]');
+      if (dl) downloadJornadaSlide(Number(dl.dataset.jornadaDl), dl);
+      const reset = e.target.closest('.slide-reset-btn');
+      if (reset) {
+        const wrap = reset.closest('.slide-wrap');
+        const slide = wrap.querySelector('.slide');
+        slide.innerHTML = originalSlides.get(slide);
+        applySign(slide);
+        applyBrand(slide);
+        wrap.classList.remove('edited');
+      }
+    });
+    preview.addEventListener('input', (e) => { if (e.target.isContentEditable) e.target.closest('.slide-wrap')?.classList.add('edited'); });
+    preview.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.target.isContentEditable) {
+        e.preventDefault();
+        document.execCommand('insertLineBreak');
+      }
+    });
+  }
+
+  // ----------------------------------------------------------
   // EN DIRECTO · vigila las competiciones que elijas: los partidos de hoy y cómo van. Cuando
   // acaba uno, avisa (en la pestaña, con un sonido y, si el navegador deja, una notificación)
   // y queda a un clic de generarlo.
@@ -3781,6 +4127,7 @@ ${inside.length ? `\nDesliza para ver ${listEs(inside)}.\n` : ''}
     } catch (e) { /* sin almacenamiento: los valores por defecto */ }
     renderCompPicker();
     setupDirecto();
+    setupJornada();
     const signInput = document.getElementById('signInput');
     signInput.value = state.sign;
     signInput.addEventListener('input', onSignInput);

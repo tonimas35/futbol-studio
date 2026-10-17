@@ -699,6 +699,12 @@ body.zoom-open { overflow: hidden; }
 .live-controls .slide-reset-btn, .live-more { display: inline-flex; align-items: center; }
 .live-controls .slide-reset-btn[hidden] { display: none; }
 
+/* Resumen de la jornada: el botón bajo la lista de partidos */
+.jornada-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 14px; }
+.jornada-bar[hidden] { display: none; }
+.jornada-bar small { flex: 1 1 260px; color: var(--mute); font-size: 13px; }
+#jornadaSection .actions-row { margin-bottom: 18px; }
+
 /* Tu logo */
 .brand-field { margin-top: 12px; }
 .brand-preview { height: 44px; max-width: 140px; object-fit: contain; padding: 4px; border: 1px solid var(--line-2); border-radius: 10px; background: repeating-conic-gradient(#2a2e38 0 25%, #1e222c 0 50%) 0 0 / 14px 14px; }
@@ -1202,3 +1208,50 @@ body.zoom-open { overflow: hidden; }
   .video-out { flex-direction: column; align-items: stretch; }
   .video-out video { width: 100%; }
 }
+
+/* ════════════════════════════════════════════════════════════
+   RESUMEN DE LA JORNADA (.fc-jportada, .fc-jresultados, .fc-jtabla; el cierre usa .fc-cierre)
+   ════════════════════════════════════════════════════════════ */
+.fc .jwm { position: absolute; right: -150px; bottom: 120px; z-index: 1; width: 780px; height: 780px; object-fit: contain; opacity: 0.07; }
+.fc-jportada .jt-comp { position: absolute; left: 64px; top: 64px; z-index: 5; display: flex; align-items: center; gap: 18px; color: var(--t-acc); font-weight: 800; font-size: 40px; letter-spacing: 0.06em; text-transform: uppercase; }
+.fc-jportada .jt-comp img { width: 72px; height: 72px; object-fit: contain; }
+.fc-jportada .jt-title { position: absolute; left: 64px; right: 64px; top: 176px; z-index: 5; color: #fff; font-family: 'Anton', sans-serif; font-size: 150px; line-height: 1.04; text-transform: uppercase; }
+.fc-jportada .jt-dates { position: absolute; left: 64px; top: 510px; z-index: 5; color: rgba(255, 255, 255, 0.7); font-weight: 800; font-size: 44px; letter-spacing: 0.06em; text-transform: uppercase; }
+.fc-jportada .jt-big { position: absolute; left: 64px; right: 64px; top: 590px; z-index: 5; display: flex; align-items: baseline; gap: 28px; }
+.fc-jportada .jt-big .n { color: var(--t-acc); font-family: 'Anton', sans-serif; font-size: 250px; line-height: 1; }
+.fc-jportada .jt-big .l { color: #fff; font-weight: 800; font-size: 50px; line-height: 1.05; letter-spacing: 0.03em; text-transform: uppercase; }
+.fc-jportada .jt-facts { position: absolute; left: 64px; right: 64px; top: 900px; z-index: 5; color: #fff; font-weight: 700; font-size: 40px; line-height: 1.2; }
+.fc-jportada .jt-facts div { position: relative; margin-bottom: 18px; padding-left: 40px; }
+.fc-jportada .jt-facts div::before { content: ''; position: absolute; left: 0; top: 14px; width: 20px; height: 20px; background: var(--t-acc); }
+.fc-jportada .fc-foot { color: #fff; }
+
+.fc-jresultados .title { position: absolute; left: 64px; top: 52px; font-family: 'Anton', sans-serif; font-size: 120px; line-height: 1.05; text-transform: uppercase; }
+.fc-jresultados .jr-sub { position: absolute; left: 64px; top: 196px; color: #666; font-weight: 800; font-size: 34px; letter-spacing: 0.05em; text-transform: uppercase; }
+.fc-jresultados .jr-list { position: absolute; left: 40px; right: 40px; top: 270px; }
+.fc-jresultados .jr-row { display: grid; grid-template-columns: minmax(0, 1fr) 220px minmax(0, 1fr); grid-template-rows: 100px 70px; align-items: center; border-bottom: 2px solid rgba(0, 0, 0, 0.08); }
+.fc-jresultados .jr-row:last-child { border-bottom: 0; }
+.fc-jresultados .jr-team { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.fc-jresultados .jr-team.l { flex-direction: row-reverse; }
+.fc-jresultados .jr-team .lg { flex: none; width: 70px; height: 70px; }
+.fc-jresultados .jr-team .nm { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 800; font-size: 44px; letter-spacing: 0.02em; text-transform: uppercase; }
+.fc-jresultados .jr-team.lost .nm { color: #8a8a8a; }
+.fc-jresultados .jr-score { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.fc-jresultados .jr-score b { font-family: 'Anton', sans-serif; font-weight: 400; font-size: 80px; line-height: 1; }
+.fc-jresultados .jr-score small { margin-top: 4px; color: #666; font-weight: 800; font-size: 24px; letter-spacing: 0.04em; text-transform: uppercase; }
+.fc-jresultados .jr-score small.now { color: #e3172d; }
+.fc-jresultados .jr-score.pre { color: #666; font-weight: 800; font-size: 34px; letter-spacing: 0.04em; text-transform: uppercase; }
+.fc-jresultados .jr-sc { align-self: start; max-height: 62px; overflow: hidden; color: #555; font-weight: 700; font-size: 25px; line-height: 1.22; }
+.fc-jresultados .jr-sc.l { grid-column: 1; padding-right: 12px; text-align: right; }
+.fc-jresultados .jr-sc.r { grid-column: 3; padding-left: 12px; text-align: left; }
+
+.fc-jtabla .title { position: absolute; left: 64px; top: 52px; font-family: 'Anton', sans-serif; line-height: 1.06; text-transform: uppercase; }
+.fc-jtabla .jt-tbl { position: absolute; left: 48px; right: 48px; top: 290px; }
+.fc-jtabla .row { display: grid; grid-template-columns: 62px 52px minmax(0, 1fr) 70px 86px 92px; align-items: center; gap: 0 10px; height: var(--rh); padding: 0 14px 0 8px; border-left: 8px solid var(--z, transparent); }
+.fc-jtabla .row:nth-child(even) { background: rgba(0, 0, 0, 0.04); }
+.fc-jtabla .row.head { height: 46px; border-left-color: transparent; background: none; color: #666; font-weight: 800; font-size: 24px; letter-spacing: 0.06em; text-transform: uppercase; }
+.fc-jtabla .row .rk { font-family: 'Anton', sans-serif; font-size: 34px; text-align: center; }
+.fc-jtabla .row .lg { width: 40px; height: 40px; object-fit: contain; }
+.fc-jtabla .row .tn { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 800; font-size: 32px; letter-spacing: 0.02em; text-transform: uppercase; }
+.fc-jtabla .row .c { text-align: center; font-weight: 700; font-size: 30px; }
+.fc-jtabla .row .pts { text-align: center; font-family: 'Anton', sans-serif; font-size: 38px; }
+.fc-jtabla .row.head .c, .fc-jtabla .row.head .pts, .fc-jtabla .row.head .rk { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 24px; }
