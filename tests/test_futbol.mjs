@@ -19,7 +19,8 @@
 // compartir, el vídeo (guion, la mezcla y el MP4),
 // «Para tu IA» (copiar y pegar), un partido en juego, uno sin alineaciones ni clasificación,
 // las eliminatorias (campeón, global, quién pasa), saltar a un día con partidos, el modo en
-// directo (vigilar, avisar y generar a un clic), el resumen de la jornada, «El dato», la versión en inglés,
+// directo (vigilar, avisar y generar a un clic, con el vídeo), el enlace del pitido final (?partido=) y la
+// función que avisa al móvil, el resumen de la jornada, «El dato», la versión en inglés,
 // tu logo, el móvil y abierto como archivo (con doble clic en index.html, que es como se usa).
 import { spawn, execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
@@ -501,10 +502,73 @@ try {
     await p6.waitForSelector('#slide-portada', { timeout: 20000 }).catch(() => {});
     check(await p6.$eval('#gamesList .game-card.selected', (c) => c.dataset.gameId).catch(() => '') === '401882844' && !!(await p6.$('#slide-portada')) && !/^\(/.test(await p6.title()),
       'y a un clic lo genera (la competición, el día y el partido, solos)');
+    await p6.waitForSelector('#videoBtn.btn-loading', { timeout: 20000 }).catch(() => {});
+    check(!!(await p6.$('#videoBtn.btn-loading')), 'y empieza a crear el vídeo sin otro clic');
     await p6.click('.live-switch');
     check(await p6.$$eval('#liveList .live-card', (c) => c.length) === 0 && JSON.parse(await p6.evaluate(() => localStorage.getItem('fc-live'))).on === false,
       'apagarlo deja de vigilar y se recuerda');
     await c6.close();
+  }
+
+  // ── Al pitido final: el enlace del aviso lo genera todo solo ──
+  {
+    const { ctx: c7, page: p7 } = await open({
+      url: `${base}/?partido=esp.1/401882844&dia=2026-10-16`,
+      before: async (ctx) => { await ctx.clock.setFixedTime(new Date('2026-10-17T10:00:00+02:00')); },
+    });
+    p7.on('dialog', (d) => d.accept());
+    await p7.waitForSelector('#slide-portada', { timeout: 30000 }).catch(() => {});
+    const link = await p7.evaluate(() => ({
+      league: document.querySelector('.comp-chip[aria-checked="true"]')?.dataset.league,
+      date: document.getElementById('dateInput').value,
+      game: document.querySelector('#gamesList .game-card.selected')?.dataset.gameId,
+      search: location.search,
+      caption: document.getElementById('captionText').value.split('\n')[0],
+    }));
+    check(link.league === 'esp.1' && link.date === '2026-10-16' && link.game === '401882844' && link.search === '',
+      `el enlace ?partido= elige la competición, el día y el partido, y se borra de la barra (${link.league} · ${link.date} · ${link.game})`);
+    await p7.waitForSelector('#videoBtn.btn-loading', { timeout: 20000 }).catch(() => {});
+    check(!!(await p7.$('#slide-portada')) && /Depor 1-0 Levante/.test(link.caption) && !!(await p7.$('#videoBtn.btn-loading')),
+      `genera el carrusel, la descripción y empieza el vídeo (${link.caption})`);
+    await c7.close();
+    // Un partido que no está: lo dice y deja el Studio como siempre.
+    const { ctx: c7b, page: p7b } = await open({ url: `${base}/?partido=esp.1/999`, before: async (ctx) => { await ctx.clock.setFixedTime(new Date('2026-10-16T22:00:00+02:00')); } });
+    await p7b.waitForFunction(() => /ni hoy ni ayer/.test(document.getElementById('toast').textContent), null, { timeout: 15000 }).catch(() => {});
+    check(/ni hoy ni ayer/.test(await p7b.textContent('#toast')) && !(await p7b.$('#slide-portada')), 'si el partido no está, avisa y no genera nada');
+    await c7b.close();
+
+    // La función de Netlify que avisa al móvil (ntfy), con ESPN y ntfy de mentira.
+    const pf = await import(join(REPO, 'netlify/functions/pitido-final.mjs'));
+    const sb = JSON.parse(readFileSync(join(FIX, 'sb-esp.1-20261016.json')));
+    for (const e of sb.events) if (e.id === '401882844') e.status = { ...e.status, type: { ...e.status.type, state: 'post', completed: true } };
+    const posts = [];
+    const realFetch = globalThis.fetch, realNow = Date.now, realTopic = process.env.NTFY_TOPIC;
+    globalThis.fetch = async (url, opts = {}) => {
+      url = String(url);
+      if (url.startsWith('https://ntfy.sh/') && url.includes('/json?poll=1')) return new Response(posts.map((p) => JSON.stringify({ event: 'message', click: JSON.parse(p).click })).join('\n'));
+      if (url === 'https://ntfy.sh' && opts.method === 'POST') { posts.push(opts.body); return new Response('{}'); }
+      return new Response(JSON.stringify(url.endsWith('/esp.1/scoreboard?dates=20261016') ? sb : { events: [] }));
+    };
+    Date.now = () => Date.parse('2026-10-16T23:10:00+02:00');
+    try {
+      delete process.env.NTFY_TOPIC;
+      const off = await (await pf.default()).text();
+      process.env.NTFY_TOPIC = 'tema-de-prueba';
+      const first = await (await pf.default()).text();
+      const again = await (await pf.default()).text();
+      const sent = JSON.parse(posts[0] || '{}');
+      check(/Sin NTFY_TOPIC/.test(off) && posts.length === 1 && /^0 aviso/.test(again) && pf.config.schedule === '*/2 * * * *',
+        `aviso al móvil: cada 2 minutos, uno por partido y sin repetir (${first})`);
+      check(sent.topic === 'tema-de-prueba' && sent.title === 'Final: Deportivo 1-0 Levante' && sent.click === 'https://studio-toni.netlify.app/?partido=esp.1/401882844&dia=2026-10-16',
+        `con el resultado y el enlace que lo genera todo (${sent.click})`);
+      Date.now = () => Date.parse('2026-10-17T03:30:00+02:00'); // mira también el 16, pero empezó hace 6 h y media
+      posts.length = 0;
+      check(/^0 aviso/.test(await (await pf.default()).text()), 'y no avisa de partidos de hace horas');
+    } finally {
+      globalThis.fetch = realFetch;
+      Date.now = realNow;
+      if (realTopic === undefined) delete process.env.NTFY_TOPIC; else process.env.NTFY_TOPIC = realTopic;
+    }
   }
 
   // ── Resumen de la jornada: todos los resultados, lo destacado y la clasificación ──
