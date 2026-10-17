@@ -1209,6 +1209,66 @@
   }
 
   // ----------------------------------------------------------
+  // API-FOOTBALL · la nota y la cara de cada jugador. Se piden a la función de Netlify, que
+  // tiene la clave (netlify/functions/apifootball.mjs): en la página no está. Abierto como
+  // archivo no hay función y todo sigue igual, sin notas.
+  // ----------------------------------------------------------
+  const AF_URL = '/.netlify/functions/apifootball';
+  const afOn = () => /^https?:$/.test(location.protocol);
+  async function afGet(path, params) {
+    const res = await fetch(`${AF_URL}?${new URLSearchParams({ path, ...params })}`, { signal: timeoutSignal(DATO_FETCH) });
+    const data = await res.json().catch(() => ({}));
+    const errors = data.errors && (Array.isArray(data.errors) ? data.errors : Object.values(data.errors));
+    // Lo que dice API-Football (el plan no deja, se acabaron las peticiones…) se enseña tal cual
+    if (errors?.length) throw Object.assign(new Error(errors.join(' · ')), { api: true });
+    if (!res.ok) throw new Error(`API-Football ${res.status}`);
+    return data.response || [];
+  }
+
+  // ¿Es el mismo equipo? Con los nombres de ESPN y de API-Football, que no siempre coinciden
+  // («Internazionale» e «Inter», «Bayern Munich» y «Bayern München»)
+  const TEAM_FILLER = new Set(['fc', 'cf', 'ac', 'as', 'sc', 'cd', 'ud', 'rc', 'sd', 'afc', 'club', 'the', 'real', 'sporting']);
+  const teamWords = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+    .split(/[^a-z0-9]+/).filter(w => w.length >= 3 && !TEAM_FILLER.has(w));
+  const sameTeam = (a, b) => teamWords(a).some(w => teamWords(b).some(v => v === w
+    || (w.length >= 5 && v.length >= 5 && (w.startsWith(v) || v.startsWith(w)))));
+
+  // El partido en API-Football: los del día a la misma hora (±30 min), con el mismo resultado y
+  // al menos un equipo que coincida
+  async function afFixture(m) {
+    const list = await afGet('fixtures', { date: new Date(m.date).toISOString().slice(0, 10), timezone: 'UTC' });
+    const t = Date.parse(m.date);
+    const scored = list.map(f => {
+      if (Math.abs((f.fixture?.timestamp || 0) * 1000 - t) > 30 * 60000) return null;
+      const names = Number(sameTeam(m.home.espnName, f.teams?.home?.name)) + Number(sameTeam(m.away.espnName, f.teams?.away?.name));
+      const score = f.goals?.home === m.home.score && f.goals?.away === m.away.score ? 1 : 0;
+      return names && names + score >= 2 ? { f, w: names + score } : null;
+    }).filter(Boolean).sort((a, b) => b.w - a.w);
+    return scored.length && (scored.length === 1 || scored[0].w > scored[1].w) ? scored[0].f : null;
+  }
+
+  // La nota y la foto de cada jugador, por su id de ESPN. Se empareja por el dorsal y, si no,
+  // por el apellido.
+  async function loadRatings(m) {
+    const fx = await afFixture(m);
+    if (!fx) return null;
+    const teams = await afGet('fixtures/players', { fixture: fx.fixture.id });
+    const players = {};
+    for (const t of teams) {
+      const side = t.team?.id === fx.teams.home.id ? 'home' : t.team?.id === fx.teams.away.id ? 'away' : null;
+      if (!side) continue;
+      for (const p of t.players || []) {
+        const g = p.statistics?.[0]?.games || {};
+        const last = plain(String(p.player?.name || '').split(' ').pop());
+        const espn = m[side].players.find(x => x.jersey && String(x.jersey) === String(g.number))
+          || (last.length >= 3 && m[side].players.find(x => plain(x.name).endsWith(last)));
+        if (espn) players[espn.id] = { rating: num(g.rating), photo: p.player?.photo || '' };
+      }
+    }
+    return Object.keys(players).length ? { fixture: fx.fixture.id, players } : null;
+  }
+
+  // ----------------------------------------------------------
   // STATE
   // ----------------------------------------------------------
   const state = {
@@ -1457,7 +1517,13 @@
     return r;
   }
   const playedList = (m) => [...m.home.players, ...m.away.players].filter(p => p.starter || p.subIn);
-  const rankedPlayers = (m) => playedList(m).map(p => ({ p, r: rating(m, p) })).sort((a, b) => b.r - a.r).map(x => x.p);
+  // La nota de API-Football (si la hay) y la cara pequeña de API-Football
+  const afRating = (m, p) => m.af?.players?.[p.id]?.rating ?? null;
+  const afPhoto = (m, p) => m.af?.players?.[p.id]?.photo || '';
+  const fmtRating = (r) => L(r.toFixed(1).replace('.', ','), r.toFixed(1));
+  // Con las notas de API-Football manda la nota; sin ellas, la cuenta del Studio
+  const rankedPlayers = (m) => playedList(m).map(p => ({ p, a: afRating(m, p) ?? -1, r: rating(m, p) }))
+    .sort((a, b) => b.a - a.a || b.r - a.r).map(x => x.p);
   const bestPlayer = (m) => (state.jugadorId && playerById(m, state.jugadorId)) || rankedPlayers(m)[0] || null;
 
   // ----------------------------------------------------------
@@ -2000,7 +2066,9 @@
     const v = (k) => p.s[k] || 0;
     const plural = (n, one, many) => (n === 1 ? one : many);
     const gk = p.pos === 'G';
+    const nota = afRating(m, p);
     const cands = [
+      { v: nota != null ? fmtRating(nota) : '', label: L('Nota', 'Rating'), rating: true, w: 1000, ok: nota != null },
       { v: v('totalGoals'), label: plural(v('totalGoals'), L('Gol', 'Goal'), L('Goles', 'Goals')), w: 10 * v('totalGoals'), ok: v('totalGoals') > 0 },
       { v: v('goalAssists'), label: plural(v('goalAssists'), L('Asistencia', 'Assist'), L('Asistencias', 'Assists')), w: 8 * v('goalAssists'), ok: v('goalAssists') > 0 },
       { v: v('saves'), label: plural(v('saves'), L('Parada', 'Save'), L('Paradas', 'Saves')), w: 3 * v('saves'), ok: gk && v('saves') > 0 },
@@ -2041,6 +2109,38 @@
             </div>`).join('')}
         </div>
         <div class="fc-tape" style="font-size:${line.length > 26 ? 42 : 54}px">${esc(line)}</div>
+        ${foot(m)}${grain}
+      </div>`;
+  }
+
+  // ----------------------------------------------------------
+  // LAS NOTAS · la nota de API-Football de cada jugador que ha jugado, con su cara, de mejor a
+  // peor y cada equipo en su columna (solo en la web, con las notas)
+  // ----------------------------------------------------------
+  const ratedPlayers = (m, side) => m[side].players.filter(p => afRating(m, p) != null).sort((a, b) => afRating(m, b) - afRating(m, a));
+  const NOTAS_ROWS = 15;
+  const ratingColor = (r) => (r >= 8 ? '#0e8a3e' : r >= 7 ? '#4fa82b' : r >= 6.5 ? '#e3b400' : r >= 6 ? '#ef7d00' : '#d8263a');
+  function tplNotas(m) {
+    const top = bestPlayer(m);
+    const col = (side) => `
+      <div class="col">
+        <div class="team">${logoTag(m[side], 'lg')}<span>${esc(m[side].short)}</span></div>
+        ${ratedPlayers(m, side).slice(0, NOTAS_ROWS).map(p => {
+          const r = afRating(m, p);
+          const face = afPhoto(m, p);
+          return `
+          <div class="row${top?.id === p.id ? ' mvp' : ''}">
+            <span class="face" style="${styleVars(teamStyle(m[side]))}"><b>${esc(p.jersey)}</b>${face ? `<img src="${esc(face)}" alt="" crossorigin="anonymous" onerror="this.remove()"/>` : ''}</span>
+            <span class="nm">${esc(lineupName(p))}</span>
+            <span class="rt" style="background:${ratingColor(r)};color:${r >= 6.5 && r < 7 ? '#111' : '#fff'}">${fmtRating(r)}</span>
+          </div>`;
+        }).join('')}
+      </div>`;
+    return `
+      <div class="fc-in paper">
+        <h1 class="title">${L('Las notas', 'Player ratings')}</h1>
+        <div class="cols">${col('home')}${col('away')}</div>
+        <div class="src">${L('Notas', 'Ratings')}: API-Football</div>
         ${foot(m)}${grain}
       </div>`;
   }
@@ -2290,6 +2390,7 @@
       pick: (m) => rankedPlayers(m).slice(0, 16).map(p => ({ value: p.id, label: `${surname(p)} · ${m[p.side].abbr}` })),
       pickValue: (m) => bestPlayer(m)?.id || '',
       onPick: (value) => { state.jugadorId = value; } },
+    { id: 'notas', name: 'Las notas', cls: 'fc fc-notas', tpl: tplNotas, show: (m) => ratedPlayers(m, 'home').length >= 8 && ratedPlayers(m, 'away').length >= 8 },
     { id: 'tabla', name: 'Clasificación', cls: 'fc fc-tabla', tpl: tplTabla, show: (m) => (m.standings?.length || 0) >= 4 },
     { id: 'cierre', name: 'Cierre', cls: 'fc fc-cierre', tpl: tplCierre },
   ];
@@ -2476,7 +2577,9 @@
     try {
       const match = await fetchMatch(game);
       if (seq !== genSeq) return;
-      match.dato = await findDato(match);
+      const [dato, af] = await Promise.all([findDato(match), findRatings(match)]);
+      match.dato = dato;
+      match.af = af.data;
       if (seq !== genSeq) return;
       state.rendered = match;
       state.jugadorId = null;
@@ -2484,7 +2587,7 @@
       resetVideo();
       afterRender(match);
       contentChanged(true);
-      showToast('Carrusel generado · revisa el preview', 'success');
+      showToast(af.problem ? `Carrusel generado, sin las notas · API-Football: ${af.problem}` : 'Carrusel generado · revisa el preview', af.problem ? 'error' : 'success');
     } catch (e) {
       console.error(e);
       showToast(`No se pudo generar: ${e.message}`, 'error');
@@ -2507,6 +2610,18 @@
       return null;
     } finally {
       clearTimeout(slow);
+    }
+  }
+
+  // Las notas de API-Football (solo en la web y con el partido acabado). problem: lo que ha
+  // dicho API-Football si no ha dejado (el plan, el límite del día…), para enseñarlo.
+  async function findRatings(m) {
+    if (!afOn() || m.status.state !== 'post') return { data: null };
+    try {
+      return { data: await Promise.race([loadRatings(m), new Promise(resolve => setTimeout(() => resolve(null), DATO_WAIT))]) };
+    } catch (e) {
+      console.warn('API-Football:', e.message);
+      return { data: null, problem: e.api ? e.message : '' };
     }
   }
 
@@ -2926,7 +3041,7 @@
         last: surname(p), number: p.jersey,
         photo: hasPhoto(p) ? [photoSrc(p)] : null,
         logo: m[p.side].logo, style: teamStyle(m[p.side]),
-        stats: keys.map(s => ({ v: s.text ?? s.v, label: s.label, clean: !!s.clean })),
+        stats: keys.map(s => ({ v: s.text ?? s.v, label: s.label, clean: !!s.clean, rating: !!s.rating })),
         scoreLine: scoreLine(m),
       },
       dato: dato && {
@@ -3117,7 +3232,7 @@
       script.tiros = `${H.short}: ${d.shots.home.total} shots, ${d.shots.home.on} on target. ${A.short}: ${d.shots.away.total} and ${d.shots.away.on}.`;
     }
     if (d.jugador) {
-      const say = (s) => (s.clean ? 'a clean sheet' : `${String(s.v).replace('/', ' of ')} ${s.label.toLowerCase()}`);
+      const say = (s) => (s.clean ? 'a clean sheet' : s.rating ? `rated ${s.v}` : `${String(s.v).replace('/', ' of ')} ${s.label.toLowerCase()}`);
       const [a, b] = d.jugador.stats;
       script.jugador = `${d.jugador.last}, player of the match${a ? `: ${say(a)}${b ? ` and ${say(b)}` : ''}` : ''}.`;
     }
@@ -3186,7 +3301,7 @@
       script.tiros = `${cap(H.the)}, ${d.shots.home.total} tiros y ${d.shots.home.on} a puerta; ${A.the}, ${d.shots.away.total} y ${d.shots.away.on}.`;
     }
     if (d.jugador) {
-      const say = (s) => (s.clean ? 'portería a cero' : `${String(s.v).replace('/', ' de ')} ${s.label.toLocaleLowerCase('es')}`);
+      const say = (s) => (s.clean ? 'portería a cero' : s.rating ? `un ${s.v} de nota` : `${String(s.v).replace('/', ' de ')} ${s.label.toLocaleLowerCase('es')}`);
       const [a, b] = d.jugador.stats;
       script.jugador = `${d.jugador.last}, el mejor del partido${a ? `: ${say(a)}${b ? ` y ${say(b)}` : ''}` : ''}.`;
     }
@@ -3607,6 +3722,8 @@
     if (reds.length) lines.push(`**Rojas:** ${reds.join(', ')}`);
     if (d.stats) lines.push(`**Estadísticas (${d.home.short} – ${d.away.short}):** ${d.stats.map(r => `${r.label} ${r.pct ? `${Math.round(r.v[0])}%-${Math.round(r.v[1])}%` : `${r.v[0]}-${r.v[1]}`}`).join(', ')}`);
     if (d.shots) lines.push(`**Tiros:** ${d.home.short} ${d.shots.home.total} (${d.shots.home.on} a puerta) · ${d.away.short} ${d.shots.away.total} (${d.shots.away.on} a puerta)`);
+    const notas = ['home', 'away'].map(side => ratedPlayers(m, side).slice(0, 5).map(p => `${surname(p)} ${fmtRating(afRating(m, p))}`).join(', ')).filter(Boolean);
+    if (notas.length === 2) lines.push(`**Notas de API-Football (las 5 mejores):** ${d.home.short}: ${notas[0]} · ${d.away.short}: ${notas[1]}`);
     if (d.jugador) lines.push(`**Jugador del partido:** ${[d.jugador.first, d.jugador.last].filter(Boolean).join(' ')}: ${d.jugador.stats.map(x => (x.clean ? L('portería a cero', 'clean sheet') : `${x.v} ${x.label.toLocaleLowerCase('es')}`)).join(', ')}`);
     const datos = datoFacts(m).filter(() => d.dato);
     if (datos.length) lines.push(`**El dato** (del historial de ESPN, el primero es el de la slide):`, ...datos.map(f => `- ${f.sentence}`));
@@ -4273,7 +4390,7 @@
     const inside = insideList(['crono', 'stats', 'tiros', 'onces', 'tabla']);
     return `⚽ ${m.home.name.toUpperCase()} ${m.home.score}-${m.away.score} ${m.away.name.toUpperCase()}${pens}
 ${[compName(m.league), phaseOut(m.phase), legLabel(m), m.agg ? aggLabel(m.agg) : ''].filter(Boolean).join(' · ')} · ${fmtDateLong(m.date)}
-${dato ? `\n📊 ${dato}` : ''}${goals.length ? `\n${L('Goles', 'Goals')}: ${goals.join(' · ')}` : ''}${best ? `\n${L('Jugador del partido', 'Player of the match')}: ${best.name}` : ''}
+${dato ? `\n📊 ${dato}` : ''}${goals.length ? `\n${L('Goles', 'Goals')}: ${goals.join(' · ')}` : ''}${best ? `\n${L('Jugador del partido', 'Player of the match')}: ${best.name}${afRating(m, best) != null ? ` (${fmtRating(afRating(m, best))})` : ''}` : ''}
 ${inside.length ? `\n${L('Desliza para ver', 'Swipe for')} ${listEs(inside)}.\n` : ''}
 #${L('Futbol', 'Football')} #${c.tag} ${tag(m.home)} ${tag(m.away)}`;
   }
