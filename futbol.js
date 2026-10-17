@@ -14,6 +14,7 @@
   // ESPN — datos de fútbol gratis, sin auth y con CORS abierto (también desde un archivo local)
   const ESPN = 'https://site.api.espn.com/apis/site/v2/sports/soccer';
   const ESPN_TABLES = 'https://site.api.espn.com/apis/v2/sports/soccer'; // las clasificaciones
+  const ESPN_WEB = 'https://site.web.api.espn.com/apis/common/v3/sports/soccer'; // los partidos de cada jugador
   const LOGO = (id) => `https://a.espncdn.com/i/teamlogos/soccer/500/${id}.png`;
 
   // [código de ESPN, nombre en el botón, nombre en las slides, hashtag, logo de ESPN]
@@ -138,6 +139,7 @@
     'Atlético-MG': ['Atlético Mineiro', 'Atlético Mineiro'], 'Sarmiento (Junín)': ['Sarmiento', 'Sarmiento'],
     'RB Leipzig': ['RB Leipzig', 'Leipzig'], 'Hellas Verona': ['Hellas Verona', 'Verona'], 'Eintracht Frankfurt': ['Eintracht Frankfurt', 'Frankfurt'],
     'Crystal Palace': ['Crystal Palace', 'Palace'],
+    'Slovan Bratislava': ['Slovan Bratislava', 'Slovan'],
   };
   const NO_DARK_LOGO = new Set([99, 431, 2192, 97]);
   const compLogo = (slug, dark = false) => {
@@ -210,7 +212,7 @@
     'Sheffield United': ['Sheffield United', 'Sheffield Utd'],
     'Sheffield Wednesday': ['Sheffield Wednesday', 'Sheffield Wed'],
     'West Bromwich Albion': ['West Bromwich', 'West Brom'],
-    'Crystal Palace': ['Crystal Palace', 'Crystal Palace'],
+    'Crystal Palace': ['Crystal Palace', 'Crystal Palace'], 'Slovan Bratislava': ['Slovan Bratislava', 'Slovan'],
     // Italia
     'Napoli': ['Nápoles', 'Nápoles'],
     'Bologna': ['Bolonia', 'Bolonia'],
@@ -572,10 +574,10 @@
   // ----------------------------------------------------------
   const timeoutSignal = (ms) => (typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(ms) : undefined);
 
-  async function espnFetch(path, base = ESPN) {
+  async function espnFetch(path, base = ESPN, wait = 15000) {
     let res;
     try {
-      res = await fetch(`${base}${path}`, { signal: timeoutSignal(15000) });
+      res = await fetch(`${base}${path}`, { signal: timeoutSignal(wait) });
     } catch (e) {
       throw new Error(e.name === 'TimeoutError' ? 'ESPN no responde, prueba en un momento' : `sin conexión con ESPN (${e.message})`);
     }
@@ -752,6 +754,7 @@
       agg: game.agg || null,
       through: game.through || null,
       final: !!comp.isFinal || game.phase === 'Final',
+      season: num(sum.header?.season?.year),
       lang: state.lang,
       status: comp.status ? normalizeStatus(comp.status) : game.status,
       venue: sum.gameInfo?.venue?.fullName || game.venue,
@@ -914,6 +917,295 @@
       } catch (e) { /* sin clasificación: la slide no sale */ }
     }
     return m;
+  }
+
+  // ----------------------------------------------------------
+  // EL DATO · rachas, cara a cara y «primera vez desde…», sacados del historial de ESPN de los
+  // dos equipos: todos los partidos oficiales desde 2003 (los amistosos de clubes y la
+  // pretemporada no cuentan; en los penaltis, empate). Las temporadas acabadas se guardan en el
+  // navegador: la segunda vez va al momento. Cada dato se guarda con sus números, no con el
+  // texto, y así sale en los dos idiomas.
+  // ----------------------------------------------------------
+  const HIST_FROM = 2003;
+  const DATO_MIN = 28;        // lo que tiene que pesar un dato para salir
+  const YEAR_MS = 365.25 * 864e5;
+  const resultOf = (g) => (g.gf > g.ga ? 'W' : g.gf < g.ga ? 'L' : 'D');
+  const runBack = (rows, ok) => {
+    let n = 0;
+    for (let i = rows.length - 1; i >= 0 && ok(rows[i]); i--) n++;
+    return n;
+  };
+
+  const DATO_FETCH = 8000;    // lo que se espera a cada petición del historial
+
+  // Los partidos acabados de una temporada de un equipo, en pequeño. De las selecciones, ESPN
+  // da siempre los últimos partidos, pida la temporada que se pida (y lo dice): esa temporada
+  // cuenta como que no está.
+  function seasonRows(data, teamId, season, national) {
+    const served = num(data.requestedSeason?.year);
+    if (served != null && served !== season) throw new Error(`ESPN no tiene la temporada ${season}`);
+    return (data.events || []).flatMap(e => {
+      const c = e.competitions?.[0] || {};
+      const st = c.status?.type || e.status?.type || {};
+      const me = (c.competitors || []).find(x => String(x.team?.id ?? x.id) === teamId);
+      const op = (c.competitors || []).find(x => x !== me);
+      const lg = e.league?.slug || '';
+      if (!st.completed || !/FULL_TIME|FINAL/.test(st.name || '') || !me || !op) return [];
+      if (!national && /friendly|^global\./.test(lg)) return [];
+      const goals = (x) => num(x.score?.value ?? x.score?.displayValue ?? x.score);
+      const gf = goals(me), ga = goals(op);
+      if (gf == null || ga == null) return [];
+      return [{ id: String(e.id), t: Date.parse(e.date), lg, s: num(e.season?.year) ?? season, home: me.homeAway === 'home',
+        nt: !!c.neutralSite, venue: c.venue?.fullName || '', opp: String(op.team?.id ?? op.id ?? ''), gf, ga }];
+    });
+  }
+
+  const histJobs = new Map(); // las temporadas acabadas ya pedidas en esta sesión
+  function teamSeason(team, season, done) {
+    const key = `${team.id}-${season}`;
+    if (done && histJobs.has(key)) return histJobs.get(key);
+    const job = (async () => {
+      const saved = done ? await dbGet('hist', key) : null;
+      if (saved) return saved;
+      const data = await espnFetch(`/all/teams/${team.id}/schedule?season=${season}`, ESPN, DATO_FETCH);
+      const rows = seasonRows(data, team.id, season, team.national);
+      if (done) dbPut('hist', key, rows);
+      return rows;
+    })();
+    if (done) {
+      histJobs.set(key, job);
+      job.catch(() => histJobs.delete(key));
+    }
+    return job;
+  }
+
+  async function inBatches(jobs, size = 6) {
+    const out = new Array(jobs.length);
+    let next = 0;
+    const worker = async () => {
+      while (next < jobs.length) {
+        const i = next++;
+        out[i] = await jobs[i]();
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(size, jobs.length) }, worker));
+    return out;
+  }
+
+  // Los partidos de un equipo hasta el de hoy (incluido), de la temporada del partido hacia
+  // atrás. Si falla una temporada, se para ahí: con un hueco, «desde…» podría ser mentira.
+  async function teamHistory(m, side, from) {
+    if (m[side].national) from = m.season; // de las selecciones solo están los últimos partidos
+    const seasons = [];
+    for (let s = m.season; s >= from; s--) seasons.push(s);
+    const got = await inBatches(seasons.map(s => () => teamSeason(m[side], s, s < m.season).catch(() => null)));
+    const upTo = got.indexOf(null) < 0 ? got.length : got.indexOf(null);
+    if (!upTo) return null;
+    const rows = new Map();
+    for (const r of got.slice(0, upTo).flat()) rows.set(r.id, r);
+    // El de hoy, con el resultado del resumen (el calendario de ESPN a veces va por detrás)
+    const me = m[side], op = m[side === 'home' ? 'away' : 'home'];
+    rows.set(m.id, { id: m.id, t: Date.parse(m.date), lg: m.league, s: m.season, home: side === 'home', nt: !!rows.get(m.id)?.nt,
+      venue: rows.get(m.id)?.venue || m.venue, opp: op.id, gf: me.score, ga: op.score });
+    const until = Date.parse(m.date);
+    return [...rows.values()].filter(r => r.t <= until).sort((a, b) => a.t - b.t);
+  }
+
+  // Las rachas de un equipo, en todas las competiciones y en la del partido, y su temporada
+  function teamFacts(m, side, rows) {
+    const facts = [];
+    const add = (f) => facts.push({ side, ...f });
+    const today = rows[rows.length - 1];
+    if (today?.id !== m.id) return facts;
+    const r = resultOf(today);
+    const ground = homeGrounds(rows);
+    const at = (g) => !m[side].national && g.home === today.home && (g.home ? ground(g) : !g.nt);
+    for (const scope of ['all', 'comp']) {
+      const G = scope === 'all' ? rows : rows.filter(g => g.lg === m.league);
+      if (G.length < 2) continue;
+      const before = G.slice(0, -1);
+      const bonus = scope === 'all' ? 1 : 0; // a igual racha, mejor en todas las competiciones
+      // La racha tiene que empezar dentro del historial; si no, el número se queda corto
+      const run = (ok) => { const n = runBack(G, ok); return n < G.length ? n : 0; };
+      const ended = (ok) => { const n = runBack(before, ok); return n < before.length ? n : 0; };
+      const won = (g) => resultOf(g) === 'W', lost = (g) => resultOf(g) === 'L';
+      const n = { win: run(won), unbeaten: run(g => !lost(g)), winless: run(g => !won(g)), loss: run(lost) };
+      if (n.win >= 5) add({ kind: 'winRun', fam: 'run', scope, n: n.win, w: n.win * 10 + bonus });
+      if (n.unbeaten >= 10 && n.unbeaten > n.win) add({ kind: 'unbeaten', fam: 'run', scope, n: n.unbeaten, w: n.unbeaten * 5 + bonus });
+      if (n.winless >= 6 && n.winless > n.loss) add({ kind: 'winless', fam: 'run', scope, n: n.winless, w: n.winless * 6 + bonus });
+      if (n.loss >= 4) add({ kind: 'lossRun', fam: 'run', scope, n: n.loss, w: n.loss * 8 + bonus });
+      if (r === 'W') {
+        const k = ended(g => !won(g));
+        if (k >= 5) add({ kind: 'endWinless', fam: 'run', scope, n: k, w: k * 8 + bonus });
+      }
+      if (r === 'L') {
+        const k = ended(g => !lost(g));
+        if (k >= 10) add({ kind: 'endUnbeaten', fam: 'run', scope, n: k, w: k * 6 + bonus });
+      }
+      const cs = run(g => g.ga === 0), sc = run(g => g.gf > 0), bl = run(g => g.gf === 0);
+      if (cs >= 5) add({ kind: 'cleanSheets', fam: 'goals', scope, n: cs, w: cs * 6 + bonus });
+      if (sc >= 15) add({ kind: 'scoringRun', fam: 'goals', scope, n: sc, w: sc * 3 + bonus });
+      if (bl >= 4) add({ kind: 'blankRun', fam: 'goals', scope, n: bl, w: bl * 7 + bonus });
+      // En casa (en su campo) o fuera (sin los de campo neutral). Las selecciones, no: en los
+      // torneos, local y visitante son solo un nombre.
+      const where = G.filter(at);
+      const hw = runBack(where, won);
+      if (at(today) && hw < where.length && hw >= (today.home ? 8 : 6)) {
+        add({ kind: today.home ? 'homeWins' : 'awayWins', fam: 'venue', scope, n: hw, w: hw * (today.home ? 5 : 7) + bonus });
+      }
+    }
+    // La temporada en la competición del partido: pleno, invicto o la primera derrota
+    const Gs = rows.filter(g => g.lg === m.league && g.s === today.s);
+    const k = Gs.length;
+    if (k >= 5 && Gs.every(g => resultOf(g) === 'W')) add({ kind: 'perfect', fam: 'run', n: k, w: k * 11 });
+    else if (k >= 8 && Gs.every(g => resultOf(g) !== 'L')) add({ kind: 'unbeatenSeason', fam: 'run', n: k, w: k * 5 });
+    else if (k >= 6 && r === 'L' && Gs.slice(0, -1).every(g => resultOf(g) !== 'L')) add({ kind: 'firstSeasonLoss', fam: 'run', n: k - 1, w: (k - 1) * 6 });
+    // Desde cuándo no pasaba: la mayor victoria, la peor derrota, tantos goles a favor o en
+    // contra, o ganar en esta competición
+    const prev = rows.slice(0, -1);
+    const years = (t) => Math.floor((today.t - t) / YEAR_MS);
+    const lastBefore = (ok, list = prev) => list[list.map(ok).lastIndexOf(true)] || null;
+    const since = (kind, g, n, w, min = 3) => {
+      if (g && years(g.t) >= min) add({ kind, fam: 'since', n, since: g.t, years: years(g.t), w: w(years(g.t)) });
+    };
+    const d = today.gf - today.ga;
+    if (d >= 4) since('bigWin', lastBefore(g => g.gf - g.ga >= d), d, y => y * 4 + d * 5);
+    if (d <= -4) since('bigLoss', lastBefore(g => g.ga - g.gf >= -d), -d, y => y * 4 - d * 5);
+    if (today.gf >= 5) since('mostScored', lastBefore(g => g.gf >= today.gf), today.gf, y => y * 3 + today.gf * 5);
+    if (today.ga >= 5) since('mostConceded', lastBefore(g => g.ga >= today.ga), today.ga, y => y * 3 + today.ga * 5);
+    if (r === 'W') since('compWinSince', lastBefore(g => g.lg === m.league && resultOf(g) === 'W'), 0, y => y * 5);
+    return facts;
+  }
+
+  // El campo de cada temporada: donde el equipo juega en casa al menos 3 veces (contando la de
+  // antes y la de después, para los primeros partidos de la temporada). Así una final en campo
+  // neutral que ESPN da como «en casa» no cuenta como su campo.
+  function homeGrounds(rows) {
+    const count = new Map();
+    for (const g of rows) {
+      if (!g.home || !g.venue) continue;
+      for (const s of [g.s - 1, g.s, g.s + 1]) {
+        const key = `${s}\n${g.venue}`;
+        count.set(key, (count.get(key) || 0) + 1);
+      }
+    }
+    return (g) => (count.get(`${g.s}\n${g.venue}`) || 0) >= 3;
+  }
+
+  // El cara a cara, con el historial del local: primera victoria desde…, en este campo, rachas,
+  // la mayor victoria y el partido con más goles desde…
+  function h2hFacts(m, rows) {
+    const facts = [];
+    const add = (f) => facts.push(f);
+    const M = rows.filter(g => g.opp === m.away.id);
+    const today = M[M.length - 1];
+    if (!today || today.id !== m.id || M.length < 2) return facts;
+    const prev = M.slice(0, -1);
+    const years = (t) => Math.floor((today.t - t) / YEAR_MS);
+    const winBy = (side) => (g) => resultOf(g) === (side === 'home' ? 'W' : 'L');
+    const r = resultOf(today);
+    if (r !== 'D') {
+      const side = r === 'W' ? 'home' : 'away';
+      const won = winBy(side);
+      const j = prev.map(won).lastIndexOf(true);
+      if (j >= 0) {
+        const k = prev.length - 1 - j, y = years(prev[j].t);
+        if (k >= 4 || (y >= 3 && k >= 2)) add({ kind: 'h2hSince', fam: 'h2h', side, n: k, since: prev[j].t, years: y, w: k * 7 + y * 5 });
+      } else if (prev.length >= 5) {
+        add({ kind: 'h2hFirstIn', fam: 'h2h', side, n: M.length, w: prev.length * 7 });
+      }
+      const ground = homeGrounds(rows);
+      if (today.home && ground(today)) {
+        const Mg = M.filter(g => g.home && ground(g));
+        const pg = Mg.slice(0, -1);
+        const jg = pg.map(won).lastIndexOf(true);
+        if (jg >= 0) {
+          const k = pg.length - 1 - jg, y = years(pg[jg].t);
+          if (k >= 1 && (k >= 3 || y >= 4)) add({ kind: 'groundSince', fam: 'ground', side, n: k, since: pg[jg].t, years: y, w: k * 8 + y * 6 });
+        } else if (pg.length >= 4) {
+          add({ kind: 'groundFirstIn', fam: 'ground', side, n: Mg.length, w: pg.length * 8 });
+        }
+      }
+      const n = runBack(M, won);
+      if (n >= 4) add({ kind: 'h2hRun', fam: 'h2hRun', side, n, w: n * 7 });
+      const d = Math.abs(today.gf - today.ga);
+      if (d >= 3) {
+        const jb = prev.map(g => won(g) && Math.abs(g.gf - g.ga) >= d).lastIndexOf(true);
+        if (jb >= 0 && years(prev[jb].t) >= 5) add({ kind: 'biggestWin', fam: 'margin', side, since: prev[jb].t, years: years(prev[jb].t), w: years(prev[jb].t) * 4 + d * 6 });
+      }
+    }
+    for (const side of ['home', 'away']) {
+      const n = runBack(M, g => resultOf(g) !== (side === 'home' ? 'L' : 'W'));
+      if (n >= 8 && n > runBack(M, winBy(side)) + 2) add({ kind: 'h2hUnbeaten', fam: 'h2hRun', side, n, w: n * 4 });
+    }
+    const total = today.gf + today.ga;
+    if (total >= 5) {
+      const jt = prev.map(g => g.gf + g.ga >= total).lastIndexOf(true);
+      if (jt >= 0 && years(prev[jt].t) >= 6) {
+        add({ kind: 'mostGoals', fam: 'margin', side: r === 'L' ? 'away' : 'home', n: total, since: prev[jt].t, years: years(prev[jt].t), w: years(prev[jt].t) * 3 + total * 4 });
+      }
+    }
+    return facts;
+  }
+
+  // Los goleadores de hoy en esta competición y temporada: si marcan partido tras partido o
+  // cuántos llevan (con los partidos de cada jugador en ESPN)
+  async function scorerFacts(m) {
+    const tally = new Map();
+    m.goals.filter(g => !g.own && g.scorer).forEach(g => tally.set(g.scorer, (tally.get(g.scorer) || 0) + 1));
+    const ids = [...tally].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([id]) => id);
+    const logs = await Promise.all(ids.map(id => espnFetch(`/athletes/${id}/gamelog?league=${m.league}&season=${m.season}`, ESPN_WEB, DATO_FETCH).catch(() => null)));
+    const until = Date.parse(m.date);
+    return logs.flatMap((log, i) => {
+      const id = ids[i], side = playerById(m, id)?.side;
+      const gi = (log?.names || []).indexOf('totalGoals');
+      if (!side || gi < 0) return [];
+      const games = new Map();
+      for (const st of log.seasonTypes || []) {
+        for (const c of st.categories || []) {
+          for (const e of c.events || []) {
+            const t = Date.parse(log.events?.[e.eventId]?.gameDate || '');
+            if (Number.isFinite(t)) games.set(String(e.eventId), { t, goals: num(e.stats?.[gi]) || 0 });
+          }
+        }
+      }
+      games.set(m.id, { t: until, goals: tally.get(id) });
+      const list = [...games.values()].filter(g => g.t <= until).sort((a, b) => a.t - b.t);
+      const facts = [];
+      const run = runBack(list, g => g.goals > 0);
+      if (run >= 3) facts.push({ kind: 'pRun', fam: `p${id}`, side, player: id, n: run, all: run === list.length, w: run * 9 });
+      const goals = list.reduce((sum, g) => sum + g.goals, 0);
+      if (goals >= 6) facts.push({ kind: 'pGoals', fam: `p${id}`, side, player: id, n: goals, games: list.length, w: goals * 4 + (goals >= list.length ? 8 : 0) });
+      return facts;
+    });
+  }
+
+  // Los 3 mejores: el primero es «El dato»; como mucho, uno de cada tipo por equipo
+  function pickFacts(facts) {
+    const seen = new Set();
+    const out = [];
+    for (const f of [...facts].sort((a, b) => b.w - a.w)) {
+      const key = `${f.fam}|${f.side}`;
+      if (f.w < DATO_MIN || seen.has(key)) continue;
+      seen.add(key);
+      out.push(f);
+      if (out.length === 3) break;
+    }
+    return out;
+  }
+
+  async function loadDato(m) {
+    if (!m.season || m.status.state !== 'post' || !m.home.id || !m.away.id) return null;
+    const [home, away, players] = await Promise.all([
+      teamHistory(m, 'home', HIST_FROM),
+      teamHistory(m, 'away', HIST_FROM),
+      scorerFacts(m).catch(() => []),
+    ]);
+    return pickFacts([
+      ...(home ? [...teamFacts(m, 'home', home), ...h2hFacts(m, home)] : []),
+      ...(away ? teamFacts(m, 'away', away) : []),
+      ...players,
+    ]);
   }
 
   // ----------------------------------------------------------
@@ -1812,11 +2104,141 @@
   }
 
   // ----------------------------------------------------------
+  // EL DATO · la slide: el número grande, lo que significa y la frase entera; debajo, los
+  // otros dos datos (si hay)
+  // ----------------------------------------------------------
+  // «en LaLiga», «en la Premier League», «at the World Cup»…
+  const IN_COMP_ES = {
+    'esp.1': 'en LaLiga', 'esp.2': 'en LaLiga Hypermotion', 'eng.2': 'en el Championship', 'bra.1': 'en el Brasileirão',
+    'fifa.world': 'en el Mundial', 'fifa.cwc': 'en el Mundial de Clubes', 'fifa.friendly': 'en amistosos',
+    'fifa.worldq.uefa': 'en la clasificación para el Mundial', 'uefa.euroq': 'en la clasificación para la Eurocopa',
+  };
+  const IN_COMP_EN = {
+    'esp.1': 'in LaLiga', 'esp.2': 'in LaLiga Hypermotion', 'ita.1': 'in Serie A', 'ita.2': 'in Serie B', 'fra.1': 'in Ligue 1',
+    'fra.2': 'in Ligue 2', 'usa.1': 'in MLS', 'mex.1': 'in Liga MX', 'fifa.world': 'at the World Cup', 'uefa.euro': 'at the Euros',
+    'conmebol.america': 'at the Copa América', 'fifa.cwc': 'at the Club World Cup', 'fifa.friendly': 'in friendlies',
+    'fifa.worldq.uefa': 'in World Cup qualifying', 'uefa.euroq': 'in Euro qualifying',
+  };
+  const inComp = (slug) => (isEn() ? IN_COMP_EN[slug] || `in the ${compName(slug)}` : IN_COMP_ES[slug] || `en la ${compName(slug)}`);
+  // «en LaLiga esta temporada» · en los torneos, «en este Mundial» («at this World Cup»)
+  const THIS_ES = { 'fifa.world': 'en este Mundial', 'uefa.euro': 'en esta Eurocopa', 'conmebol.america': 'en esta Copa América', 'fifa.cwc': 'en este Mundial de Clubes' };
+  const THIS_EN = { 'fifa.world': 'at this World Cup', 'uefa.euro': 'at this Euros', 'conmebol.america': 'at this Copa América', 'fifa.cwc': 'at this Club World Cup' };
+  const thisSeason = (slug) => (isEn() ? THIS_EN[slug] || `${inComp(slug)} this season` : THIS_ES[slug] || `${inComp(slug)} esta temporada`);
+  const monthYear = (t) => new Date(t).toLocaleDateString(outLocale(), { month: 'long', year: 'numeric' });
+  const fem = (t) => t.national || article(t) === 'la ';
+  const poss = (name) => (/s$/i.test(name) ? `${name}'` : `${name}'s`); // «Rennes'», «Roma's»
+
+  // Un dato en palabras: { big, unit, sentence }. spoken: para el vídeo, sin «en todas las
+  // competiciones» (la frase dicha, más corta)
+  function datoText(m, f, spoken = false) {
+    const T = m[f.side], O = m[f.side === 'home' ? 'away' : 'home'];
+    const The = cap(theTeam(T));
+    const sc = f.scope !== 'all' ? inComp(m.league) : spoken ? '' : L('en todas las competiciones', 'in all competitions');
+    const comp = inComp(m.league), season = thisSeason(m.league);
+    const since = f.since ? monthYear(f.since) : '';
+    const later = f.years >= 2 ? { big: f.years, unit: L('años después', 'years later') } : { big: f.n, unit: L('partidos después', 'games later') };
+    const who = f.player ? surname(playerById(m, f.player)) : '';
+    const away = f.side === 'away';
+    switch (f.kind) {
+      case 'winRun': return { big: f.n, unit: L('victorias seguidas', 'wins in a row'),
+        sentence: L(`${The} encadena ${f.n} victorias seguidas ${sc}.`, `${T.short} have won ${f.n} in a row ${sc}.`) };
+      case 'unbeaten': return { big: f.n, unit: L('partidos sin perder', 'games unbeaten'),
+        sentence: L(`${The} suma ${f.n} partidos seguidos sin perder ${sc}.`, `${T.short} are unbeaten in ${f.n} games ${sc}.`) };
+      case 'winless': return { big: f.n, unit: L('partidos sin ganar', 'games without a win'),
+        sentence: L(`${The} lleva ${f.n} partidos sin ganar ${sc}.`, `${T.short} are without a win in ${f.n} games ${sc}.`) };
+      case 'lossRun': return { big: f.n, unit: L('derrotas seguidas', 'defeats in a row'),
+        sentence: L(`${The} encadena ${f.n} derrotas seguidas ${sc}.`, `${T.short} have lost ${f.n} in a row ${sc}.`) };
+      case 'endWinless': return { big: f.n, unit: L('partidos sin ganar… hasta hoy', 'games without a win… until today'),
+        sentence: L(`${The} rompe una racha de ${f.n} partidos sin ganar ${sc}.`, `${T.short} end a ${f.n}-game winless run ${sc}.`) };
+      case 'endUnbeaten': return { big: f.n, unit: L('partidos sin perder… hasta hoy', 'games unbeaten… until today'),
+        sentence: L(`Se acaba la racha ${ofTeam(T)}: ${f.n} partidos sin perder ${sc}.`, `${poss(T.short)} ${f.n}-game unbeaten run ${sc} is over.`) };
+      case 'cleanSheets': return { big: f.n, unit: L('partidos seguidos sin encajar', 'clean sheets in a row'),
+        sentence: L(`${The} encadena ${f.n} partidos sin encajar ${sc}.`, `${T.short} have kept ${f.n} clean sheets in a row ${sc}.`) };
+      case 'scoringRun': return { big: f.n, unit: L('partidos seguidos marcando', 'games in a row scoring'),
+        sentence: L(`${The} marca en ${f.n} partidos seguidos ${sc}.`, `${T.short} have scored in ${f.n} games in a row ${sc}.`) };
+      case 'blankRun': return { big: f.n, unit: L('partidos seguidos sin marcar', 'games in a row without scoring'),
+        sentence: L(`${The} lleva ${f.n} partidos seguidos sin marcar ${sc}.`, `${T.short} have failed to score in ${f.n} games in a row ${sc}.`) };
+      case 'homeWins': return { big: f.n, unit: L('victorias seguidas en casa', 'home wins in a row'),
+        sentence: L(`${The} gana sus últimos ${f.n} partidos en casa ${sc}.`, `${T.short} have won their last ${f.n} home games ${sc}.`) };
+      case 'awayWins': return { big: f.n, unit: L('victorias seguidas fuera', 'away wins in a row'),
+        sentence: L(`${The} gana sus últimos ${f.n} partidos fuera de casa ${sc}.`, `${T.short} have won their last ${f.n} away games ${sc}.`) };
+      case 'perfect': return { big: `${f.n}/${f.n}`, unit: L('pleno de victorias', 'perfect record'),
+        sentence: L(`Pleno ${ofTeam(T)} ${season}: ${f.n} victorias en ${f.n} partidos.`, `${T.short} have won all ${f.n} of their games ${season}.`) };
+      case 'unbeatenSeason': return { big: f.n, unit: L('partidos sin perder', 'games unbeaten'),
+        sentence: L(`${The} sigue ${fem(T) ? 'invicta' : 'invicto'} ${season}: ${f.n} partidos sin perder.`, `${T.short} are still unbeaten ${season}, after ${f.n} games.`) };
+      case 'firstSeasonLoss': return { big: f.n, unit: L('partidos sin perder… hasta hoy', 'games unbeaten… until today'),
+        sentence: L(`Primera derrota ${ofTeam(T)} ${season}, tras ${f.n} partidos sin perder.`, `${poss(T.short)} first defeat ${season}, after ${f.n} games unbeaten.`) };
+      case 'h2hSince': return { ...later,
+        sentence: L(`Primera victoria ${ofTeam(T)} ante ${theTeam(O)} desde ${since}.`, `${poss(T.short)} first win over ${O.short} since ${since}.`) };
+      case 'h2hFirstIn': return { big: L('1.ª', '1st'), unit: L(`victoria en ${f.n} partidos`, `win in ${f.n} meetings`),
+        sentence: L(`${The} gana ${toTeam(O)} por primera vez en ${f.n} partidos.`, `${T.short} beat ${O.short} for the first time in ${f.n} meetings.`) };
+      case 'groundSince': return { ...later,
+        sentence: away ? L(`Primera victoria ${ofTeam(T)} en casa ${ofTeam(O)} desde ${since}.`, `${poss(T.short)} first win away at ${O.short} since ${since}.`)
+          : L(`Primera victoria ${ofTeam(T)} en casa ante ${theTeam(O)} desde ${since}.`, `${poss(T.short)} first home win over ${O.short} since ${since}.`) };
+      case 'groundFirstIn': return { big: L('1.ª', '1st'),
+        unit: away ? L(`victoria en ${f.n} visitas`, `win in ${f.n} visits`) : L(`victoria en casa en ${f.n} partidos`, `home win in ${f.n} meetings`),
+        sentence: away ? L(`${The} gana en casa ${ofTeam(O)} por primera vez en ${f.n} visitas.`, `${T.short} win away at ${O.short} for the first time in ${f.n} visits.`)
+          : L(`${The} gana en casa ${toTeam(O)} por primera vez en ${f.n} partidos.`, `${T.short} beat ${O.short} at home for the first time in ${f.n} meetings.`) };
+      case 'h2hRun': return { big: f.n, unit: L(`victorias seguidas ante ${theTeam(O)}`, `wins in a row against ${O.short}`),
+        sentence: L(`${The} gana sus últimos ${f.n} partidos ante ${theTeam(O)}.`, `${T.short} have won their last ${f.n} games against ${O.short}.`) };
+      case 'h2hUnbeaten': return { big: f.n, unit: L(`partidos sin perder ante ${theTeam(O)}`, `games unbeaten against ${O.short}`),
+        sentence: L(`${The} no pierde ante ${theTeam(O)} en sus últimos ${f.n} partidos.`, `${T.short} are unbeaten in their last ${f.n} games against ${O.short}.`) };
+      case 'biggestWin': return { big: `${T.score}-${O.score}`, unit: L(`su mayor victoria ante ${theTeam(O)} desde ${new Date(f.since).getFullYear()}`, `biggest win over ${O.short} since ${new Date(f.since).getFullYear()}`),
+        sentence: L(`La mayor victoria ${ofTeam(T)} ante ${theTeam(O)} desde ${since}.`, `${poss(T.short)} biggest win over ${O.short} since ${since}.`) };
+      case 'mostGoals': return { big: f.n, unit: L(`goles: el récord entre los dos desde ${new Date(f.since).getFullYear()}`, `goals: the most between them since ${new Date(f.since).getFullYear()}`),
+        sentence: L(`El partido con más goles entre ${theTeam(m.home)} y ${theTeam(m.away)} desde ${since}.`, `The highest-scoring game between ${m.home.short} and ${m.away.short} since ${since}.`) };
+      case 'bigWin': return { big: `${T.score}-${O.score}`, unit: L(`su mayor victoria desde ${new Date(f.since).getFullYear()}`, `biggest win since ${new Date(f.since).getFullYear()}`),
+        sentence: L(`La mayor victoria ${ofTeam(T)} desde ${since}.`, `${poss(T.short)} biggest win since ${since}.`) };
+      case 'bigLoss': return { big: `${T.score}-${O.score}`, unit: L(`su peor derrota desde ${new Date(f.since).getFullYear()}`, `heaviest defeat since ${new Date(f.since).getFullYear()}`),
+        sentence: L(`La peor derrota ${ofTeam(T)} desde ${since}.`, `${poss(T.short)} heaviest defeat since ${since}.`) };
+      case 'mostScored': return { big: f.n, unit: L(`goles: no marcaba tantos desde ${new Date(f.since).getFullYear()}`, `goals: the most since ${new Date(f.since).getFullYear()}`),
+        sentence: L(`${The} no marcaba ${f.n} goles en un partido desde ${since}.`, `${poss(T.short)} most goals in a game since ${since}.`) };
+      case 'mostConceded': return { big: f.n, unit: L(`goles en contra: no le pasaba desde ${new Date(f.since).getFullYear()}`, `goals conceded: the most since ${new Date(f.since).getFullYear()}`),
+        sentence: L(`${The} no encajaba ${f.n} goles en un partido desde ${since}.`, `${T.short} conceded ${f.n} in a game for the first time since ${since}.`) };
+      case 'compWinSince': return { ...later,
+        sentence: L(`Primera victoria ${ofTeam(T)} ${comp} desde ${since}.`, `${poss(T.short)} first win ${comp} since ${since}.`) };
+      case 'pRun': return { big: f.n, unit: L('partidos seguidos marcando', 'games in a row scoring'),
+        sentence: f.all ? L(`${who} ha marcado en todos sus partidos ${season} (${f.n}).`, `${who} has scored in every game ${season} (${f.n}).`)
+          : L(`${who} marca en ${f.n} partidos seguidos ${comp}.`, `${who} has scored in ${f.n} games in a row ${comp}.`) };
+      case 'pGoals': return { big: f.n, unit: L(`goles en ${f.games} partidos`, `goals in ${f.games} games`),
+        sentence: L(`${who} lleva ${f.n} goles en ${f.games} partidos ${season}.`, `${who} has ${f.n} goals in ${f.games} games ${season}.`) };
+      default: return null;
+    }
+  }
+  // Los datos del partido, ya en palabras (el primero es «El dato»)
+  const datoFacts = (m) => (m.dato || []).map(f => {
+    const t = datoText(m, f);
+    const said = datoText(m, f, true);
+    return t && { ...f, ...t, big: String(t.big), spoken: said.sentence.replace(/\s+([.,:])/g, '$1').replace(/\s{2,}/g, ' ') };
+  }).filter(Boolean);
+
+  function tplDato(m) {
+    const [main, ...more] = datoFacts(m);
+    if (!main) return tplSinDatos(m, L('El dato', 'The stat'));
+    const team = m[main.side];
+    const p = main.player ? playerById(m, main.player) : null;
+    return `
+      <div class="fc-in" style="${styleVars(teamStyle(team))}">
+        ${logoTag(team, 'wm')}
+        <div class="fc-kick">${L('<b>El</b> dato', '<b>The</b> stat')}</div>
+        <div class="dt-body">
+          ${p ? `<div class="dt-who">${esc(p.name)}</div>` : ''}
+          <div class="dt-big" style="font-size:${main.big.length <= 2 ? 540 : main.big.length <= 3 ? 440 : main.big.length <= 4 ? 360 : 280}px">${esc(main.big)}</div>
+          <div class="dt-unit">${esc(main.unit)}</div>
+          <div class="dt-line">${esc(main.sentence)}</div>
+          ${more.length ? `<div class="dt-more">${more.map(f => `<div>${esc(f.sentence)}</div>`).join('')}</div>` : ''}
+        </div>
+        ${foot(m)}${grain}
+      </div>`;
+  }
+
+  // ----------------------------------------------------------
   // LAS SLIDES DEL CARRUSEL · las que no tienen datos (un amistoso sin alineaciones, una copa
   // sin clasificación) no salen
   // ----------------------------------------------------------
   const SLIDE_DEFS = [
     { id: 'portada', name: 'Portada', cls: 'fc fc-portada', tpl: tplPortada },
+    { id: 'dato', name: 'El dato', cls: 'fc fc-dato', tpl: tplDato, show: (m) => datoFacts(m).length > 0 },
     // Sin los goles (ESPN no los tiene de algunos partidos de copa), no sale: diría «Sin goles».
     { id: 'crono', name: 'Minuto a minuto', cls: 'fc fc-crono', tpl: tplCrono, show: (m) => m.goals.length > 0 || m.home.score + m.away.score === 0 },
     { id: 'stats', name: 'Estadísticas', cls: 'fc fc-stats', tpl: tplStats, show: (m) => statRows(m).length >= 3 },
@@ -2012,6 +2434,8 @@
     try {
       const match = await fetchMatch(game);
       if (seq !== genSeq) return;
+      match.dato = await findDato(match);
+      if (seq !== genSeq) return;
       state.rendered = match;
       state.jugadorId = null;
       renderSlides(match);
@@ -2026,6 +2450,21 @@
       state.generating = false;
       btn.classList.remove('btn-loading');
       updateGenerateBtn();
+    }
+  }
+
+  // «El dato», con un tope: si ESPN tarda, el carrusel sale sin él. La primera vez de un equipo
+  // baja su historial (unos segundos); luego, las temporadas acabadas ya están guardadas.
+  const DATO_WAIT = 15000;
+  async function findDato(m) {
+    const slow = setTimeout(() => showToast('Buscando el dato en el historial de los dos equipos…', '', true), 1200);
+    try {
+      return await Promise.race([loadDato(m), new Promise(resolve => setTimeout(() => resolve(null), DATO_WAIT))]);
+    } catch (e) {
+      console.warn('El dato:', e);
+      return null;
+    } finally {
+      clearTimeout(slow);
     }
   }
 
@@ -2396,6 +2835,7 @@
     copy.querySelectorAll('br').forEach(br => br.replaceWith(' '));
     return copy.textContent.replace(/\s+/g, ' ').trim();
   }
+  const slideEdited = (id) => !!document.querySelector(`#slidesPreview .slide-wrap.edited[data-slide-id="${id}"]`);
   // «A, B y C» (en inglés, «A, B and C»)
   const listEs = (xs) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} ${L('y', 'and')} ${xs[xs.length - 1]}` : xs[0] || '');
   // «al Real Madrid», «a la Roma», «a España»
@@ -2419,6 +2859,7 @@
     const rows = statRows(m);
     const tbl = (m.standings?.length || 0) >= 4 ? tableRows(m, 11) : null;
     const closingSide = winner || 'home';
+    const dato = slideDefs().some(x => x.id === 'dato') ? datoFacts(m)[0] : null;
     return {
       home: team('home'),
       away: team('away'),
@@ -2446,6 +2887,13 @@
         stats: keys.map(s => ({ v: s.text ?? s.v, label: s.label, clean: !!s.clean })),
         scoreLine: scoreLine(m),
       },
+      dato: dato && {
+        big: writtenText('#slide-dato .dt-big') || dato.big,
+        unit: writtenText('#slide-dato .dt-unit') || dato.unit,
+        sentence: (slideEdited('dato') && writtenText('#slide-dato .dt-line')) || dato.spoken,
+        who: dato.player ? playerById(m, dato.player)?.name || '' : '',
+        side: dato.side, style: teamStyle(m[dato.side]),
+      },
       stats: rows.length >= 3 ? rows.slice(0, 5).map(r => ({ label: r.label, v: r.v, more: r.more, pct: !!r.fmt })) : null,
       table: tbl && {
         title: L(`Así va ${tableName(m)}`, `${tableName(m)} table`),
@@ -2470,6 +2918,7 @@
         goal: L('GOL', 'GOAL'), onTarget: L('A PUERTA', 'ON TARGET'), offTarget: L('FUERA O BLOQUEADO', 'OFF TARGET OR BLOCKED'),
         player: L('JUGADOR', 'PLAYER'), ofMatch: L(' DEL PARTIDO', ' OF THE MATCH'),
         stats: L('ESTADÍSTICAS', 'STATS'),
+        dato: L('EL DATO', 'THE STAT'),
         halftime: L('DESCANSO', 'HALF-TIME'), extraTime: L('PRÓRROGA', 'EXTRA TIME'), now: L('AHORA', 'NOW'), fullTime: L('FINAL', 'FULL TIME'),
         onPens: L('EN LOS PENALTIS', 'ON PENALTIES'),
         comments: L('TE LEO EN COMENTARIOS', 'LET ME KNOW IN THE COMMENTS'),
@@ -2570,7 +3019,7 @@
   // subtítulos (con la palabra que suena resaltada) y es lo que lees si grabas tu voz.
   // ----------------------------------------------------------
   const SCENE_NAMES = {
-    score: 'Marcador', goals: 'Los goles', tiros: 'Mapa de tiros', jugador: 'Jugador del partido',
+    score: 'Marcador', dato: 'El dato', goals: 'Los goles', tiros: 'Mapa de tiros', jugador: 'Jugador del partido',
     stats: 'Estadísticas', tabla: 'Clasificación', outro: 'Cierre',
   };
   const NUM_WORDS = ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco'];
@@ -2604,6 +3053,7 @@
       score = says(W) ? `${bare}: ${W.score}-${Lo.score} against ${Lo.short}.` : `${hl} ${W.short} beat ${Lo.short} ${W.score}-${Lo.score}.`;
     }
     const script = { score, outro: d.closing.question };
+    if (d.dato) script.dato = d.dato.sentence;
     const goals = d.goals.filter(e => e.kind === 'goal');
     if (d.goals.length) {
       const tally = new Map();
@@ -2671,6 +3121,7 @@
       score = says(W) ? `${bare}: ${W.score}-${L.score} ${L.to}.` : `${hl} ${cap(W.the)} gana ${W.score}-${L.score} ${L.to}.`;
     }
     const script = { score, outro: d.closing.question };
+    if (d.dato) script.dato = d.dato.sentence;
 
     const goals = d.goals.filter(e => e.kind === 'goal');
     if (d.goals.length) {
@@ -3071,7 +3522,7 @@
       '',
       '## Qué hace el Studio',
       '- Pasos 1 y 2: elige competición (LaLiga, Champions, Premier, Serie A, Mundial, Libertadores…), día y partido.',
-      '- Paso 3: el carrusel (1080×1350): portada con titular, minuto a minuto, estadísticas, mapa de tiros, los onces, jugador del partido, clasificación y cierre con una pregunta para comentarios. Los textos se retocan a mano.',
+      '- Paso 3: el carrusel (1080×1350): portada con titular, «El dato» (una racha, un cara a cara o un «primera vez desde…» sacado del historial de ESPN, si hay alguno que merezca la pena), minuto a minuto, estadísticas, mapa de tiros, los onces, jugador del partido, clasificación y cierre con una pregunta para comentarios. Los textos se retocan a mano.',
       '- Paso 4: el vídeo short (1080×1920, unos 30 s): una escena por slide. Lleva un guion, una frase por escena, que sale en los subtítulos y que Toni lee si graba su voz.',
       '',
       '## Cómo ayudar',
@@ -3115,6 +3566,8 @@
     if (d.stats) lines.push(`**Estadísticas (${d.home.short} – ${d.away.short}):** ${d.stats.map(r => `${r.label} ${r.pct ? `${Math.round(r.v[0])}%-${Math.round(r.v[1])}%` : `${r.v[0]}-${r.v[1]}`}`).join(', ')}`);
     if (d.shots) lines.push(`**Tiros:** ${d.home.short} ${d.shots.home.total} (${d.shots.home.on} a puerta) · ${d.away.short} ${d.shots.away.total} (${d.shots.away.on} a puerta)`);
     if (d.jugador) lines.push(`**Jugador del partido:** ${[d.jugador.first, d.jugador.last].filter(Boolean).join(' ')}: ${d.jugador.stats.map(x => (x.clean ? L('portería a cero', 'clean sheet') : `${x.v} ${x.label.toLocaleLowerCase('es')}`)).join(', ')}`);
+    const datos = datoFacts(m).filter(() => d.dato);
+    if (datos.length) lines.push(`**El dato** (del historial de ESPN, el primero es el de la slide):`, ...datos.map(f => `- ${f.sentence}`));
     if (d.table) {
       const mine = d.table.rows.filter(r => r?.me).map(r => `${r.name} ${r.rank}.º (${r.pts} pts)`);
       if (mine.length) lines.push(`**Clasificación (${tableName(m)}):** ${mine.join(' · ')}`);
@@ -3215,13 +3668,23 @@
     if (!('indexedDB' in window)) return Promise.resolve(null);
     dbPromise ||= new Promise((resolve) => {
       try {
-        const req = indexedDB.open('futbol-studio', 1);
+        const req = indexedDB.open('futbol-studio', 2);
         req.onupgradeneeded = () => {
-          req.result.createObjectStore('drafts');
-          req.result.createObjectStore('photos');
+          // 1: los borradores y las fotos · 2: el historial de cada equipo (para «El dato»)
+          for (const store of ['drafts', 'photos', 'hist']) {
+            if (!req.result.objectStoreNames.contains(store)) req.result.createObjectStore(store);
+          }
         };
-        req.onsuccess = () => resolve(req.result);
+        req.onsuccess = () => {
+          req.result.onversionchange = () => req.result.close(); // que una versión nueva del Studio pueda actualizarla
+          resolve(req.result);
+        };
         req.onerror = () => resolve(null); // modo privado o sin espacio: sin borradores
+        // Otra pestaña con un Studio de antes la tiene abierta: esta vez, sin guardar nada
+        req.onblocked = () => {
+          showToast('Hay otra pestaña con el Studio abierta: ciérrala y recarga esta para guardar los borradores', 'error', true);
+          resolve(null);
+        };
       } catch (e) {
         resolve(null);
       }
@@ -3754,6 +4217,7 @@
     const pens = pensWon(m) ? ` (${m.home.shootout}-${m.away.shootout} ${L('pen.', 'pens')})` : '';
     const goals = ['home', 'away'].map(s => scorerList(m, s).filter(x => !x.red).map(x => x.text).join(', ')).filter(Boolean);
     const best = bestPlayer(m);
+    const dato = slideDefs().some(d => d.id === 'dato') && (writtenText('#slide-dato .dt-line') || datoFacts(m)[0]?.sentence);
     const tag = (t) => `#${t.short.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]/g, '')}`;
     // Lo que hay dentro del carrusel (las slides que han salido)
     const INSIDE = isEn()
@@ -3762,7 +4226,7 @@
     const inside = slideDefs().map(d => INSIDE[d.id]).filter(Boolean);
     return `⚽ ${m.home.name.toUpperCase()} ${m.home.score}-${m.away.score} ${m.away.name.toUpperCase()}${pens}
 ${[compName(m.league), phaseOut(m.phase), legLabel(m), m.agg ? aggLabel(m.agg) : ''].filter(Boolean).join(' · ')} · ${fmtDateLong(m.date)}
-${goals.length ? `\n${L('Goles', 'Goals')}: ${goals.join(' · ')}` : ''}${best ? `\n${L('Jugador del partido', 'Player of the match')}: ${best.name}` : ''}
+${dato ? `\n📊 ${dato}` : ''}${goals.length ? `\n${L('Goles', 'Goals')}: ${goals.join(' · ')}` : ''}${best ? `\n${L('Jugador del partido', 'Player of the match')}: ${best.name}` : ''}
 ${inside.length ? `\n${L('Desliza para ver', 'Swipe for')} ${listEs(inside)}.\n` : ''}
 #${L('Futbol', 'Football')} #${c.tag} ${tag(m.home)} ${tag(m.away)}`;
   }

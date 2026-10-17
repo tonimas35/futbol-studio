@@ -948,6 +948,62 @@
     };
   }
 
+  // 1b · El dato: la etiqueta, el número grande que sube, lo que significa y la frase entera.
+  // Dura 3 compases, o 4 si la frase no cabe.
+  function sceneDato(d, A) {
+    const x = d.dato, st = x.style;
+    const need = String(x.sentence || '').split(/\s+/).filter(Boolean).reduce((sum, w) => sum + sayTime(w), 0);
+    const dur = need > 3 * BAR - SPEAK_FROM - SPEAK_END ? 4 * BAR : 3 * BAR;
+    const counts = /^\d+(\/\d+)?$/.test(x.big);
+    return {
+      id: 'dato',
+      dur,
+      accent: st.acc,
+      music: { energy: 'full' },
+      cues: [{ t: BEAT, kind: 'slam' }, ...(counts ? ticks(BEAT + STEP, BEAT + 0.8, 0.6) : []), { t: 2 * BAR, kind: 'hit', vel: 0.8 }],
+      draw(ctx, t) {
+        teamBg(ctx, st);
+        logo(ctx, x.side === 'away' ? A.awayLogo : A.homeLogo, W - 160, 640, 920 * (1 + 0.05 * prog(t, 0, dur)), 0.12);
+        const k = easeOut(prog(t, 0.05, 0.4));
+        ctx.save();
+        ctx.globalAlpha = k;
+        ctx.translate((1 - k) * -80, 0);
+        chip(ctx, d.t?.dato || 'EL DATO', M, 190, st, 52);
+        if (x.who) text(ctx, up(x.who), M, 380, BARLOW(fit(ctx, up(x.who), BARLOW, 60, W - 2 * M)), st.fg);
+        ctx.restore();
+        const big = up(x.big);
+        const size = fit(ctx, big, ANTON, big.length <= 2 ? 560 : 440, W - 2 * M);
+        const a = easeBack(prog(t, BEAT, 0.5));
+        if (a > 0) {
+          ctx.save();
+          ctx.translate(M, 900);
+          ctx.scale(a, a);
+          ctx.shadowColor = 'rgba(0,0,0,.25)';
+          ctx.shadowBlur = 40;
+          text(ctx, countText(big, easeOut(prog(t, BEAT, 0.8))), 0, 0, ANTON(size), st.hl);
+          ctx.restore();
+        }
+        const unit = wrap(ctx, up(x.unit), ANTON(84), W - 2 * M).slice(0, 3);
+        unit.forEach((l, i) => {
+          const e = easeOut(prog(t, 2 * BEAT + i * 0.1, 0.4));
+          ctx.save();
+          ctx.globalAlpha = e;
+          ctx.translate((1 - e) * -60, 0);
+          text(ctx, l, M, 1020 + i * 92, ANTON(84), st.fg);
+          ctx.restore();
+        });
+        const top = 1020 + unit.length * 92 + 40;
+        const lines = wrap(ctx, x.sentence, BARLOW(54, 700), W - 2 * M).slice(0, 4);
+        const e = easeOut(prog(t, BAR, 0.5));
+        ctx.save();
+        ctx.globalAlpha = e;
+        ctx.translate(0, (1 - e) * 40);
+        lines.forEach((l, i) => text(ctx, l, M, top + i * 64, BARLOW(54, 700), st.fg));
+        ctx.restore();
+      },
+    };
+  }
+
   // Contraste WCAG entre dos colores (como en futbol.js).
   function contrastWith(a, b) {
     const lum = (hex) => [16, 8, 0].map(s => ((parseInt(hex.slice(1), 16) >> s) & 255) / 255)
@@ -962,6 +1018,7 @@
     return [
       intro && sceneIntro(d, A),
       sceneScore(d, A),
+      d.dato && sceneDato(d, A),
       d.goals?.length && sceneGoals(d, A),
       d.shots?.list.length >= 4 && sceneShots(d, A),
       d.jugador && sceneJugador(d, A),
