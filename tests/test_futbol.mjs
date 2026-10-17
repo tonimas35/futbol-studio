@@ -324,7 +324,8 @@ try {
 
   check(!(await page.$('#voiceRecBtn')) && !(await page.$('#prompter')), 'sin «Grabar mi voz» ni teleprompter (la voz llegará de ElevenLabs)');
 
-  // La música: urbana por defecto (y sin subtítulos); la épica se elige y se recuerda.
+  // Sin música ni subtítulos por defecto (en TikTok se pone un sonido); si se activa, la urbana,
+  // y la épica se elige y se recuerda.
   const mixDuration = () => page.evaluate(async () => {
     const a = document.getElementById('mixPlayer');
     await new Promise((r) => (a.readyState >= 1 ? r() : a.addEventListener('loadedmetadata', r, { once: true })));
@@ -332,6 +333,8 @@ try {
   });
   check(await page.getAttribute('.lang-opt[data-music="trap"]', 'aria-checked') === 'true' && await page.isHidden('#mixResetBtn'), 'la música, urbana por defecto');
   check(!(await page.isChecked('#videoSubs')), 'y los subtítulos, apagados por defecto');
+  check(!(await page.isChecked('#videoMusic')) && await page.isDisabled('#musicVol'), 'y sin música por defecto (en TikTok se pone un sonido)');
+  await page.check('#videoMusic');
   await page.click('#mixPreviewBtn');
   await page.waitForFunction(() => !document.getElementById('mixPlayer').hidden, null, { timeout: 120000 });
   const trapLen = await mixDuration();
@@ -409,7 +412,8 @@ try {
   await page.waitForSelector('#slide-portada');
   await page.waitForTimeout(500);
   check(await page.inputValue('#scriptLines textarea[data-scene="outro"]') === '¿Mbappé o Malen?', 'al recargar sigue el guion retocado');
-  check(await page.getAttribute('.lang-opt[data-music="epica"]', 'aria-checked') === 'true' && await page.isChecked('#videoSubs'), 'y la música elegida y los subtítulos encendidos');
+  check(await page.getAttribute('.lang-opt[data-music="epica"]', 'aria-checked') === 'true' && await page.isChecked('#videoSubs') && await page.isChecked('#videoMusic'),
+    'y la música (activada y la elegida) y los subtítulos encendidos');
   await page.click('#mixResetBtn');
   check(await page.getAttribute('.lang-opt[data-music="trap"]', 'aria-checked') === 'true' && await page.isHidden('#mixResetBtn'), '«↺ Por defecto» vuelve a la urbana');
 
