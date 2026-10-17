@@ -3353,6 +3353,11 @@
       agg: m.agg,
       date: asDate(m.date).toLocaleDateString(outLocale(), { day: 'numeric', month: 'long', year: 'numeric' }),
       headline: writtenText('#slide-portada .head h1') || headline(m),
+      // El gancho de los primeros segundos (es también la portada del vídeo): «El dato» a medias,
+      // como en la portada del carrusel, o el titular
+      hook: dato
+        ? { tag: L('El dato', 'The stat'), text: `${writtenText('#slide-dato .dt-big') || dato.big} ${writtenText('#slide-dato .dt-unit') || dato.unit}` }
+        : { tag: live(m) ? L('En juego', 'Live') : L('Final', 'Full time'), text: writtenText('#slide-portada .head h1') || headline(m) },
       goals: timeline.map(e => ({
         side: e.side, min: e.min.label, t: e.min.t, kind: e.kind, name: e.name, how: e.how, score: e.score || null,
         tiny: !!e.tiny, out: e.out || '', style: videoStyle(m[e.side]),
