@@ -816,6 +816,7 @@
           scorer: ids[0], scorerName: names[0], assist: own || /penalty/.test(type) ? '' : ids[1] || '',
           assistName: own || /penalty/.test(type) ? '' : names[1] || '',
           own, pen: /penalty/.test(type), header: /header/.test(type), freeKick: /free-kick/.test(type), volley: /volley/.test(type),
+          long: /outside the box/i.test(k.text || ''),
           min,
         });
       } else if (/red/.test(type)) {
@@ -1520,7 +1521,8 @@
     return p.subIn ? 15 : 0;
   }
 
-  // Nota del jugador: goles y asistencias mandan; luego tiros, paradas y el resultado.
+  // Nota del jugador (sin las de API-Football): goles y asistencias mandan; luego cómo marcó,
+  // tiros, paradas y el resultado.
   function rating(m, p) {
     const s = p.s, v = (k) => s[k] || 0;
     const { winner, draw } = sides(m);
@@ -1529,6 +1531,12 @@
     if (p.pos === 'G') r += 0.9 * v('saves') + (v('goalsConceded') === 0 && p.starter ? 3 : 0);
     r += winner === p.side ? 1.5 : draw ? 0.5 : 0;
     r += p.starter ? 0.5 : 0;
+    // Cómo marcó: el golazo desde fuera del área o de falta cuenta más (es el que se ve y se
+    // recuerda); el de penalti, algo menos; y abrir el marcador, un poco más.
+    m.goals.forEach((g, i) => {
+      if (g.own || g.scorer !== p.id) return;
+      r += (g.long ? 1.5 : 0) + (g.freeKick ? 1 : 0) - (g.pen ? 1 : 0) + (i === 0 ? 1 : 0);
+    });
     return r;
   }
   const playedList = (m) => [...m.home.players, ...m.away.players].filter(p => p.starter || p.subIn);
@@ -3753,6 +3761,8 @@
       // El estilo guardado antes de la urbana nueva (v < 2) era la épica por defecto: no cuenta.
       if (saved.v >= 2 && MUSIC_STYLES[saved.style]) setMusicStyle(saved.style);
       if (typeof saved.subs === 'boolean') document.getElementById('videoSubs').checked = saved.subs;
+      // Sin música por defecto (en TikTok se pone un sonido en tendencia); si la activas, se recuerda.
+      if (typeof saved.musicOn === 'boolean') document.getElementById('videoMusic').checked = saved.musicOn;
     } catch (e) { /* sin localStorage: por defecto */ }
     showMix();
   }
@@ -3764,7 +3774,7 @@
     try {
       localStorage.setItem(MIX_KEY, JSON.stringify({
         v: 2, music: Number(document.getElementById('musicVol').value), style: musicStyle(),
-        subs: document.getElementById('videoSubs').checked,
+        subs: document.getElementById('videoSubs').checked, musicOn: document.getElementById('videoMusic').checked,
       }));
     } catch (e) { /* sin localStorage: vale para esta vez */ }
   }
