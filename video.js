@@ -1837,7 +1837,7 @@
       seed,
       style,
       cues,
-      scenes: drawer.scenes.map((sc, i) => ({ start: drawer.starts[i], dur: sc.dur, energy: sc.music?.energy || 'full', drop: sc.music?.drop })),
+      scenes: drawer.scenes.map((sc, i) => ({ id: sc.id, start: drawer.starts[i], dur: sc.dur, energy: sc.music?.energy || 'full', drop: sc.music?.drop })),
     };
   }
 
@@ -2062,7 +2062,7 @@
   //     voiceShift, musicVolume, voiceVolume, musicStyle }) → { blob, ext, note, audio, mix }
   //     intro: con la apertura de los escudos. voiceLead: la apertura con la que se grabó la voz
   //     (prepare(…).lead). voiceShift: cuánto se mueve la voz (negativo = antes).
-  //     musicStyle: 'epica' (por defecto) o 'trap'.
+  //     musicStyle: 'trap' (la urbana, por defecto) o 'epica'.
   // · StudioVideo.prepare(datos, script, { intro }) → para grabarse: draw(ctx, t), la duración y
   //     cada palabra con su momento.
   // · StudioVideo.plan(datos, script) → las escenas con guion, lo que duran y a qué velocidad
@@ -2072,7 +2072,7 @@
   // ============================================================
   async function render(data, onProgress = () => {}, {
     music = true, script = null, captions = true, voice = null, musicVolume = 1, voiceVolume = 1,
-    intro = true, voiceLead = null, voiceShift = 0, musicStyle = 'epica',
+    intro = true, voiceLead = null, voiceShift = 0, musicStyle = 'trap',
   } = {}) {
     const live = ((music && window.StudioAudio) || voice) && typeof AudioContext !== 'undefined' ? new AudioContext() : null;
     try {
@@ -2125,7 +2125,7 @@
 
   async function audio(data, {
     music = true, script = null, voice = null, musicVolume = 1, voiceVolume = 1, intro = true, voiceLead = null, voiceShift = 0,
-    musicStyle = 'epica',
+    musicStyle = 'trap',
   } = {}) {
     const scenes = buildScenes(data, {}, intro);
     const drawer = makeDrawer(scenes);

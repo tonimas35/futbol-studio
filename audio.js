@@ -1,8 +1,9 @@
 // ============================================================
 // MÚSICA DEL VÍDEO SHORT · una base de 150 BPM y un efecto para cada animación,
-// sintetizados en el navegador con Web Audio (OfflineAudioContext). Dos estilos: «épica»
-// (por defecto: taikos, cuerdas en semicorcheas, metales, coro y timbales, como un tráiler)
-// y «urbana» (trap a medio tiempo).
+// sintetizados en el navegador con Web Audio (OfflineAudioContext). Dos estilos: «urbana»
+// (por defecto: trap a medio tiempo que va con los cortes de cámara: se para justo antes de
+// cada corte y entra con todo en el corte, y cada golpe de cámara lleva su 808) y «épica»
+// (taikos, cuerdas en semicorcheas, metales, coro y timbales, como un tráiler).
 // Es música propia, sin derechos de nadie, que dura lo mismo que el vídeo y cae a tiempo:
 // cada escena dura compases enteros (1 pulso = 0,4 s, lo mismo que la cortinilla) y
 // video.js pasa en qué segundo pasa cada cosa (los puntos que suben, cada tiro, la cinta…).
@@ -16,7 +17,7 @@
   const STEP = BEAT / 4;      // semicorchea, 0,1 s
   const BAR = 4 * BEAT;       // 1,6 s
 
-  // La menor: Am | F | Dm | E. El mi mayor deja la tensión que se resuelve en Am.
+  // La urbana, en la menor: Am | F | Dm | E. El mi mayor deja la tensión que se resuelve en Am.
   const CHORDS = [
     { bass: 33, notes: [57, 60, 64] }, // Am (bajo A1)
     { bass: 29, notes: [57, 60, 65] }, // F
@@ -189,6 +190,49 @@
           p.connect(keys);
           p.connect(verb);
         });
+      },
+
+      // 808 que se desliza de una nota a otra: la que lleva de una escena a la siguiente.
+      glide808(t, from, to, dur, vel = 1) {
+        const o = osc(ctx, 'sine', hz(from), t, t + dur + 0.1);
+        o.frequency.setValueAtTime(hz(from), t + dur * 0.25);
+        o.frequency.exponentialRampToValueAtTime(hz(to), t + dur * 0.9);
+        const g = ctx.createGain();
+        env(g, t, 0.2 * vel, 0.006, dur * 0.4, dur * 0.55);
+        o.connect(saturation(ctx, 3.5)).connect(g).connect(bass);
+        const up = osc(ctx, 'triangle', hz(from) * 2, t, t + dur + 0.1);
+        up.frequency.setValueAtTime(hz(from) * 2, t + dur * 0.25);
+        up.frequency.exponentialRampToValueAtTime(hz(to) * 2, t + dur * 0.9);
+        const ug = ctx.createGain();
+        env(ug, t, 0.12 * vel, 0.006, dur * 0.4, dur * 0.55);
+        up.connect(ug).connect(bass);
+      },
+      // Caja seca (para los redobles de trap; la palmada pesa demasiado para 1/32).
+      snare(t, vel = 1, side = 0) {
+        const s = noiseSrc(t, 0.12);
+        const g = ctx.createGain();
+        env(g, t, 0.42 * vel, 0.001, 0.08);
+        s.connect(filter(ctx, 'bandpass', 1900, 0.8)).connect(g).connect(pan(ctx, side)).connect(drums);
+      },
+      // Platillo abierto: el corte de cámara.
+      crash(t, vel = 1) {
+        [-0.45, 0.45].forEach(side => {
+          const s = noiseSrc(t, 1.6);
+          const g = ctx.createGain();
+          env(g, t, 0.13 * vel, 0.002, 1.3);
+          s.connect(filter(ctx, 'highpass', 5200)).connect(g).connect(pan(ctx, side));
+          g.connect(drums);
+          g.connect(verb);
+        });
+      },
+      // Ruido al revés: sube hasta el corte.
+      swell(t, dur, vel = 1) {
+        const s = noiseSrc(t, dur);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.16 * vel, t + dur);
+        g.gain.linearRampToValueAtTime(0.0001, t + dur + 0.02);
+        s.connect(filter(ctx, 'highpass', 3000)).connect(g).connect(drums);
       },
 
       // ─── Efectos ───
@@ -514,41 +558,100 @@
   // energy: 'intro' (antes del golpe del marcador), 'full', 'light' (los tiros y la
   // probabilidad: los efectos llevan el ritmo), 'build' (el compás que lleva al acorde final)
   // y 'tail' (solo suena lo que queda del acorde final).
-  const KICKS = [0, 6, 10];              // semicorcheas del compás con bombo y 808
-  const MOTIF = [[0, 2], [3, 1], [6, 0], [10, 1], [12, 2]]; // [semicorchea, nota del acorde]
 
-  function playBar(kit, t, bar, energy, chord, rand, last) {
+  // La urbana. Cada escena tiene su ritmo de bombo y 808 (semicorcheas del compás), para que
+  // cambie con cada corte; la clave es la escena (id) y, si no está, se reparten por orden.
+  const GROOVES = {
+    a: [0, 6, 10],      // el de siempre
+    b: [0, 3, 10, 11],  // saltarín
+    c: [0, 7, 9, 14],   // a contratiempo
+  };
+  const GROOVE_OF = { score: 'a', dato: 'b', goals: 'a', jugador: 'c', stats: 'b', tabla: 'c', outro: 'a' };
+  // La campana, en frases de dos compases: pregunta (A) y respuesta (B). [semicorchea, nota del
+  // acorde, octavas por encima]
+  const BELL_A = [[0, 2, 1], [3, 1, 1], [6, 0, 1], [10, 1, 1], [12, 2, 1]];
+  const BELL_B = [[0, 2, 1], [3, 1, 1], [6, 2, 1], [8, 1, 1], [10, 0, 1], [14, 2, 2]];
+
+  function playUrbanBar(kit, bars, i, CH, dropAt) {
+    const b = bars[i], prev = bars[i - 1], next = bars[i + 1];
+    const { t, energy } = b;
+    const chord = CH[b.k];
     const s = (n) => t + n * STEP;
-    if (energy === 'tail') return;
+    const rel = i - dropAt;
+    // El final: un 808 largo en la menor bajo el acorde.
+    if (energy === 'tail') {
+      if (prev?.energy !== 'tail') {
+        let dur = 0;
+        for (let j = i; bars[j]?.energy === 'tail'; j++) dur += BAR;
+        kit.pad(t, CH[0].notes, dur, 0.8);
+        kit.kick(t, 1);
+        kit.bass808(t, CH[0].bass, Math.min(dur, 3) - 0.1, 1);
+        kit.crash(t, 0.9);
+      }
+      return;
+    }
+    kit.pad(t, chord.notes, BAR, energy === 'full' ? 1 : 0.8);
+    // Antes del golpe y el compás que lleva al final: platos y caja que se aceleran (1/8, 1/16,
+    // 1/32) y, en el que lleva al final, el 808 que sube.
     if (energy === 'intro' || energy === 'build') {
-      // Platos que se aceleran: corcheas y, en la segunda mitad, semicorcheas.
-      for (let n = 0; n < 16; n += n < 8 ? 2 : 1) kit.hat(s(n), 0.35 + 0.45 * (n / 16), false, n % 4 ? 0.3 : -0.3);
-      if (energy === 'build') kit.bell(s(0), chord.notes[2] + 12, 0.8, 1.2, 0);
+      const rising = energy === 'build' || next?.energy !== 'intro';
+      if (!rising) {
+        for (let n = 0; n < 16; n += 2) kit.hat(s(n), 0.3 + 0.15 * (n % 4 === 0), false, n % 4 ? 0.3 : -0.3);
+        return;
+      }
+      for (let n = 0; n < 16; n += n < 8 ? 2 : n < 12 ? 1 : 0.5) kit.hat(s(n), 0.3 + 0.5 * (n / 16), false, n % 2 ? 0.3 : -0.3);
+      for (let n = 8; n < 16; n += n < 12 ? 1 : 0.5) kit.snare(s(n), 0.15 + 0.55 * ((n - 8) / 8), (n % 2) * 0.4 - 0.2);
+      kit.swell(s(8), 8 * STEP, 0.9);
+      if (energy === 'build') {
+        kit.glide808(t, chord.bass - 12 > 24 ? chord.bass - 12 : chord.bass, chord.bass + 12, BAR, 0.9);
+        kit.bell(s(0), chord.notes[2] + 12, 0.8, 1.2, 0);
+      }
       return;
     }
     const full = energy === 'full';
-    // Bombo y 808
-    if (full) {
-      KICKS.forEach((n, i) => {
-        kit.kick(s(n), i === 0 ? 1 : 0.8);
-        const next = KICKS[i + 1] ?? 16;
-        kit.bass808(s(n), chord.bass, (next - n) * STEP * 0.95, i === 0 ? 1 : 0.85);
+    const cut = b.scene && prev && prev.energy !== 'intro'; // el primer tiempo después de un corte
+    const drop = b.scene || prev?.energy === 'intro';
+    // Antes de cada corte (el último compás de la escena, si viene otra con base): la batería
+    // se para en las dos últimas semicorcheas, sube un redoble y el 808 se desliza a la nota
+    // de la escena siguiente.
+    const stop = b.last && next && next.energy !== 'tail';
+    const end = stop ? 14 : 16;
+    if (!full) {
+      // 'light' (los tiros): poco bombo, que los efectos de cada tiro llevan el ritmo.
+      kit.kick(s(0), drop ? 1 : 0.7);
+      kit.bass808(s(0), chord.bass, (stop ? 12 : 16) * STEP * 0.95, 0.75);
+      if (!stop) kit.kick(s(10), 0.5);
+      for (let n = 0; n < end; n += 4) kit.hat(s(n), 0.35, false, n % 8 ? 0.3 : -0.3);
+    } else {
+      const groove = GROOVES[GROOVE_OF[b.id] || 'abc'[(b.sceneIndex || 0) % 3]];
+      const hits = groove.filter(n => n < end);
+      hits.forEach((n, j) => {
+        kit.kick(s(n), j === 0 ? 1 : 0.8);
+        const nextHit = hits[j + 1] ?? (stop ? 12 : 16);
+        kit.bass808(s(n), chord.bass, (nextHit - n) * STEP * 0.95, j === 0 ? 1 : 0.85);
       });
       kit.clap(s(8));
-    } else {
-      kit.kick(s(0), 0.8);
-      kit.bass808(s(0), chord.bass, BAR * 0.9, 0.8);
+      // Platos: corcheas; en el minuto a minuto, semicorcheas (van con la línea que baja) y un
+      // redoble a 1/32 al final de cada compás.
+      const step = b.id === 'goals' ? 1 : 2;
+      for (let n = 0; n < end; n += step) kit.hat(s(n), n % 4 ? 0.42 : 0.72, false, n % 4 ? 0.3 : -0.2);
+      if (!stop && (b.id === 'goals' || rel % 2 === 1)) {
+        [13, 13.5, 14, 14.5, 15, 15.5].forEach((n, j) => kit.hat(s(n), 0.35 + j * 0.07, false, 0.35));
+      }
+      if (!stop && rel % 4 === 2) kit.hat(s(14), 0.6, true, -0.35);
+      // La campana: pregunta y respuesta cada dos compases.
+      (rel % 2 ? BELL_B : BELL_A).filter(([n]) => n < end).forEach(([n, k, oct], j) =>
+        kit.bell(s(n), chord.notes[k] + 12 * oct, j === 0 ? 1 : 0.75, 0.7, (k - 1) * 0.35));
     }
-    // Platos: corcheas y, al final de cada dos compases, el redoble de trap.
-    for (let n = 0; n < 16; n += 2) kit.hat(s(n), n % 4 ? 0.45 : 0.75, false, n % 4 ? 0.3 : -0.2);
-    if (full && bar % 2 === 1) {
-      [13, 13.5, 14, 14.5, 15, 15.33, 15.66].forEach((n, i) => kit.hat(s(n), 0.35 + i * 0.06, false, 0.35));
+    if (!full) BELL_A.slice(0, 2).forEach(([n, k], j) => kit.bell(s(n), chord.notes[k] + 12, (j ? 0.75 : 1) * 0.7, 0.7, (k - 1) * 0.35));
+    // El corte: bombo, 808 y platillo justo en el primer tiempo.
+    if (cut || drop) kit.crash(t, cut ? 0.8 : 1);
+    if (stop) {
+      const to = CH[next.k] || chord;
+      for (let n = 12; n < 16; n += 0.5) kit.snare(s(n), 0.2 + 0.5 * ((n - 12) / 4), (n * 2) % 2 ? 0.3 : -0.3);
+      kit.swell(s(10), 6 * STEP, 0.8);
+      kit.glide808(s(12), chord.bass, to.bass, 4 * STEP, 0.9);
     }
-    if (full && bar % 4 === 2) kit.hat(s(14), 0.6, true, -0.35);
-    // Melodía de campana: entera con toda la base y solo las dos primeras notas en 'light'.
-    MOTIF.slice(0, full ? MOTIF.length : 2).forEach(([n, k], i) =>
-      kit.bell(s(n), chord.notes[k] + 12, (i === 0 ? 1 : 0.75) * (full ? 1 : 0.7), 0.7, (k - 1) * 0.35));
-    if (last && full) kit.hat(s(15), 0.8, true, 0);
   }
 
   // La épica, compás a compás. Los acordes se cuentan desde el golpe del marcador, que cae
@@ -624,13 +727,13 @@
     if (Math.floor(rel / 4) % 2 === 0) MELODY[k].forEach(([n, m, d]) => o.horn(s(n), m, d * STEP, 0.85));
   }
 
-  // timeline: { duration, scenes: [{ start, dur, energy, drop? }], cues: [{ t, kind, ... }], seed,
-  //   style: 'epica' (por defecto) | 'trap' }
+  // timeline: { duration, scenes: [{ id, start, dur, energy, drop? }], cues: [{ t, kind, ... }], seed,
+  //   style: 'trap' (la urbana, por defecto) | 'epica' }
   async function render(timeline) {
     const length = Math.ceil((timeline.duration + 0.6) * RATE);
     const ctx = new OfflineAudioContext(2, length, RATE);
     const rand = rng(timeline.seed || 1);
-    const epic = timeline.style !== 'trap';
+    const epic = timeline.style === 'epica';
     const CH = epic ? EPIC_CHORDS : CHORDS;
 
     // Buses: batería, bajo, teclas y efectos, con algo de reverberación, a un compresor.
@@ -656,29 +759,23 @@
     // verdad entra con el golpe (sc.drop). El cierre: un compás en el último acorde (mi mayor
     // o sol) que sube y el acorde final en la menor.
     const bars = [];
-    for (const sc of timeline.scenes) {
+    for (const [sceneIndex, sc] of timeline.scenes.entries()) {
       const n = Math.round(sc.dur / BAR);
       for (let b = 0; b < n; b++) {
         const local = b * BAR;
         const energy = sc.energy === 'outro' ? (b === 0 ? 'build' : 'tail')
           : sc.drop != null && local < sc.drop ? 'intro' : sc.energy;
-        bars.push({ t: sc.start + local, energy, outro: sc.energy === 'outro', scene: b === 0, last: b === n - 1 });
+        bars.push({ t: sc.start + local, energy, outro: sc.energy === 'outro', scene: b === 0, last: b === n - 1, id: sc.id, sceneIndex });
       }
     }
-    // La urbana cuenta los acordes desde el primer compás (el golpe cae en el segundo); la
-    // épica, desde el golpe.
-    const dropAt = epic ? Math.max(0, bars.findIndex(b => b.energy !== 'intro')) : 1;
+    // Los acordes se cuentan desde el golpe del marcador, que cae siempre en la menor.
+    const dropAt = Math.max(0, bars.findIndex(b => b.energy !== 'intro'));
     bars.forEach((b, i) => { b.k = b.outro ? 3 : (((i - dropAt) % 4) + 4) % 4; });
     if (epic) {
       const orch = makeOrchestra(ctx, buses, rand);
       bars.forEach((b, i) => playEpicBar(orch, bars, i, CH, dropAt));
     } else {
-      bars.forEach((b, i) => {
-        const chord = CH[b.k];
-        if (b.energy === 'tail') kit.pad(b.t, CH[0].notes, BAR, 0.8);
-        else kit.pad(b.t, chord.notes, BAR, b.energy === 'intro' || b.energy === 'build' ? 0.8 : 1);
-        playBar(kit, b.t, i, b.energy, chord, rand, b.last);
-      });
+      bars.forEach((b, i) => playUrbanBar(kit, bars, i, CH, dropAt));
     }
 
     // Los efectos de las animaciones.
@@ -691,7 +788,11 @@
       switch (c.kind) {
         case 'tick': kit.tick(c.t, c.p || 0, c.vel || 1); break;
         case 'hit': kit.hit(c.t, c.vel || 1); break;
-        case 'slam': kit.slam(c.t, c.vel || 1); break;
+        case 'slam':
+          kit.slam(c.t, c.vel || 1);
+          // En la urbana, cada golpe de cámara lleva su 808 en la nota del acorde.
+          if (!epic) kit.bass808(c.t, chordForPops(c.t).bass, 0.45, 0.9);
+          break;
         case 'impact': kit.impact(c.t, c.vel || 1); break;
         case 'whoosh': kit.whoosh(c.t, c.dur || 0.55, c.vel || 1); break;
         case 'riser': kit.riser(c.t, c.dur || 1, c.vel || 1); break;
