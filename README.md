@@ -120,11 +120,12 @@ El partido en 30 a 40 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
   - **El dato:** «EL DATO», el número grande que sube, lo que significa y la frase. Dura 3 compases, o 4 si la frase es larga.
   - **Los goles:** la línea del partido baja minuto a minuto y cada gol, roja o penalti fallado salta cuando llega a su minuto. Arriba, el marcador cambia con cada gol. Con más goles, la escena dura más.
   - **Mapa de tiros:** el campo en vertical. Cada balón sale de donde se tiró y vuela a la portería: el gol mueve la red, la parada rebota y el que va fuera se pierde. Los contadores suben con los tiros.
-  - **Jugador del partido:** su foto (o su dorsal) y sus 3 números.
+  - **Jugador del partido:** su foto o, si no hay, su cara de API-Football en un retrato con el escudo (o su dorsal), y sus 3 números.
   - **Estadísticas:** posesión, tiros, a puerta, pases y córners, una fila por pulso.
   - **Clasificación:** las filas entran una a una, con los dos equipos marcados.
   - **Cierre:** la pregunta del cierre y tu firma.
   - Las escenas sin datos no salen.
+  - **El aspecto:** los fondos de equipo llevan la misma luz que el carrusel (haces en diagonal, trama y viñeta), y los goles y la clasificación siguen el **Estilo** elegido: claro (papel con la franja de los dos equipos) u oscuro.
 - **Música (`audio.js`):** propia, sintetizada en el navegador y sin derechos de autor. Es una base de 150 BPM con un efecto por animación (el golpe del marcador, cada gol, cada tiro…) y va a tiempo: cada escena dura compases enteros.
 - **Guion y subtítulos:** el Studio escribe una frase por escena con los datos del partido («Remontada del Real Madrid: 4-3 a la Roma.»). Se retoca en el paso 4 y cada frase avisa si no cabe a ritmo normal; «↺ Automático» la vuelve a escribir. Los subtítulos salen de dos en dos o de tres en tres palabras, con la que suena en verde lima. Se quitan con «Subtítulos».
 - **Tu voz:** «Grabar mi voz» abre un teleprompter con el vídeo en directo y la frase que toca, tras una cuenta atrás de 3 s.

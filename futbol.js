@@ -3290,13 +3290,20 @@
   const toTeam = (t) => (article(t) === 'el ' ? `al ${t.short}` : `a ${article(t)}${t.short}`);
   const extraTime = (m, evs) => m.status.period > 2 || /AET|EXTRA|PEN/.test(m.status.name) || evs.some(e => e.min.period > 2);
 
+  // Los colores de un equipo para el vídeo, con los del fondo oscuro: night (puntos y líneas)
+  // y glow (la luz de su esquina)
+  const videoStyle = (t) => {
+    const st = teamStyle(t);
+    return { ...st, night: nightInk(st), glow: glowOf(st) };
+  };
+
   function videoData(m) {
     const { winner } = sides(m);
     const team = (side) => {
       const t = m[side];
       return {
         name: t.name, short: t.short, abbr: t.abbr, score: t.score, shootout: pensWon(m) ? t.shootout : null,
-        logo: t.logo, style: teamStyle(t), won: winner === side, lost: !!winner && winner !== side,
+        logo: t.logo, style: videoStyle(t), won: winner === side, lost: !!winner && winner !== side,
         the: theTeam(t), to: toTeam(t),
         lines: scorerList(m, side).map(x => (x.red ? `${x.text} · ${L('roja', 'red card')}` : x.text)),
       };
@@ -3314,12 +3321,13 @@
       live: live(m),
       clock: minuteText(m.status.clock),
       lang: state.lang,
+      dark: dark(), // el estilo elegido: las escenas de datos en claro u oscuro, como el carrusel
       comp: [compName(m.league), phaseOut(m.phase), legLabel(m)].filter(Boolean).join(' · '),
       through: live(m) ? null : pensSide(m) || throughOf(m),
       agg: m.agg,
       date: asDate(m.date).toLocaleDateString(outLocale(), { day: 'numeric', month: 'long', year: 'numeric' }),
       headline: writtenText('#slide-portada .head h1') || headline(m),
-      goals: evs.map(e => ({ side: e.side, min: e.min.label, t: e.min.t, kind: e.kind, name: e.name, how: e.how, score: e.score || null, style: teamStyle(m[e.side]) })),
+      goals: evs.map(e => ({ side: e.side, min: e.min.label, t: e.min.t, kind: e.kind, name: e.name, how: e.how, score: e.score || null, style: videoStyle(m[e.side]) })),
       goalsTitle: evs.every(e => e.kind === 'goal') ? L('LOS GOLES', 'THE GOALS') : L('MINUTO A MINUTO', 'MINUTE BY MINUTE'),
       halftime: m.halftime,
       extraTime: extraTime(m, evs),
@@ -3331,6 +3339,8 @@
         first: p.name.endsWith(surname(p)) ? p.name.slice(0, -surname(p).length).trim() : '',
         last: surname(p), number: p.jersey,
         photo: hasPhoto(p) ? [photoSrc(p)] : null,
+        // La cara del retrato de la slide, si se ha quedado (no era la silueta de API-Football)
+        face: document.querySelector('#slide-jugador .has-face .portrait img')?.src || null,
         logo: m[p.side].logo, style: teamStyle(m[p.side]),
         stats: keys.map(s => ({ v: s.text ?? s.v, label: s.label, clean: !!s.clean, rating: !!s.rating })),
         scoreLine: scoreLine(m),
