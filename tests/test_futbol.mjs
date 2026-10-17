@@ -512,11 +512,22 @@ try {
 
   // ── Al pitido final: el enlace del aviso lo genera todo solo ──
   {
+    // El aviso llega al acabar: el Depor-Levante, ya acabado (sin la pregunta de «aún se está
+    // jugando»; y si saliera alguna, se acepta desde que existe la página, antes de cargar).
+    const sbEnded = JSON.parse(readFileSync(join(FIX, 'sb-esp.1-20261016.json')));
+    for (const e of sbEnded.events) {
+      if (e.id !== '401882844') continue;
+      e.status = { ...e.status, displayClock: "90'+4'", type: { ...e.status.type, name: 'STATUS_FULL_TIME', state: 'post', completed: true, description: 'Full Time' } };
+      e.competitions[0].status = e.status;
+    }
     const { ctx: c7, page: p7 } = await open({
       url: `${base}/?partido=esp.1/401882844&dia=2026-10-16`,
-      before: async (ctx) => { await ctx.clock.setFixedTime(new Date('2026-10-17T10:00:00+02:00')); },
+      before: async (ctx) => {
+        ctx.on('page', (pg) => pg.on('dialog', (d) => d.accept()));
+        await ctx.clock.setFixedTime(new Date('2026-10-17T10:00:00+02:00'));
+        await ctx.route('https://site.api.espn.com/apis/site/v2/sports/soccer/esp.1/scoreboard?dates=20261016', (r) => r.fulfill(json(JSON.stringify(sbEnded))));
+      },
     });
-    p7.on('dialog', (d) => d.accept());
     await p7.waitForSelector('#slide-portada', { timeout: 30000 }).catch(() => {});
     const link = await p7.evaluate(() => ({
       league: document.querySelector('.comp-chip[aria-checked="true"]')?.dataset.league,
@@ -676,9 +687,10 @@ try {
           const f = afFile(q);
           return r.fulfill(json(f && existsSync(join(FIX, f)) ? readFileSync(join(FIX, f)) : '{"errors":[],"response":[]}'));
         });
-        // Gollini no tiene foto: API-Football da su silueta gris
+        // Gollini no tiene foto: API-Football da su silueta gris. Mbappé, una cara de 150 px.
         await c.route('https://media.api-sports.io/**', (r) => r.fulfill({ status: 200, contentType: 'image/png', headers: { 'access-control-allow-origin': '*' },
-          body: r.request().url().endsWith('/90000.png') ? readFileSync(join(FIX, 'af-silueta.png')) : PIXEL }));
+          body: r.request().url().endsWith('/90000.png') ? readFileSync(join(FIX, 'af-silueta.png'))
+            : r.request().url().endsWith('/91008.png') ? readFileSync(join(FIX, 'af-cara.png')) : PIXEL }));
       },
     });
     await pickLeague(pa, 'uefa.champions');
@@ -713,12 +725,16 @@ try {
     // Sin foto grande (Mbappé no la tiene en ESPN): su cara en un retrato
     const mbappe = await pa.$eval('[data-slide-id="jugador"] .slide-pick', (s) => [...s.options].find((o) => /Mbappé/.test(o.textContent))?.value);
     await pa.selectOption('[data-slide-id="jugador"] .slide-pick', mbappe);
+    await pa.waitForFunction(() => document.querySelector('#slide-jugador .portrait img')?.dataset.src, null, { timeout: 10000 }).catch(() => {});
     const face = await pa.evaluate(() => ({
-      img: document.querySelector('#slide-jugador .portrait img')?.src,
+      img: document.querySelector('#slide-jugador .portrait img')?.dataset.src,
+      crisp: document.querySelector('#slide-jugador .portrait img')?.src.startsWith('data:image/png'),
+      size: document.querySelector('#slide-jugador .portrait img')?.naturalWidth,
       on: document.querySelector('#slide-jugador .fc-in').classList.contains('has-face'),
       badge: !!document.querySelector('#slide-jugador .portrait .badge img'),
     }));
     check(face.on && face.badge && face.img === 'https://media.api-sports.io/football/players/91008.png', `sin foto grande, su cara en un retrato con el escudo (${face.img})`);
+    check(face.crisp && face.size === 450, `y ampliada con enfoque a 450 px para que no salga borrosa (${face.size} px)`);
     check(asked.join(',') === 'fixtures,fixtures/players', `con 2 peticiones (${asked.join(', ')})`);
     // Si API-Football no deja (el plan, el límite del día…), lo dice y el carrusel sale igual
     await ca.route('**/.netlify/functions/apifootball**', (r) => r.fulfill(json('{"errors":{"plan":"Free plans do not have access to this season, try from 2021 to 2023."},"response":[]}')));

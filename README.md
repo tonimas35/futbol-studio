@@ -129,6 +129,8 @@ La primera vez que sale un equipo, el Studio baja su historial (unos segundos; a
 
 El partido en 30 a 40 segundos, en 1080×1920 para TikTok, Reels y Shorts, con música y subtítulos.
 
+**Hecho para la pantalla de TikTok:** TikTok tapa la derecha (me gusta, comentarios, compartir), arriba (las pestañas) y abajo (tu nombre y la descripción), y en los móviles alargados recorta unos 50 px por cada lado. Por eso el contenido de cada escena (textos, números, subtítulos y tu logo) va reducido dentro de la zona que se ve siempre (de x = 60 a 902 y de y = 220 a unos 1550), y solo los fondos ocupan la pantalla entera. Sin grano (TikTok lo recomprime y emborrona) y a 12 Mbps. La cara del jugador (150 px en API-Football) se amplía en dos pasos con un enfoque suave, en el vídeo y en la slide.
+
 - **Escenas:**
   - **Apertura (1,6 s):** el gancho, desde el primer fotograma: «EL DATO» con el dato a medias (como en la portada del carrusel) o, si no hay, «FINAL» y el titular. Empieza grande en el centro, así es también la portada del vídeo, y sube arriba cuando los dos escudos entran desde los lados y chocan en el centro. Se quita con «Apertura con los escudos».
   - **Marcador:** cada equipo en su mitad, con los goleadores y el titular de la portada en la cinta.

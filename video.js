@@ -19,6 +19,31 @@
   const ACCENT = '#c8f53c';  // el verde lima del Studio
   const INK_BG = '#0d0f13';
   const NIGHT = '#10141b'; // el fondo oscuro de las escenas de datos (como en el carrusel)
+  // La zona que TikTok no tapa: a la derecha van los botones (me gusta, comentarios…), arriba
+  // las pestañas y abajo tu nombre y la descripción; en los móviles alargados, además, recorta
+  // unos 50 px por cada lado. Cada escena se dibuja en 1080×1920 y su contenido se coloca
+  // reducido (s) a partir de (x, y): de x = 60 a 902 y de y = 220 a unos 1550. Los fondos sí
+  // ocupan la pantalla entera (bleed).
+  const SAFE = { s: 0.78, x: 60, y: 220 };
+  function inSafe(ctx, fn) {
+    ctx.save();
+    ctx.translate(SAFE.x, SAFE.y);
+    ctx.scale(SAFE.s, SAFE.s);
+    fn();
+    ctx.restore();
+  }
+  // Un rectángulo de fondo que toca un borde de la escena se alarga hasta el borde de la
+  // pantalla (en las coordenadas de la escena, sea cual sea la transformación de ahora).
+  function bleed(ctx, x, y, w, h) {
+    const m = ctx.getTransform();
+    if (m.b || m.c || !m.a || !m.d) return [x, y, w, h];
+    const x0 = -m.e / m.a, y0 = -m.f / m.d;
+    const x1 = (ctx.canvas.width - m.e) / m.a, y1 = (ctx.canvas.height - m.f) / m.d;
+    const L = x <= 0 ? Math.min(x, x0) : x, T = y <= 0 ? Math.min(y, y0) : y;
+    const R = x + w >= W ? Math.max(x + w, x1) : x + w, B = y + h >= H ? Math.max(y + h, y1) : y + h;
+    return [L, T, R - L, B - T];
+  }
+  const fillAll = (ctx, style) => { ctx.fillStyle = style; ctx.fillRect(...bleed(ctx, 0, 0, W, H)); };
   const ticks = (from, to, vel = 1) => {
     const out = [];
     for (let t = from, i = 0, n = Math.round((to - from) / STEP); i < n; i++, t += STEP) out.push({ t, kind: 'tick', p: i / Math.max(1, n - 1), vel });
@@ -192,6 +217,7 @@
   function paperBg(ctx, d) {
     const [ga, gb] = [d.home.style.glow, d.away.style.glow].map(g => (g && g.c !== '#ffffff' ? { c: g.c, a: 0.2 } : null));
     const [sa, sb] = [d.home.style.ink, d.away.style.ink];
+    const [bx, by, bw, bh] = bleed(ctx, 0, 0, W, H);
     ctx.drawImage(layer(`p|${ga?.c}|${gb?.c}|${sa}|${sb}`, W, H, (c) => {
       const base = c.createLinearGradient(0, 0, 0, H);
       base.addColorStop(0, '#f6f4ef'); base.addColorStop(1, '#e9e5dc');
@@ -208,7 +234,7 @@
       vignette(c, W, H, 0.08);
       c.fillStyle = sa; c.fillRect(0, H - 16, W / 2, 16);
       c.fillStyle = sb; c.fillRect(W / 2, H - 16, W / 2, 16);
-    }), 0, 0);
+    }), bx, by, bw, bh);
   }
   // Los colores de encima de cada fondo
   const SHEET = {
@@ -219,6 +245,7 @@
   // El fondo oscuro: la luz de cada equipo en su esquina de arriba (glow: { c, a }).
   function nightBg(ctx, d) {
     const [ga, gb] = [d.home.style.glow, d.away.style.glow].map(g => g || { c: '#ffffff', a: 0.14 });
+    const [bx, by, bw, bh] = bleed(ctx, 0, 0, W, H);
     ctx.drawImage(layer(`n|${ga.c}|${ga.a}|${gb.c}|${gb.a}`, W, H, (c) => {
       const base = c.createLinearGradient(0, 0, 0, H);
       base.addColorStop(0, '#171c26'); base.addColorStop(1, '#0a0d12');
@@ -232,11 +259,12 @@
       }
       dots(c, W, H, W, H, W * 0.8, 'rgba(255,255,255,.045)');
       vignette(c, W, H, 0.3);
-    }), 0, 0);
+    }), bx, by, bw, bh);
   }
   // Como .fc-in: el centro iluminado (hi), el color del equipo y los bordes oscuros (lo), con su
   // luz encima.
-  function teamBg(ctx, st, x = 0, y = 0, w = W, h = H, fx = 0.78, fy = 0.62) {
+  function teamBg(ctx, st, x0 = 0, y0 = 0, w0 = W, h0 = H, fx = 0.78, fy = 0.62) {
+    const [x, y, w, h] = bleed(ctx, x0, y0, w0, h0);
     const cx = x + w * fx, cy = y + h * fy;
     const r = Math.hypot(Math.max(cx - x, x + w - cx), Math.max(cy - y, y + h - cy));
     const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
@@ -245,7 +273,7 @@
     g.addColorStop(1, st.lo);
     ctx.fillStyle = g;
     ctx.fillRect(x, y, w, h);
-    ctx.drawImage(lightLayer(w, h, fx >= 0.5, (st.fg || '#ffffff') !== '#ffffff'), x, y);
+    ctx.drawImage(lightLayer(Math.round(w), Math.round(h), fx >= 0.5, (st.fg || '#ffffff') !== '#ffffff'), x, y, w, h);
   }
 
   // Imagen a un ancho dado; bottom es el borde de abajo (las fotos van apoyadas abajo).
@@ -353,16 +381,14 @@
         { t: 3 * BEAT, kind: 'hit', vel: 0.6 },
       ],
       draw(ctx, t) {
-        ctx.fillStyle = INK_BG;
-        ctx.fillRect(0, 0, W, H);
+        fillAll(ctx, INK_BG);
         if (d.hook) drawHook(ctx, d.hook, easeInOut(prog(t, HIT - 0.12, 0.3)));
         const glow = easeOut(prog(t, HIT, 0.4));
         if (glow > 0) {
           const g = ctx.createRadialGradient(W / 2, cy, 0, W / 2, cy, 900);
           g.addColorStop(0, rgba(ACCENT, 0.25 * glow));
           g.addColorStop(1, rgba(ACCENT, 0));
-          ctx.fillStyle = g;
-          ctx.fillRect(0, 0, W, H);
+          fillAll(ctx, g);
         }
         const sp = prog(t, HIT, 0.32), amp = sp > 0 && sp < 1 ? 24 * (1 - sp) ** 2 : 0;
         ctx.save();
@@ -407,10 +433,7 @@
         ctx.restore();
         ctx.restore();
         const flash = 1 - prog(t, HIT, 0.14);
-        if (t >= HIT && flash > 0) {
-          ctx.fillStyle = `rgba(255,255,255,${0.3 * flash})`;
-          ctx.fillRect(0, 0, W, H);
-        }
+        if (t >= HIT && flash > 0) fillAll(ctx, `rgba(255,255,255,${0.3 * flash})`);
       },
     };
   }
@@ -441,10 +464,11 @@
           const e = easeOut(prog(t, h.delay, 0.55));
           const top = h.top === 0;
           ctx.save();
+          const band = bleed(ctx, 0, h.top, W, h.bottom - h.top);
           ctx.beginPath();
-          ctx.rect(0, h.top, W, h.bottom - h.top);
+          ctx.rect(...band);
           ctx.clip();
-          ctx.translate((1 - e) * W * h.from, 0);
+          ctx.translate((1 - e) * (band[0] + band[2]) * h.from, 0);
           teamBg(ctx, st, 0, h.top, W, h.bottom - h.top, 0.7, 0.6);
           logo(ctx, h.logo, W - 220, h.top + 470, 760 * (1 + 0.04 * prog(t, 0, 3 * BAR)), 0.12);
           const labelY = h.top + (top ? 330 : 190);
@@ -482,7 +506,7 @@
           ctx.restore();
           if (h.side.lost) {
             ctx.fillStyle = `rgba(0,0,0,${0.42 * easeOut(prog(t, BAR, 0.4))})`;
-            ctx.fillRect(0, h.top, W, h.bottom - h.top);
+            ctx.fillRect(...bleed(ctx, 0, h.top, W, h.bottom - h.top));
           }
         }
         const ce = easeOut(prog(t, 0.6, 0.4));
@@ -933,6 +957,8 @@
   }
 
   // 4 · Jugador del partido: la foto (o su dorsal) sube, el nombre y sus 3 números uno a uno.
+  // El radio del retrato: a 0,78 en pantalla sale de ~330 px, unas dos veces la cara de 150 px.
+  const FACE_R = 210;
   function sceneJugador(d, A) {
     const m = d.jugador, st = m.style;
     const nums = m.stats.slice(0, 3);
@@ -967,7 +993,7 @@
             ctx.strokeText(m.number, W + 40, 1700 + (1 - e) * 200);
             ctx.restore();
           }
-          const r = 230, cx = W - M - r - 10, cy = 1010 + (1 - e) * 120;
+          const r = FACE_R, cx = W - M - r - 10, cy = 1010 + (1 - e) * 120;
           ctx.save();
           ctx.globalAlpha = e;
           ctx.beginPath(); ctx.arc(cx, cy, r + 28, 0, Math.PI * 2);
@@ -1044,7 +1070,7 @@
           const st = team.style;
           ctx.save();
           ctx.beginPath();
-          ctx.rect(x, 0, W / 2, H);
+          ctx.rect(...bleed(ctx, x, 0, W / 2, H));
           ctx.clip();
           teamBg(ctx, st, x, 0, W / 2, H, 0.5, 0.25);
           logo(ctx, img, x + W / 4, 250, 150);
@@ -1207,9 +1233,8 @@
       music: { energy: 'tail' },
       cues: [{ t: HIT, kind: 'slam' }, { t: HIT, kind: 'impact', vel: 0.9 }],
       draw(ctx, t) {
-        ctx.fillStyle = INK_BG;
-        ctx.fillRect(0, 0, W, H);
-        ctx.drawImage(lightLayer(W, H, true, false), 0, 0);
+        fillAll(ctx, INK_BG);
+        ctx.drawImage(lightLayer(W, H, true, false), ...bleed(ctx, 0, 0, W, H));
         const cx = W / 2, cy = 820, R = 290;
         const img = A.brandImg;
         const round = img && Math.abs(img.naturalWidth / img.naturalHeight - 1) < 0.25;
@@ -1242,10 +1267,7 @@
         }
         ctx.restore();
         // El destello del golpe
-        if (t >= HIT) {
-          ctx.fillStyle = `rgba(255,255,255,${0.32 * (1 - prog(t, HIT, 0.2))})`;
-          ctx.fillRect(0, 0, W, H);
-        }
+        if (t >= HIT) fillAll(ctx, `rgba(255,255,255,${0.32 * (1 - prog(t, HIT, 0.2))})`);
         // Debajo, «Sígueme para más fútbol» y tu firma
         const e = easeOut(prog(t, HIT + 0.25, 0.35));
         if (e > 0) {
@@ -1490,8 +1512,8 @@
     ctx.restore();
   }
 
-  function makeDrawer(scenes, grainImg, captions = null, brandImg = null) {
-    const patterns = new WeakMap();
+  // Sin grano: en el vídeo solo ensucia (TikTok lo recomprime y se ve borroso).
+  function makeDrawer(scenes, captions = null, brandImg = null) {
     const starts = sceneStarts(scenes);
     const total = scenes.reduce((sum, s) => sum + s.dur, 0);
     return {
@@ -1504,7 +1526,7 @@
         const t = T - starts[i];
         ctx.save();
         if (i > 0 && t < TRANSITION) {
-          scenes[i - 1].draw(ctx, scenes[i - 1].dur + t);
+          inSafe(ctx, () => scenes[i - 1].draw(ctx, scenes[i - 1].dur + t));
           const e = easeInOut(t / TRANSITION);
           const SL = 320;
           const edge = H + SL - e * (H + 2 * SL);
@@ -1513,7 +1535,7 @@
           ctx.moveTo(0, H); ctx.lineTo(W, H); ctx.lineTo(W, edge - SL); ctx.lineTo(0, edge);
           ctx.closePath();
           ctx.clip();
-          scenes[i].draw(ctx, t);
+          inSafe(ctx, () => scenes[i].draw(ctx, t));
           ctx.restore();
           ctx.beginPath();
           ctx.moveTo(0, edge); ctx.lineTo(W, edge - SL); ctx.lineTo(W, edge - SL - 28); ctx.lineTo(0, edge - 28);
@@ -1521,21 +1543,75 @@
           ctx.fillStyle = scenes[i].accent;
           ctx.fill();
         } else {
-          scenes[i].draw(ctx, t);
+          inSafe(ctx, () => scenes[i].draw(ctx, t));
         }
         ctx.restore();
-        if (brandImg && !['intro', 'outro', 'marca'].includes(scenes[i].id)) drawBrand(ctx, brandImg);
-        if (grainImg) {
-          if (!patterns.has(ctx)) patterns.set(ctx, ctx.createPattern(grainImg, 'repeat'));
-          ctx.fillStyle = patterns.get(ctx);
-          ctx.fillRect(0, 0, W, H);
-        }
-        if (captions) drawCaptions(ctx, captions, T);
+        inSafe(ctx, () => {
+          if (brandImg && !['intro', 'outro', 'marca'].includes(scenes[i].id)) drawBrand(ctx, brandImg);
+          if (captions) drawCaptions(ctx, captions, T);
+        });
       },
     };
   }
 
   // ─── Fuentes e imágenes ───
+  // Las caras de API-Football miden 150 px: ampliadas a lo bruto se ven borrosas. Se amplían
+  // en dos pasos con el mejor suavizado y se les da un enfoque (máscara de enfoque) suave.
+  function crisp(img, size, amount = 0.7) {
+    if (!img) return null;
+    // Ya grande (la del retrato de la slide, que ya pasó por aquí) o una de 1 px: tal cual
+    const nw = img.naturalWidth || img.width;
+    if (nw >= size * 0.9 || nw < 32) return img;
+    try {
+      let src = img, w = nw;
+      while (w * 2 < size) {
+        const c = document.createElement('canvas');
+        c.width = c.height = w * 2;
+        const g = c.getContext('2d');
+        g.imageSmoothingQuality = 'high';
+        g.drawImage(src, 0, 0, w * 2, w * 2);
+        src = c; w *= 2;
+      }
+      const out = document.createElement('canvas');
+      out.width = out.height = size;
+      const g = out.getContext('2d');
+      g.imageSmoothingQuality = 'high';
+      g.drawImage(src, 0, 0, size, size);
+      const im = g.getImageData(0, 0, size, size);
+      const a = im.data, blur = new Float32Array(a.length);
+      // Desenfoque 3×3 (dos pasadas de caja) y, a cada píxel, su diferencia con él.
+      const box = (from, to) => {
+        for (let y = 0; y < size; y++) {
+          for (let x = 0; x < size; x++) {
+            for (let ch = 0; ch < 3; ch++) {
+              let sum = 0, n = 0;
+              for (let dy = -1; dy <= 1; dy++) {
+                const yy = y + dy;
+                if (yy < 0 || yy >= size) continue;
+                for (let dx = -1; dx <= 1; dx++) {
+                  const xx = x + dx;
+                  if (xx < 0 || xx >= size) continue;
+                  sum += from[(yy * size + xx) * 4 + ch]; n++;
+                }
+              }
+              to[(y * size + x) * 4 + ch] = sum / n;
+            }
+          }
+        }
+      };
+      const tmp = new Float32Array(a.length);
+      box(a, tmp);
+      box(tmp, blur);
+      for (let i = 0; i < a.length; i += 4) {
+        for (let ch = 0; ch < 3; ch++) a[i + ch] = Math.max(0, Math.min(255, a[i + ch] + amount * (a[i + ch] - blur[i + ch])));
+      }
+      g.putImageData(im, 0, 0);
+      return out;
+    } catch (e) {
+      return img; // una imagen sin permiso (CORS) para leerla: tal cual
+    }
+  }
+
   async function loadImage(srcs) {
     for (const src of [].concat(srcs).filter(Boolean)) {
       try {
@@ -1556,13 +1632,13 @@
       document.fonts.load('700 50px "Barlow Condensed"'),
       document.fonts.load('900 84px Montserrat'),
     ]);
-    const [homeLogo, awayLogo, jugadorPhoto, jugadorFace, jugadorLogo, closingPhoto, grainImg, brandImg, ...tableLogos] = await Promise.all([
+    const [homeLogo, awayLogo, jugadorPhoto, jugadorFace, jugadorLogo, closingPhoto, brandImg, ...tableLogos] = await Promise.all([
       loadImage(d.home.logo), loadImage(d.away.logo), loadImage(d.jugador?.photo), loadImage(d.jugador?.face), loadImage(d.jugador?.logo),
-      loadImage(d.closing.photo), loadImage(d.grain), loadImage(d.brand),
+      loadImage(d.closing.photo), loadImage(d.brand),
       ...(d.table?.rows || []).map(r => loadImage(r?.logo)),
     ]);
     const closingLogo = d.closing.side === 'away' ? awayLogo : homeLogo;
-    return { homeLogo, awayLogo, jugadorPhoto, jugadorFace, jugadorLogo, closingPhoto, closingLogo, grainImg, brandImg, tableLogos };
+    return { homeLogo, awayLogo, jugadorPhoto, jugadorFace: crisp(jugadorFace, 2 * FACE_R), jugadorLogo, closingPhoto, closingLogo, brandImg, tableLogos };
   }
 
   // ============================================================
@@ -1587,7 +1663,7 @@
       { codec: 'vp09.00.40.08', muxer: 'vp9' },
     ];
     for (const c of candidates) {
-      const config = { codec: c.codec, width: W, height: H, bitrate: 8_000_000, framerate: FPS };
+      const config = { codec: c.codec, width: W, height: H, bitrate: 12_000_000, framerate: FPS };
       try {
         if ((await VideoEncoder.isConfigSupported(config)).supported) return { ...c, config };
       } catch (e) { /* el siguiente */ }
@@ -1855,7 +1931,7 @@
       const words = captionWords(scenes, sceneStarts(scenes), script);
       const withCaptions = !!(captions && words.length);
       const delay = (voiceLead == null ? 0 : leadOf(scenes) - voiceLead) + (voiceShift || 0);
-      const drawer = makeDrawer(scenes, assets.grainImg, withCaptions ? captionPages(words) : null, assets.brandImg);
+      const drawer = makeDrawer(scenes, withCaptions ? captionPages(words) : null, assets.brandImg);
       let audioBuffer = null;
       if (music && window.StudioAudio) {
         onProgress(0, 'Componiendo la música…');
@@ -1891,7 +1967,7 @@
     const assets = await loadAssets(data);
     const scenes = buildScenes(data, assets, intro);
     const words = captionWords(scenes, sceneStarts(scenes), script);
-    const drawer = makeDrawer(scenes, assets.grainImg, words.length ? captionPages(words) : null, assets.brandImg);
+    const drawer = makeDrawer(scenes, words.length ? captionPages(words) : null, assets.brandImg);
     return { duration: drawer.duration, draw: (ctx, t) => drawer.draw(ctx, t), words, lead: leadOf(scenes), W, H };
   }
 
@@ -1902,7 +1978,7 @@
     musicStyle = 'epica',
   } = {}) {
     const scenes = buildScenes(data, {}, intro);
-    const drawer = makeDrawer(scenes, null);
+    const drawer = makeDrawer(scenes);
     const words = captionWords(scenes, drawer.starts, script);
     const delay = (voiceLead == null ? 0 : leadOf(scenes) - voiceLead) + (voiceShift || 0);
     let buffer = music && window.StudioAudio ? await window.StudioAudio.render(soundTimeline(drawer, seedOf(data), musicStyle)) : null;
@@ -1912,5 +1988,5 @@
     return buffer && window.StudioAudio ? window.StudioAudio.toWav(buffer, drawer.duration) : null;
   }
 
-  window.StudioVideo = { render, prepare, plan, audio, measureVoiceLag };
+  window.StudioVideo = { render, prepare, plan, audio, measureVoiceLag, crisp };
 })();
