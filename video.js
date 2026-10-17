@@ -921,13 +921,22 @@
         ctx.globalAlpha = e1;
         text(ctx, 'TE LEO EN COMENTARIOS', M, after + 30, BARLOW(48), st.hl);
         ctx.restore();
-        if (!d.sign) return;
+        if (!d.sign && !A.brandImg) return;
         const e2 = easeOut(prog(t, BAR, 0.45));
         ctx.save();
         ctx.globalAlpha = e2;
         ctx.translate((1 - e2) * -80, 0);
-        chip(ctx, 'Sígueme para más fútbol', M, 1170, st, 40);
-        text(ctx, d.sign, M, 1330, ANTON(fit(ctx, d.sign, ANTON, 130, W - 2 * M)), st.fg);
+        // Tu logo, grande, entre «Te leo en comentarios» y la firma (en el hueco que quede)
+        if (A.brandImg) {
+          const img = A.brandImg;
+          const top = after + 80, room = (d.sign ? 1110 : 1400) - top;
+          const k = Math.min(560 / img.naturalWidth, Math.min(170, room) / img.naturalHeight);
+          if (room >= 60) ctx.drawImage(img, M, top + (Math.min(170, room) - img.naturalHeight * k) / 2, img.naturalWidth * k, img.naturalHeight * k);
+        }
+        if (d.sign) {
+          chip(ctx, 'Sígueme para más fútbol', M, 1170, st, 40);
+          text(ctx, d.sign, M, 1330, ANTON(fit(ctx, d.sign, ANTON, 130, W - 2 * M)), st.fg);
+        }
         ctx.restore();
       },
     };
@@ -1092,7 +1101,20 @@
   // ============================================================
   // MONTAJE · las escenas seguidas, con una cortinilla en diagonal entre una y otra
   // ============================================================
-  function makeDrawer(scenes, grainImg, captions = null) {
+  // Tu logo en una esquina (arriba a la derecha), en todas las escenas menos la apertura y el
+  // cierre, que lo lleva en grande.
+  function drawBrand(ctx, img) {
+    const k = Math.min(200 / img.naturalWidth, 84 / img.naturalHeight);
+    const w = img.naturalWidth * k, h = img.naturalHeight * k;
+    ctx.save();
+    ctx.globalAlpha = 0.92;
+    ctx.shadowColor = 'rgba(0,0,0,.35)';
+    ctx.shadowBlur = 12;
+    ctx.drawImage(img, W - M - w, 56, w, h);
+    ctx.restore();
+  }
+
+  function makeDrawer(scenes, grainImg, captions = null, brandImg = null) {
     const patterns = new WeakMap();
     const starts = sceneStarts(scenes);
     const total = scenes.reduce((sum, s) => sum + s.dur, 0);
@@ -1126,6 +1148,7 @@
           scenes[i].draw(ctx, t);
         }
         ctx.restore();
+        if (brandImg && !['intro', 'outro'].includes(scenes[i].id)) drawBrand(ctx, brandImg);
         if (grainImg) {
           if (!patterns.has(ctx)) patterns.set(ctx, ctx.createPattern(grainImg, 'repeat'));
           ctx.fillStyle = patterns.get(ctx);
@@ -1157,13 +1180,13 @@
       document.fonts.load('700 50px "Barlow Condensed"'),
       document.fonts.load('900 84px Montserrat'),
     ]);
-    const [homeLogo, awayLogo, jugadorPhoto, jugadorLogo, closingPhoto, grainImg, ...tableLogos] = await Promise.all([
+    const [homeLogo, awayLogo, jugadorPhoto, jugadorLogo, closingPhoto, grainImg, brandImg, ...tableLogos] = await Promise.all([
       loadImage(d.home.logo), loadImage(d.away.logo), loadImage(d.jugador?.photo), loadImage(d.jugador?.logo),
-      loadImage(d.closing.photo), loadImage(d.grain),
+      loadImage(d.closing.photo), loadImage(d.grain), loadImage(d.brand),
       ...(d.table?.rows || []).map(r => loadImage(r?.logo)),
     ]);
     const closingLogo = d.closing.side === 'away' ? awayLogo : homeLogo;
-    return { homeLogo, awayLogo, jugadorPhoto, jugadorLogo, closingPhoto, closingLogo, grainImg, tableLogos };
+    return { homeLogo, awayLogo, jugadorPhoto, jugadorLogo, closingPhoto, closingLogo, grainImg, brandImg, tableLogos };
   }
 
   // ============================================================
@@ -1454,7 +1477,7 @@
       const words = captionWords(scenes, sceneStarts(scenes), script);
       const withCaptions = !!(captions && words.length);
       const delay = (voiceLead == null ? 0 : leadOf(scenes) - voiceLead) + (voiceShift || 0);
-      const drawer = makeDrawer(scenes, assets.grainImg, withCaptions ? captionPages(words) : null);
+      const drawer = makeDrawer(scenes, assets.grainImg, withCaptions ? captionPages(words) : null, assets.brandImg);
       let audioBuffer = null;
       if (music && window.StudioAudio) {
         onProgress(0, 'Componiendo la música…');
@@ -1490,7 +1513,7 @@
     const assets = await loadAssets(data);
     const scenes = buildScenes(data, assets, intro);
     const words = captionWords(scenes, sceneStarts(scenes), script);
-    const drawer = makeDrawer(scenes, assets.grainImg, words.length ? captionPages(words) : null);
+    const drawer = makeDrawer(scenes, assets.grainImg, words.length ? captionPages(words) : null, assets.brandImg);
     return { duration: drawer.duration, draw: (ctx, t) => drawer.draw(ctx, t), words, lead: leadOf(scenes), W, H };
   }
 

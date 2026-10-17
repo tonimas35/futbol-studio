@@ -18,8 +18,8 @@
 // compartir, el vídeo (guion, grabar la voz con el micrófono de prueba, la mezcla y el MP4),
 // «Para tu IA» (copiar y pegar), un partido en juego, uno sin alineaciones ni clasificación,
 // las eliminatorias (campeón, global, quién pasa), saltar a un día con partidos, el modo en
-// directo (vigilar, avisar y generar a un clic), el móvil y abierto como archivo (con doble clic
-// en index.html, que es como se usa).
+// directo (vigilar, avisar y generar a un clic), tu logo, el móvil y abierto como archivo (con
+// doble clic en index.html, que es como se usa).
 import { spawn, execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -436,6 +436,30 @@ try {
     check(await p6.$$eval('#liveList .live-card', (c) => c.length) === 0 && JSON.parse(await p6.evaluate(() => localStorage.getItem('fc-live'))).on === false,
       'apagarlo deja de vigilar y se recuerda');
     await c6.close();
+  }
+
+  // ── Tu logo: junto a la firma en cada slide, grande en el cierre y se recuerda ──
+  {
+    const { ctx: c7, page: p7 } = await open();
+    await p7.setInputFiles('#brandInput', { name: 'logo.png', mimeType: 'image/png', buffer: PIXEL });
+    await p7.waitForSelector('#brandPreview:not([hidden])', { timeout: 10000 }).catch(() => {});
+    await pickDate(p7, '2026-09-20');
+    await generate(p7, '401882865');
+    const brand = () => p7.evaluate(() => ({
+      foot: [...document.querySelectorAll('#slidesPreview .fc-brand')].filter((i) => !i.hidden && i.src.startsWith('data:image/png')).length,
+      big: !!document.querySelector('#slide-cierre .brand-big:not([hidden])'),
+      btn: document.getElementById('brandBtnText').textContent,
+    }));
+    const b1 = await brand();
+    check(b1.foot === 7 && b1.big && b1.btn === 'Cambiar logo', `tu logo: en el pie de ${b1.foot} slides y grande en el cierre`);
+    await p7.reload();
+    await p7.waitForSelector('#slide-portada', { timeout: 10000 }).catch(() => {});
+    const b2 = await brand();
+    check(b2.foot === 7 && b2.big && !(await p7.$eval('#brandPreview', (i) => i.hidden)), 'y al volver a abrir el Studio sigue puesto');
+    await p7.click('#brandDel');
+    const b3 = await brand();
+    check(b3.foot === 0 && !b3.big && b3.btn === 'Subir logo', '«Quitar» lo quita de las slides');
+    await c7.close();
   }
 
   // ── Abierto como archivo (doble clic en index.html): genera, guarda y descarga ──

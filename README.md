@@ -45,7 +45,7 @@ Arriba del todo, «Los partidos de hoy»: eliges qué competiciones vigilar (las
    - **Clasificación:** 12 filas con los dos equipos marcados, con «···» si están lejos. Si el resumen de ESPN no la trae (la Europa League, la Conference…), se pide aparte.
    - **Cierre:** una pregunta para los comentarios y tu firma.
 4. **Retocar:** se toca cualquier texto de una slide y se escribe encima; «↺ original» deshace los de esa slide. El botón de la esquina abre la slide casi a pantalla completa. En «Jugador del partido» se toca al jugador para subir su foto: el fondo se quita en el navegador con `@imgly/background-removal` (licencia AGPL; la primera vez baja el modelo, unos 45 MB). ESPN casi no tiene fotos de futbolistas; sin foto, sale su dorsal en grande.
-5. **Tu firma:** el campo «Tu firma» (por ejemplo, tu @) sale abajo a la derecha de cada slide y en el cierre. Si se deja vacío, no sale.
+5. **Tu firma y tu logo:** el campo «Tu firma» (por ejemplo, tu @) sale abajo a la derecha de cada slide y en el cierre. Si se deja vacío, no sale. «Subir logo» pone tu logo (mejor un PNG con el fondo transparente, o un SVG) junto a la firma en cada slide, grande en el cierre y, en el vídeo, en una esquina de cada escena y grande en el cierre. Se guarda en el navegador; «Quitar» lo quita.
 6. **Descargar:** ZIP de PNG 1080×1350 con el pie de foto (`caption.txt`), el mismo ZIP en 1080×1920 para TikTok/Stories, o cada slide suelta. En el móvil, «Compartir» manda las PNG a Instagram, Fotos o WhatsApp: el primer toque las prepara y copia el pie de foto, el segundo abre la hoja de compartir.
 
 El carrusel, sus retoques y las fotos subidas se guardan solos en el navegador (IndexedDB) y vuelven al abrir la página.
@@ -111,7 +111,7 @@ El partido en unos 30 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
   - el Lech-Leverkusen de la Europa League (la clasificación, pedida aparte);
   - el Osnabrück-Bayern de la Copa de Alemania (un apellido con «ß»).
 
-  Prueba el modo en directo (un partido que pasa de en juego a acabado: el aviso y generarlo a un clic), las competiciones y sus logos, la lista, las 8 slides, el minuto a minuto sin solapes, la firma, el jugador del partido, el borrador, el ZIP, el 9:16, compartir, el vídeo (guion, grabar la voz con un micrófono de prueba, la mezcla y el MP4), «Para tu IA» (copiar y pegar), un partido en juego, uno con pocos datos, las eliminatorias (campeón, global, quién pasa), saltar a un día con partidos, el móvil y el Studio abierto como archivo (generar, descargar y recuperar el borrador).
+  Prueba el modo en directo (un partido que pasa de en juego a acabado: el aviso y generarlo a un clic), tu logo, las competiciones y sus logos, la lista, las 8 slides, el minuto a minuto sin solapes, la firma, el jugador del partido, el borrador, el ZIP, el 9:16, compartir, el vídeo (guion, grabar la voz con un micrófono de prueba, la mezcla y el MP4), «Para tu IA» (copiar y pegar), un partido en juego, uno con pocos datos, las eliminatorias (campeón, global, quién pasa), saltar a un día con partidos, el móvil y el Studio abierto como archivo (generar, descargar y recuperar el borrador).
 
 Corre sola en cada push y PR (`.github/workflows/tests.yml`). En local:
 

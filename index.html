@@ -16,7 +16,7 @@
     rel="stylesheet"
   />
 
-  <link rel="stylesheet" href="futbol.css?v=5" />
+  <link rel="stylesheet" href="futbol.css?v=6" />
 </head>
 
 <body>
@@ -119,6 +119,13 @@
         <input type="text" id="signInput" maxlength="32" placeholder="@tu_usuario" autocomplete="off" spellcheck="false" />
         <small>Sale en cada slide y en el cierre. Si la dejas vacía, no sale.</small>
       </label>
+      <div class="sign-field brand-field">
+        <span>Tu logo</span>
+        <img class="brand-preview" id="brandPreview" alt="" hidden />
+        <label class="btn btn-ghost brand-btn"><input type="file" id="brandInput" accept="image/png,image/svg+xml,image/jpeg,image/webp" hidden /><span id="brandBtnText">Subir logo</span></label>
+        <button class="slide-reset-btn brand-del" id="brandDel" type="button" hidden>Quitar</button>
+        <small>Sale junto a tu firma en cada slide, grande en el cierre y en una esquina del vídeo. Mejor un PNG con el fondo transparente.</small>
+      </div>
     </section>
 
     <!-- Paso 3: retocar -->
@@ -258,7 +265,7 @@
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 
   <script src="audio.js?v=1"></script>
-  <script src="video.js?v=2"></script>
-  <script src="futbol.js?v=5"></script>
+  <script src="video.js?v=3"></script>
+  <script src="futbol.js?v=6"></script>
 </body>
 </html>

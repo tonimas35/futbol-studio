@@ -699,6 +699,13 @@ body.zoom-open { overflow: hidden; }
 .live-controls .slide-reset-btn, .live-more { display: inline-flex; align-items: center; }
 .live-controls .slide-reset-btn[hidden] { display: none; }
 
+/* Tu logo */
+.brand-field { margin-top: 12px; }
+.brand-preview { height: 44px; max-width: 140px; object-fit: contain; padding: 4px; border: 1px solid var(--line-2); border-radius: 10px; background: repeating-conic-gradient(#2a2e38 0 25%, #1e222c 0 50%) 0 0 / 14px 14px; }
+.brand-btn { min-height: 44px; height: 44px; padding: 0 16px; font-size: 16px; }
+.brand-field .brand-del { display: inline-flex; align-items: center; }
+.brand-field .brand-del[hidden] { display: none; }
+
 /* Tu firma */
 .sign-field { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 18px; }
 .sign-field > span { font-family: var(--label); font-weight: 700; font-size: 18px; letter-spacing: 0.03em; text-transform: uppercase; }
@@ -886,6 +893,10 @@ body.zoom-open { overflow: hidden; }
   white-space: nowrap;
 }
 .fc .fc-sign:empty { display: none; }
+/* Tu logo junto a la firma (abajo a la derecha) y, grande, en el cierre */
+.fc .fc-mark { display: inline-flex; align-items: center; gap: 14px; }
+.fc .fc-brand { height: 46px; max-width: 200px; object-fit: contain; }
+.fc [data-brand][hidden] { display: none; }
 .fc .fade { position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; }
 .fc .lg { object-fit: contain; }
 .fc .fc-empty { position: absolute; left: 64px; right: 64px; top: 420px; font-weight: 700; font-size: 48px; line-height: 1.2; }
@@ -1145,7 +1156,8 @@ body.zoom-open { overflow: hidden; }
 .fc-cierre .sub { margin-top: 30px; color: var(--t-hl); font-weight: 800; font-size: 48px; letter-spacing: 0.04em; text-transform: uppercase; }
 .fc-cierre .handle { position: absolute; left: 64px; right: 64px; bottom: 90px; z-index: 5; }
 .fc-cierre .handle .h { margin-top: 14px; font-family: 'Anton', sans-serif; font-size: 110px; line-height: 1; }
-.fc-cierre .handle:has(.h:empty) { display: none; }
+.fc-cierre .handle:has(.h:empty):not(:has(.brand-big:not([hidden]))) { display: none; }
+.fc-cierre .brand-big { display: block; height: 150px; max-width: 560px; margin-bottom: 28px; object-fit: contain; object-position: left center; }
 
 /* ============================================================
    RESPONSIVE (el Studio en el móvil)
