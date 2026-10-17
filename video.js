@@ -1841,14 +1841,28 @@
     };
   }
 
+  // La configuración de AAC (AudioSpecificConfig, ISO 14496-3): AAC-LC, la frecuencia y los
+  // canales, en 2 bytes (48 kHz estéreo: 11 90).
+  function aacConfig(rate, channels) {
+    const index = [96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000, 7350].indexOf(rate);
+    const bits = (2 << 11) | (Math.max(0, index) << 7) | (channels << 3);
+    return new Uint8Array([bits >> 8, bits & 255]);
+  }
+
   async function encodeAudio(buffer, acodec, muxer, duration) {
     let failure = null;
+    const rate = buffer.sampleRate;
+    // Safari da para el AAC una descripción que no es la AudioSpecificConfig (WebKit 302253) y,
+    // con ella, el MP4 sale con el sonido mudo. Se pone siempre la buena, que es la misma que da
+    // Chrome.
+    const fix = (meta) => (acodec.muxer === 'aac' && meta?.decoderConfig
+      ? { ...meta, decoderConfig: { ...meta.decoderConfig, codec: 'mp4a.40.2', sampleRate: rate, numberOfChannels: 2, description: aacConfig(rate, 2) } }
+      : meta);
     const enc = new AudioEncoder({
-      output: (chunk, meta) => muxer.addAudioChunk(chunk, meta),
+      output: (chunk, meta) => muxer.addAudioChunk(chunk, fix(meta)),
       error: (e) => { failure = e; },
     });
     enc.configure(acodec.config);
-    const rate = buffer.sampleRate;
     const total = Math.min(buffer.length, Math.round(duration * rate));
     const L = buffer.getChannelData(0), R = buffer.getChannelData(1);
     const N = rate / 10;
