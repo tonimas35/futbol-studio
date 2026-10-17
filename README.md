@@ -50,6 +50,14 @@ Arriba del todo, «Los partidos de hoy»: eliges qué competiciones vigilar (las
 
 El carrusel, sus retoques y las fotos subidas se guardan solos en el navegador (IndexedDB) y vuelven al abrir la página.
 
+**Resumen de la jornada:** con partidos acabados en la lista, «Resumen de la jornada» hace un carrusel aparte, sin tocar el del partido:
+- **Portada:** «Así fue la jornada», con los goles y lo más destacado (la mayor goleada, los hat-tricks y dobletes, el partido con más goles y cómo han ido los locales).
+- **Resultados:** 5 por slide, con sus goleadores; los que faltan, con su día y hora.
+- **Clasificación:** entera, con las zonas de cada liga en color (en la Champions, en dos slides).
+- **Cierre:** «¿Cuál fue el partido de la jornada?», con tu logo y tu firma.
+
+ESPN no da el número de jornada: el Studio coge los partidos del día elegido y los de hasta 4 días antes y después mientras ningún equipo repita. Se descarga en ZIP (4:5 o 9:16) con su pie de foto, y cada slide suelta en PNG.
+
 **Para tu IA:** el botón de arriba copia un texto con qué es el Studio, cómo ayudarte (tono, no inventar datos, cuánto cabe en cada escena) y lo que hay en pantalla: el partido con sus goles, estadísticas, jugador del partido y clasificación, el titular, la pregunta del cierre y el guion del vídeo. Lo pegas en Claude (o en otra IA) y te devuelve un bloque «TITULAR: …», «PREGUNTA: …» y una línea por escena («Marcador: …», «Los goles: …»). «Pegar de tu IA», en el guion, lo coloca solo: el titular y la pregunta en sus slides (marcadas como retocadas) y las frases en el guion. Es copiar y pegar: el Studio no llama a ninguna IA ni usa claves.
 
 ## El vídeo short (paso 4)
@@ -111,7 +119,7 @@ El partido en unos 30 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
   - el Lech-Leverkusen de la Europa League (la clasificación, pedida aparte);
   - el Osnabrück-Bayern de la Copa de Alemania (un apellido con «ß»).
 
-  Prueba el modo en directo (un partido que pasa de en juego a acabado: el aviso y generarlo a un clic), tu logo, las competiciones y sus logos, la lista, las 8 slides, el minuto a minuto sin solapes, la firma, el jugador del partido, el borrador, el ZIP, el 9:16, compartir, el vídeo (guion, grabar la voz con un micrófono de prueba, la mezcla y el MP4), «Para tu IA» (copiar y pegar), un partido en juego, uno con pocos datos, las eliminatorias (campeón, global, quién pasa), saltar a un día con partidos, el móvil y el Studio abierto como archivo (generar, descargar y recuperar el borrador).
+  Prueba el modo en directo (un partido que pasa de en juego a acabado: el aviso y generarlo a un clic), el resumen de la jornada, tu logo, las competiciones y sus logos, la lista, las 8 slides, el minuto a minuto sin solapes, la firma, el jugador del partido, el borrador, el ZIP, el 9:16, compartir, el vídeo (guion, grabar la voz con un micrófono de prueba, la mezcla y el MP4), «Para tu IA» (copiar y pegar), un partido en juego, uno con pocos datos, las eliminatorias (campeón, global, quién pasa), saltar a un día con partidos, el móvil y el Studio abierto como archivo (generar, descargar y recuperar el borrador).
 
 Corre sola en cada push y PR (`.github/workflows/tests.yml`). En local:
 

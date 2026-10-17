@@ -16,7 +16,7 @@
     rel="stylesheet"
   />
 
-  <link rel="stylesheet" href="futbol.css?v=6" />
+  <link rel="stylesheet" href="futbol.css?v=7" />
 </head>
 
 <body>
@@ -76,6 +76,31 @@
       </div>
 
       <div class="games-grid" id="gamesList"></div>
+      <div class="jornada-bar" id="jornadaBar" hidden>
+        <button class="btn btn-ghost" id="jornadaBtn" type="button">
+          Resumen de la jornada
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </button>
+        <small>Todos los resultados de la jornada con sus goleadores, lo más destacado y la clasificación, en un carrusel aparte.</small>
+      </div>
+    </section>
+
+    <!-- Resumen de la jornada: todos los resultados, lo destacado y la clasificación -->
+    <section class="section" id="jornadaSection" hidden>
+      <div class="section-head">
+        <p class="section-eyebrow">JORNADA</p>
+        <h2 class="section-title">Resumen de la <em>jornada</em></h2>
+        <p class="section-sub" id="jornadaInfo"></p>
+      </div>
+      <div class="actions-row">
+        <button class="btn btn-primary" id="jornadaZipBtn" type="button">
+          Descargar ZIP
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+        </button>
+        <button class="btn btn-ghost" id="jornadaZipVBtn" type="button" title="Las mismas slides en 1080×1920 para TikTok, Reels o Stories">ZIP 9:16 · TikTok</button>
+        <button class="btn btn-ghost" id="jornadaCloseBtn" type="button">Cerrar</button>
+      </div>
+      <div class="slides-preview jornada-preview" id="jornadaPreview"></div>
     </section>
 
     <!-- Paso 2: generar y descargar -->
@@ -266,6 +291,6 @@
 
   <script src="audio.js?v=1"></script>
   <script src="video.js?v=3"></script>
-  <script src="futbol.js?v=6"></script>
+  <script src="futbol.js?v=7"></script>
 </body>
 </html>

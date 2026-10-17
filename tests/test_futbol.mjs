@@ -18,8 +18,8 @@
 // compartir, el vídeo (guion, grabar la voz con el micrófono de prueba, la mezcla y el MP4),
 // «Para tu IA» (copiar y pegar), un partido en juego, uno sin alineaciones ni clasificación,
 // las eliminatorias (campeón, global, quién pasa), saltar a un día con partidos, el modo en
-// directo (vigilar, avisar y generar a un clic), tu logo, el móvil y abierto como archivo (con
-// doble clic en index.html, que es como se usa).
+// directo (vigilar, avisar y generar a un clic), el resumen de la jornada, tu logo, el móvil y
+// abierto como archivo (con doble clic en index.html, que es como se usa).
 import { spawn, execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -341,7 +341,11 @@ try {
 
   // ── Un partido sin alineaciones, sin tiros con sitio ni clasificación ──
   {
-    const { ctx: c2, page: p2 } = await open({ strip: ['rosters', 'commentary', 'standings'] });
+    const { ctx: c2, page: p2 } = await open({
+      strip: ['rosters', 'commentary', 'standings'],
+      // y sin la clasificación aparte (la que se pide cuando el resumen no la trae)
+      before: (ctx) => ctx.route('https://site.api.espn.com/apis/v2/**', (r) => r.fulfill(json('{}'))),
+    });
     await pickDate(p2, '2026-09-20');
     await generate(p2, '401882865');
     const n2 = await slideNames(p2);
@@ -436,6 +440,35 @@ try {
     check(await p6.$$eval('#liveList .live-card', (c) => c.length) === 0 && JSON.parse(await p6.evaluate(() => localStorage.getItem('fc-live'))).on === false,
       'apagarlo deja de vigilar y se recuerda');
     await c6.close();
+  }
+
+  // ── Resumen de la jornada: todos los resultados, lo destacado y la clasificación ──
+  {
+    const { ctx: c8, page: p8 } = await open();
+    await pickDate(p8, '2026-09-20');
+    check(!(await p8.$eval('#jornadaBar', (b) => b.hidden)), 'con partidos acabados sale «Resumen de la jornada»');
+    await p8.fill('#signInput', '@toni_futbol');
+    await p8.click('#jornadaBtn');
+    await p8.waitForSelector('#jornadaSection:not([hidden])', { timeout: 20000 });
+    const jn = await p8.$$eval('#jornadaPreview .slide-label-name', (e) => e.map((x) => x.textContent.replace(/^\d+ · /, '')));
+    check(jn.join(',') === 'Portada,Resultados,Clasificación,Cierre', `la jornada: ${jn.join(', ')}`);
+    const jp = await p8.evaluate(() => ({
+      goals: document.querySelector('#slide-j-portada .jt-big .n')?.textContent,
+      facts: [...document.querySelectorAll('#slide-j-portada .jt-facts div')].map((d) => d.textContent),
+      rows: document.querySelectorAll('#slide-j-resultados-1 .jr-row').length,
+      first: [...(document.querySelector('#slide-j-resultados-1 .jr-row')?.querySelectorAll('.jr-team .nm, .jr-score b') || [])].map((e) => e.textContent).join(' '),
+      table: document.querySelectorAll('#slide-j-tabla-1 .row:not(.head)').length,
+      foot: document.querySelector('#slide-j-portada .fc-foot span')?.textContent,
+      sign: document.querySelector('#slide-j-cierre .fc-sign')?.textContent,
+    }));
+    check(jp.goals === '15' && jp.rows === 5 && jp.first === 'Getafe 1-0 Málaga' && jp.table === 20,
+      `15 goles en 5 partidos, los resultados con goleadores y la tabla de 20 (${jp.first})`);
+    check(jp.facts.some((f) => /victorias en casa/.test(f)) && /^LaLiga · 20 sept? 2026$/.test(jp.foot) && jp.sign === '@toni_futbol',
+      `lo destacado (${jp.facts.join(' · ')}) y el pie con la fecha de la jornada (${jp.foot} · ${jp.sign})`);
+    const [jz] = await Promise.all([p8.waitForEvent('download', { timeout: 90000 }), p8.click('#jornadaZipBtn')]);
+    check(jz.suggestedFilename() === 'futbol-jornada-esp-1-2026-09-20.zip', `y se descarga en ZIP (${jz.suggestedFilename()})`);
+    check(await p8.$$eval('#slidesPreview .slide', (x) => x.length) === 0, 'sin tocar el carrusel del partido');
+    await c8.close();
   }
 
   // ── Tu logo: junto a la firma en cada slide, grande en el cierre y se recuerda ──
