@@ -719,6 +719,12 @@ body.zoom-open { overflow: hidden; }
 
 /* Tu firma */
 .sign-field { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 18px; }
+/* La descripción para TikTok, lista para copiar */
+.caption-box { margin-top: 18px; padding: 16px; background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius); }
+.caption-box[hidden] { display: none; }
+.caption-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; font-family: var(--label); font-weight: 800; font-size: 18px; letter-spacing: 0.03em; text-transform: uppercase; }
+.caption-box textarea { width: 100%; padding: 12px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--bg); color: var(--text); font: 500 15px/1.5 var(--body); resize: vertical; }
+.caption-box small { display: block; margin-top: 8px; color: var(--mute); font-size: 13px; line-height: 1.4; }
 .sign-field > span { font-family: var(--label); font-weight: 700; font-size: 18px; letter-spacing: 0.03em; text-transform: uppercase; }
 .sign-field input {
   width: 240px;

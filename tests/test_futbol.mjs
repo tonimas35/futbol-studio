@@ -190,6 +190,11 @@ try {
   }));
   check(look.seam === 'Final' && look.balls === 6, `«Final» entre los marcadores y un balón por goleador (${look.seam} · ${look.balls})`);
   check(look.art.every((n) => n > 0) && look.art[0] === 2, `cada slide con su fondo pintado; la portada, uno por mitad (${look.art.join(' ')})`);
+  // La descripción para TikTok: el gancho con el resultado, el mejor, la pregunta y los hashtags
+  const caption = (await page.inputValue('#captionText')).split('\n');
+  check(caption[0] === '🤯 14 partidos sin perder… hasta hoy · Roma 3-4 Real Madrid' && /^⭐ /.test(caption[1]) && /👇$/.test(caption[2])
+    && caption[3] === '#futbol #championsleague #roma #realmadrid #deportesentiktok #tiktokfootballacademy #parati',
+    `descripción para TikTok lista (${caption.join(' | ')})`);
   // El estilo: claro por defecto; en oscuro, las slides de datos cambian de fondo (sin volver a pedir nada)
   const sheets = () => page.evaluate(() => ({
     night: ['crono', 'tiros', 'tabla'].filter((id) => document.querySelector(`#slide-${id} .fc-in.paper.night`)).length,

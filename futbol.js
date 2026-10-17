@@ -2901,6 +2901,7 @@
     document.getElementById('downloadBtn').disabled = false;
     document.getElementById('downloadVerticalBtn').disabled = false;
     updateShareBtn();
+    updateCaption(true);
     const info = document.getElementById('renderedInfo');
     info.textContent = `${m.home.short} ${m.home.score}-${m.away.score} ${m.away.short} · ${compOf(m.league).name} · ${fmtDate(m.date)}${live(m) ? ' · en juego' : ''}`;
     info.hidden = false;
@@ -3497,6 +3498,7 @@
 
   async function shareVideo() {
     if (!videoFile) return;
+    navigator.clipboard?.writeText(captionNow()).catch(() => {});
     try {
       await navigator.share({ files: [videoFile] });
     } catch (e) {
@@ -4057,6 +4059,7 @@
   function contentChanged(now = false) {
     sharePrepared = null;
     resetShareBtn();
+    updateCaption();
     clearTimeout(saveTimer);
     saveTimer = null;
     if (now) saveDraft();
@@ -4157,7 +4160,7 @@
       return;
     }
     if (!lockCapture()) return;
-    navigator.clipboard?.writeText(generateCaption(rendered)).catch(() => {});
+    navigator.clipboard?.writeText(captionNow()).catch(() => {});
     btn.disabled = true;
     btn.classList.add('btn-loading');
     btn.querySelector('.label').textContent = 'Preparando…';
@@ -4497,6 +4500,7 @@
         zip.file(pngName(defs[i], i), blob);
       }
       zip.file('caption.txt', generateCaption(m));
+      zip.file('descripcion-tiktok.txt', captionNow());
       triggerDownload(await zip.generateAsync({ type: 'blob' }), `futbol-${stamp(m)}${vertical ? '-9x16' : ''}.zip`);
       showToast(vertical ? 'Carrusel 9:16 descargado · listo para TikTok' : 'Carrusel descargado · sube las PNG a IG', 'success');
     } catch (e) {
@@ -4532,6 +4536,57 @@ ${[compName(m.league), phaseOut(m.phase), legLabel(m), m.agg ? aggLabel(m.agg) :
 ${dato ? `\n📊 ${dato}` : ''}${goals.length ? `\n${L('Goles', 'Goals')}: ${goals.join(' · ')}` : ''}${best ? `\n${L('Jugador del partido', 'Player of the match')}: ${best.name}${afRating(m, best) != null ? ` (${fmtRating(afRating(m, best))})` : ''}` : ''}
 ${inside.length ? `\n${L('Desliza para ver', 'Swipe for')} ${listEs(inside)}.\n` : ''}
 #${L('Futbol', 'Football')} #${c.tag} ${tag(m.home)} ${tag(m.away)}`;
+  }
+
+  // ----------------------------------------------------------
+  // DESCRIPCIÓN PARA TIKTOK · corta, como la ponen las cuentas de fútbol en español que más
+  // crecen: el gancho (el dato o el titular) con el resultado, el mejor del partido, la pregunta
+  // del cierre (para que comenten) y 7 hashtags: los de fútbol en TikTok, la competición y los
+  // dos equipos. Usa lo que esté escrito en las slides (los retoques).
+  // ----------------------------------------------------------
+  const TT_COMP = {
+    'esp.1': 'laliga', 'esp.2': 'laligahypermotion', 'esp.copa_del_rey': 'copadelrey', 'esp.w.1': 'ligaf',
+    'uefa.champions': 'championsleague', 'uefa.europa': 'europaleague', 'uefa.europa.conf': 'conferenceleague',
+    'eng.1': 'premierleague', 'ita.1': 'seriea', 'ger.1': 'bundesliga', 'fra.1': 'ligue1',
+    'fifa.world': 'mundial', 'uefa.euro': 'eurocopa', 'conmebol.libertadores': 'libertadores', 'mex.1': 'ligamx',
+  };
+  // Los clubes cuyo hashtag de siempre no es su nombre; el resto, su nombre sin espacios.
+  const TT_TEAM = { 83: 'fcbarcelona', 1068: 'atleticodemadrid', 110: 'inter', 132: 'fcbayern', 160: 'psg' };
+  const hashtag = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9]/g, '').toLowerCase();
+  function tiktokCaption(m) {
+    const dato = slideDefs().some(d => d.id === 'dato') ? datoFacts(m)[0] : null;
+    const score = `${m.home.short} ${m.home.score}-${m.away.score} ${m.away.short}${pensWon(m) ? ` (${m.home.shootout}-${m.away.shootout} ${L('pen.', 'pens')})` : ''}`;
+    const hook = dato
+      ? `🤯 ${cap(`${writtenText('#slide-dato .dt-big') || dato.big} ${writtenText('#slide-dato .dt-unit') || dato.unit}`)}`
+      : `⚽ ${writtenText('#slide-portada .head h1') || headline(m)}`;
+    const best = bestPlayer(m);
+    const rating = best ? afRating(m, best) : null;
+    const star = best ? `⭐ ${best.name}${rating != null ? L(`, un ${fmtRating(rating)}`, `, rated ${fmtRating(rating)}`) : ''}` : '';
+    const question = writtenText('#slide-cierre .q') || closingQuestion(m);
+    const tags = [L('futbol', 'football'), TT_COMP[m.league] || hashtag(compOf(m.league).tag),
+      ...[m.home, m.away].map(t => TT_TEAM[t.id] || hashtag(t.name)),
+      ...(isEn() ? ['soccer', 'sportsontiktok', 'fyp'] : ['deportesentiktok', 'tiktokfootballacademy', 'parati'])];
+    return [`${hook} · ${score}`, star, `${question} 👇`, [...new Set(tags)].map(t => `#${t}`).join(' ')].filter(Boolean).join('\n');
+  }
+  // El cuadro de la descripción: se rehace con cada cambio salvo que la hayas retocado tú.
+  let captionEdited = false;
+  function updateCaption(force = false) {
+    const box = document.getElementById('captionBox');
+    const m = state.rendered;
+    box.hidden = !m;
+    if (!m || (captionEdited && !force)) return;
+    document.getElementById('captionText').value = tiktokCaption(m);
+    captionEdited = false;
+  }
+  const captionNow = () => (state.rendered ? document.getElementById('captionText').value || tiktokCaption(state.rendered) : '');
+  async function copyCaption() {
+    try {
+      await navigator.clipboard.writeText(captionNow());
+      showToast('Descripción copiada: pégala en TikTok', 'success');
+    } catch (e) {
+      document.getElementById('captionText').select();
+      showToast('Selecciónala y cópiala a mano: este navegador no deja copiar solo', 'error');
+    }
   }
 
   // ----------------------------------------------------------
@@ -5158,6 +5213,8 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
     });
     document.getElementById('brandInput').addEventListener('change', (e) => { onBrandFile(e.target.files[0]); e.target.value = ''; });
     document.getElementById('brandDel').addEventListener('click', () => setBrand(''));
+    document.getElementById('captionCopyBtn').addEventListener('click', copyCaption);
+    document.getElementById('captionText').addEventListener('input', () => { captionEdited = true; });
 
     // Por defecto, hoy (en fútbol se juega de tarde y de noche en España).
     const today = localIso();
