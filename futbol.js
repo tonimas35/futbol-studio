@@ -2619,10 +2619,13 @@
       case 'firstSeasonLoss': return { big: f.n, unit: L('partidos sin perder… hasta hoy', 'games unbeaten… until today'),
         sentence: L(`Primera derrota ${ofTeam(T)} ${season}, tras ${f.n} partidos sin perder.`, `${poss(T.short)} first defeat ${season}, after ${f.n} games unbeaten.`) };
       case 'h2hSince': return { ...later,
+        hook: L(`${The} vuelve a ganar ${toTeam(O)} ${later.big} ${later.unit}`, `${T.short} beat ${O.short} again, ${later.big} ${later.unit}`),
         sentence: L(`Primera victoria ${ofTeam(T)} ante ${theTeam(O)} desde ${since}.`, `${poss(T.short)} first win over ${O.short} since ${since}.`) };
       case 'h2hFirstIn': return { big: L('1.ª', '1st'), unit: L(`victoria en ${f.n} partidos`, `win in ${f.n} meetings`),
         sentence: L(`${The} gana ${toTeam(O)} por primera vez en ${f.n} partidos.`, `${T.short} beat ${O.short} for the first time in ${f.n} meetings.`) };
       case 'groundSince': return { ...later,
+        hook: away ? L(`${The} vuelve a ganar en casa ${ofTeam(O)} ${later.big} ${later.unit}`, `${T.short} win away at ${O.short} again, ${later.big} ${later.unit}`)
+          : L(`${The} vuelve a ganar en casa ${toTeam(O)} ${later.big} ${later.unit}`, `${T.short} beat ${O.short} at home again, ${later.big} ${later.unit}`),
         sentence: away ? L(`Primera victoria ${ofTeam(T)} en casa ${ofTeam(O)} desde ${since}.`, `${poss(T.short)} first win away at ${O.short} since ${since}.`)
           : L(`Primera victoria ${ofTeam(T)} en casa ante ${theTeam(O)} desde ${since}.`, `${poss(T.short)} first home win over ${O.short} since ${since}.`) };
       case 'groundFirstIn': return { big: L('1.ª', '1st'),
@@ -2646,6 +2649,7 @@
       case 'mostConceded': return { big: f.n, unit: L(`goles en contra: no le pasaba desde ${new Date(f.since).getFullYear()}`, `goals conceded: the most since ${new Date(f.since).getFullYear()}`),
         sentence: L(`${The} no encajaba ${f.n} goles en un partido desde ${since}.`, `${T.short} conceded ${f.n} in a game for the first time since ${since}.`) };
       case 'compWinSince': return { ...later,
+        hook: L(`${The} vuelve a ganar ${comp} ${later.big} ${later.unit}`, `${T.short} win ${comp} again, ${later.big} ${later.unit}`),
         sentence: L(`Primera victoria ${ofTeam(T)} ${comp} desde ${since}.`, `${poss(T.short)} first win ${comp} since ${since}.`) };
       case 'pRun': return { big: f.n, unit: L('partidos seguidos marcando', 'games in a row scoring'),
         sentence: f.all ? L(`${who} ha marcado en todos sus partidos ${season} (${f.n}).`, `${who} has scored in every game ${season} (${f.n}).`)
@@ -4594,8 +4598,10 @@ ${inside.length ? `\n${L('Desliza para ver', 'Swipe for')} ${listEs(inside)}.\n`
   function tiktokCaption(m) {
     const dato = slideDefs().some(d => d.id === 'dato') ? datoFacts(m)[0] : null;
     const score = `${m.home.short} ${m.home.score}-${m.away.score} ${m.away.short}${pensWon(m) ? ` (${m.home.shootout}-${m.away.shootout} ${L('pen.', 'pens')})` : ''}`;
+    // «4 años después» solo no dice de qué: esos datos llevan su frase corta, con quién y dónde (si
+    // no has retocado la slide)
     const hook = dato
-      ? `🤯 ${cap(`${writtenText('#slide-dato .dt-big') || dato.big} ${writtenText('#slide-dato .dt-unit') || dato.unit}`)}`
+      ? `🤯 ${cap(dato.hook && !slideEdited('dato') ? dato.hook : `${writtenText('#slide-dato .dt-big') || dato.big} ${writtenText('#slide-dato .dt-unit') || dato.unit}`)}`
       : `⚽ ${writtenText('#slide-portada .head h1') || headline(m)}`;
     const best = bestPlayer(m);
     const rating = best ? afRating(m, best) : null;
