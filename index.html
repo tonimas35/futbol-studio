@@ -8,6 +8,14 @@
   <meta name="robots" content="noindex,nofollow" />
 
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <!-- En el móvil, «Añadir a pantalla de inicio»: el icono y el color de la barra -->
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <meta name="theme-color" content="#0d0f13" />
+  <meta name="apple-mobile-web-app-title" content="Studio" />
+  <script>
+    // El manifiesto, solo en la web: abierto como archivo, Chrome no lo deja leer y da un error
+    if (location.protocol !== 'file:') document.head.insertAdjacentHTML('beforeend', '<link rel="manifest" href="manifest.webmanifest" />');
+  </script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
