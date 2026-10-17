@@ -7,7 +7,8 @@
 // Madrid, el LASK 3-6 Liverpool y el City 2-4 PSG, un Depor-Levante en juego, partidos sin
 // empezar, la final del Mundial 2026, la vuelta del Flamengo-Independiente del Valle de la
 // Libertadores, una eliminatoria de la Copa del Rey sin datos, el Lech-Leverkusen de la Europa
-// League con su clasificación aparte y el Osnabrück-Bayern de la Copa de Alemania) y
+// League con su clasificación aparte, el Osnabrück-Bayern de la Copa de Alemania y, para «El dato»,
+// temporadas de la Roma y del Real Madrid, recortadas a lo que se usa) y
 // html2canvas y JSZip, de node_modules:
 //   npm install --no-save playwright-core@1 html2canvas@1.4.1 jszip@3.10.1 mp4-muxer@5.2.1
 // En CI usa el Chrome del runner (CHROME_PATH); en local, el Playwright instalado.
@@ -18,7 +19,7 @@
 // compartir, el vídeo (guion, grabar la voz con el micrófono de prueba, la mezcla y el MP4),
 // «Para tu IA» (copiar y pegar), un partido en juego, uno sin alineaciones ni clasificación,
 // las eliminatorias (campeón, global, quién pasa), saltar a un día con partidos, el modo en
-// directo (vigilar, avisar y generar a un clic), el resumen de la jornada, la versión en inglés,
+// directo (vigilar, avisar y generar a un clic), el resumen de la jornada, «El dato», la versión en inglés,
 // tu logo, el móvil y abierto como archivo (con doble clic en index.html, que es como se usa).
 import { spawn, execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
@@ -94,9 +95,12 @@ async function open({ strip = [], viewport = { width: 1280, height: 900 }, url =
     const parts = u.pathname.split('/');
     const summary = u.pathname.endsWith('/summary');
     const league = parts[parts.length - 2];
-    // El resumen de un partido, la clasificación aparte o la jornada (sin fecha: la de ahora, con el calendario)
+    const team = u.pathname.match(/\/teams\/(\d+)\/schedule$/);
+    // El resumen de un partido, la temporada de un equipo (para «El dato»), la clasificación aparte
+    // o la jornada (sin fecha: la de ahora, con el calendario)
     const file = summary ? `sum-${u.searchParams.get('event')}.json`
-      : u.pathname.endsWith('/standings') ? `st-${league}.json` : `sb-${league}-${u.searchParams.get('dates') || 'cal'}.json`;
+      : team ? `tm-${team[1]}-${u.searchParams.get('season')}.json`
+        : u.pathname.endsWith('/standings') ? `st-${league}.json` : `sb-${league}-${u.searchParams.get('dates') || 'cal'}.json`;
     if (!existsSync(join(FIX, file))) return r.fulfill(summary ? { status: 404, headers: { 'access-control-allow-origin': '*' }, body: '' } : json('{"events":[]}'));
     const data = JSON.parse(readFileSync(join(FIX, file)));
     strip.forEach((k) => delete data[k]);
@@ -176,11 +180,22 @@ try {
   await page.fill('#signInput', '@toni_futbol');
   await generate(page, '401915414');
   const names = await slideNames(page);
-  check(names.join(',') === 'Portada,Minuto a minuto,Estadísticas,Mapa de tiros,Los onces,Jugador del partido,Clasificación,Cierre', `8 slides: ${names.join(', ')}`);
+  check(names.join(',') === 'Portada,El dato,Minuto a minuto,Estadísticas,Mapa de tiros,Los onces,Jugador del partido,Clasificación,Cierre', `9 slides: ${names.join(', ')}`);
   check(await page.textContent('#slide-portada h1') === 'Remontada del Real Madrid', `titular: ${await page.textContent('#slide-portada h1')}`);
   const portada = await page.$$eval('#slide-portada .scorers', (els) => els.map((e) => [...e.children].map((d) => d.textContent).join(' · ')));
   check(portada[0] === "de Roon 20' · Malen 51', 57'" && /Mbappé 25'.*Rüdiger 90'/.test(portada[1]), `goleadores de cada equipo: ${portada.join(' / ')}`);
   check(/Champions League · Fase liga/.test(await page.textContent('#slide-portada .comp')), 'la competición y la fase en la portada');
+
+  // El dato: del historial de ESPN de los dos equipos (la Roma venía de 14 sin perder)
+  const dato = await page.evaluate(() => ({
+    big: document.querySelector('#slide-dato .dt-big')?.textContent,
+    unit: document.querySelector('#slide-dato .dt-unit')?.textContent,
+    line: document.querySelector('#slide-dato .dt-line')?.textContent,
+    more: [...document.querySelectorAll('#slide-dato .dt-more div')].map((d) => d.textContent),
+  }));
+  check(dato.big === '14' && dato.unit === 'partidos sin perder… hasta hoy' && dato.line === 'Se acaba la racha de la Roma: 14 partidos sin perder en todas las competiciones.',
+    `el dato: ${dato.big} · ${dato.unit} · ${dato.line}`);
+  check(dato.more.includes('El Real Madrid gana sus últimos 5 partidos ante la Roma.'), `y los otros datos (${dato.more.join(' · ')})`);
 
   // Minuto a minuto: 7 goles con su marcador y nada pisado (ni entre ellos ni con las marcas)
   const crono = await page.$eval('#slide-crono', (slide) => {
@@ -208,7 +223,7 @@ try {
 
   // La firma, en todas las slides
   const signs = await page.$$eval('.slide .fc-sign', (s) => s.map((x) => x.textContent));
-  check(signs.length === 8 && signs.every((t) => t === '@toni_futbol'), `la firma sale en las 8 slides (${signs.length})`);
+  check(signs.length === 9 && signs.every((t) => t === '@toni_futbol'), `la firma sale en las 9 slides (${signs.length})`);
 
   // Jugador del partido: se puede elegir otro
   const pick = await page.$eval('[data-slide-id="jugador"] .slide-pick', (s) => [...s.options].map((o) => [o.value, o.textContent]));
@@ -238,14 +253,14 @@ try {
 
   // ── Descargas ──
   const [one] = await Promise.all([page.waitForEvent('download'), page.click('[data-slide-id="tiros"] .slide-dl-btn')]);
-  check(one.suggestedFilename() === 'futbol-roma-rma-2026-10-14-04-tiros.png', `PNG suelta: ${one.suggestedFilename()}`);
+  check(one.suggestedFilename() === 'futbol-roma-rma-2026-10-14-05-tiros.png', `PNG suelta: ${one.suggestedFilename()}`);
   const dir = mkdtempSync(join(tmpdir(), 'fc-studio-'));
   const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 120000 }), page.click('#downloadBtn')]);
   const zipPath = join(dir, dl.suggestedFilename());
   await dl.saveAs(zipPath);
   const entries = JSON.parse(execFileSync('python3', ['-c', 'import json,sys,zipfile; z=zipfile.ZipFile(sys.argv[1]); print(json.dumps([z.namelist(), z.read("caption.txt").decode()]))', zipPath]).toString());
-  check(dl.suggestedFilename() === 'futbol-roma-rma-2026-10-14.zip' && entries[0].filter((n) => n.endsWith('.png')).length === 8, `ZIP con 8 PNG (${dl.suggestedFilename()})`);
-  check(/ROMA 3-4 REAL MADRID/.test(entries[1]) && /#ChampionsLeague/.test(entries[1]), 'con el pie de foto');
+  check(dl.suggestedFilename() === 'futbol-roma-rma-2026-10-14.zip' && entries[0].filter((n) => n.endsWith('.png')).length === 9, `ZIP con 9 PNG (${dl.suggestedFilename()})`);
+  check(/ROMA 3-4 REAL MADRID/.test(entries[1]) && /#ChampionsLeague/.test(entries[1]) && /📊 Se acaba la racha de la Roma/.test(entries[1]), 'con el pie de foto (y el dato)');
   const [dlv] = await Promise.all([page.waitForEvent('download', { timeout: 120000 }), page.click('#downloadVerticalBtn')]);
   const vPath = join(dir, dlv.suggestedFilename());
   await dlv.saveAs(vPath);
@@ -256,12 +271,13 @@ try {
   await page.click('#shareCarouselBtn');
   await page.waitForFunction(() => /Toca para compartir/.test(document.querySelector('#shareCarouselBtn .label').textContent), null, { timeout: 120000 });
   await page.click('#shareCarouselBtn');
-  check((await page.evaluate(() => window.__shared))[0] === 8, 'compartir manda las 8 imágenes');
+  check((await page.evaluate(() => window.__shared))[0] === 9, 'compartir manda las 9 imágenes');
 
   // ── El vídeo: guion automático, grabar la voz, la mezcla y el MP4 ──
   const script = await page.$$eval('#scriptLines .script-line', (ls) => ls.map((l) => [l.dataset.scene, l.querySelector('textarea').value, l.querySelector('.script-fit').className]));
-  check(script.map(([id]) => id).join(',') === 'score,goals,tiros,jugador,stats,tabla,outro', `guion: una frase por escena (${script.map(([id]) => id).join(', ')})`);
-  check(script[0][1] === 'Remontada del Real Madrid: 4-3 a la Roma.' && /Malen marca dos/.test(script[1][1]), `y escrita con los datos (${script[0][1]} · ${script[1][1]})`);
+  check(script.map(([id]) => id).join(',') === 'score,dato,goals,tiros,jugador,stats,tabla,outro', `guion: una frase por escena (${script.map(([id]) => id).join(', ')})`);
+  check(script[0][1] === 'Remontada del Real Madrid: 4-3 a la Roma.' && script[1][1] === 'Se acaba la racha de la Roma: 14 partidos sin perder.' && /Malen marca dos/.test(script[2][1]),
+    `y escrita con los datos (${script[0][1]} · ${script[1][1]} · ${script[2][1]})`);
   check(script.every(([, , cls]) => /ok/.test(cls)), 'todas caben a ritmo normal');
   await page.fill('#scriptLines textarea[data-scene="outro"]', '¿Mbappé o Malen?');
   await page.waitForTimeout(700);
@@ -288,7 +304,7 @@ try {
     return { name: document.getElementById('videoDlBtn').download, duration: v.duration, meta: document.getElementById('videoMeta').textContent, toast: document.getElementById('toast').textContent };
   });
   check(/^futbol-roma-rma-2026-10-14-short\.(mp4|webm)$/.test(video.name || ''), `vídeo: ${video.name} (${video.toast})`);
-  check(video.duration > 33 && video.duration < 34.2, `dura unos 33,6 s: apertura, 6 escenas y el cierre (${video.duration?.toFixed(1)} s)`);
+  check(video.duration > 37.8 && video.duration < 39, `dura unos 38,4 s: apertura, 7 escenas y el cierre (${video.duration?.toFixed(1)} s)`);
   check(video.meta === 'Lleva tu voz, música, subtítulos y la apertura con los escudos.', `lleva todo (${video.meta})`);
   await page.reload();
   await page.waitForSelector('#slide-portada');
@@ -300,7 +316,8 @@ try {
   await page.click('#aiBriefBtn');
   const brief = await page.evaluate(() => navigator.clipboard.readText());
   check(/Studio Fútbol · contexto para tu IA/.test(brief) && /\*\*Partido:\*\* Roma 3 – 4 Real Madrid · Champions League/.test(brief)
-    && /- Marcador \(4,8 s\): Remontada del Real Madrid/.test(brief) && /@toni_futbol/.test(brief), '«Para tu IA» copia qué es el Studio, el partido y el guion');
+    && /- Marcador \(4,8 s\): Remontada del Real Madrid/.test(brief) && /@toni_futbol/.test(brief) && /\*\*El dato\*\*[^\n]*\n- Se acaba la racha de la Roma/.test(brief),
+    '«Para tu IA» copia qué es el Studio, el partido, el dato y el guion');
   await page.evaluate(() => navigator.clipboard.writeText('Claro, aquí va:\n\n```\nTITULAR: Locura en Roma\n**Los goles:** «Siete goles y Malen, doblete.»\n- Cierre: ¿Te esperabas esto?\n```'));
   await page.click('#aiPasteBtn');
   await page.waitForSelector('#aiPasteDialog[open]');
@@ -487,6 +504,8 @@ try {
       q: document.querySelector('#slide-cierre .q')?.textContent,
       sub: document.querySelector('#slide-cierre .sub')?.textContent,
       script: document.querySelector('#scriptLines textarea[data-scene="score"]')?.value,
+      dato: document.querySelector('#slide-dato .dt-line')?.textContent,
+      said: document.querySelector('#scriptLines textarea[data-scene="dato"]')?.value,
       on: document.querySelector('.lang-opt[aria-checked="true"]')?.dataset.lang,
     }));
     const e1 = await en();
@@ -495,6 +514,7 @@ try {
       `minuto a minuto y estadísticas en inglés (${e1.marks.join(' | ')} · ${e1.labels.slice(0, 3).join(', ')})`);
     check(e1.q === 'Who was your player of the match?' && e1.sub === 'Let me know in the comments', `el cierre en inglés (${e1.q})`);
     check(e1.script === 'Real Madrid complete the comeback: 4-3 against Roma.', `y el guion del vídeo (${e1.script})`);
+    check(e1.dato === "Roma's 14-game unbeaten run in all competitions is over." && e1.said === "Roma's 14-game unbeaten run is over.", `y el dato (${e1.dato} · ${e1.said})`);
     check((await slideNames(p9))[0] === 'Portada' && /Generar/.test(await p9.textContent('#generateBtn')), 'la interfaz sigue en español');
     await p9.reload();
     await p9.waitForSelector('#slide-portada', { timeout: 10000 }).catch(() => {});
@@ -514,10 +534,18 @@ try {
     check(/^Matchday round-up$/i.test(ej.title) && /goals in 5 games/i.test(ej.goals) && ej.q === 'What was your game of the round?',
       `la jornada en inglés (${ej.title} · ${ej.goals} · ${ej.q})`);
 
-    // Y de vuelta al español
+    // Y de vuelta al español: se rehacen el partido (con el historial ya guardado en el
+    // navegador: las temporadas acabadas no se vuelven a pedir) y la jornada
+    const past = [];
+    p9.on('request', (r) => {
+      const u = new URL(r.url());
+      if (/\/schedule$/.test(u.pathname) && Number(u.searchParams.get('season')) < 2026) past.push(u.searchParams.get('season'));
+    });
     await p9.click('.lang-opt[data-lang="es"]');
     await p9.waitForFunction(() => /^Así fue/.test(document.querySelector('#slide-j-portada .jt-title')?.textContent || ''), null, { timeout: 30000 }).catch(() => {});
     check(/^Así fue/.test(await p9.textContent('#slide-j-portada .jt-title')), 'y al volver al español, la jornada se rehace en español');
+    check(await p9.textContent('#slide-dato .dt-big').catch(() => '') === '14' && past.length === 0,
+      `y el partido, con el dato y sin volver a pedir a ESPN las temporadas acabadas (${past.length} pedidas)`);
     await c9.close();
   }
 

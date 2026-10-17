@@ -1,6 +1,6 @@
 # Studio Fútbol
 
-Mi herramienta para hacer contenido de fútbol: eliges competición, día y partido, y sale un carrusel de 8 slides (1080×1350) para Instagram o TikTok y un vídeo short con música, subtítulos y tu voz, con los datos de ESPN. Se retoca en la propia página y se descarga en PNG, ZIP o MP4.
+Mi herramienta para hacer contenido de fútbol: eliges competición, día y partido, y sale un carrusel de hasta 9 slides (1080×1350) para Instagram o TikTok y un vídeo short con música, subtítulos y tu voz, con los datos de ESPN. Se retoca en la propia página y se descarga en PNG, ZIP o MP4.
 
 Es solo para mí: no es una web publicada. Se abre en el navegador desde el propio ordenador.
 
@@ -47,6 +47,7 @@ Para tener una cuenta en español y otra en inglés, se genera el partido una ve
 2. **Día y partido:** por defecto, hoy. Si ese día no hay partidos de la competición, salen botones para saltar al día con partidos anterior y al siguiente (en el Mundial, por ejemplo, a la última final). Los que no han empezado o están aplazados no se pueden generar. Uno en juego sí, avisando de que las slides cuentan el marcador de ese momento. En las eliminatorias, la tarjeta dice la ronda, si es la ida o la vuelta y el global.
 3. **Generar:** salen las slides. Las que no tienen datos no salen; un amistoso sin alineaciones, por ejemplo, se queda en 4.
    - **Portada:** el marcador con cada equipo en su mitad, los goleadores y las rojas, el logo de la competición con la ronda (y si es la ida o la vuelta, con el global), y un titular automático: remontada, gol decisivo al final, goleada, festival de goles, por la mínima, empate… En las eliminatorias, lo que importa: «El Flamengo pasa a semifinales», «El Palmeiras pasa en los penaltis», «España, campeona».
+   - **El dato:** lo que te diferencia de las otras cuentas: una racha, un cara a cara o un «primera vez desde…», sacado del historial de ESPN de los dos equipos (ver «El dato», abajo). Si no hay ninguno que merezca la pena, no sale.
    - **Minuto a minuto:** la línea del partido con los goles (cómo y la asistencia), las rojas, los penaltis fallados y el marcador del descanso. Las tarjetas van junto a su minuto sin pisarse. Si ESPN no tiene los goles (pasa en las primeras rondas de alguna copa), no sale.
    - **Estadísticas:** posesión, tiros, a puerta, pases con su precisión, córners, paradas, faltas y tarjetas. El número peor sale apagado.
    - **Mapa de tiros:** el campo entero. El local tira hacia la izquierda y el visitante hacia la derecha; los goles llevan la línea hasta la portería.
@@ -68,15 +69,27 @@ El carrusel, sus retoques y las fotos subidas se guardan solos en el navegador (
 
 ESPN no da el número de jornada: el Studio coge los partidos del día elegido y los de hasta 4 días antes y después mientras ningún equipo repita. Se descarga en ZIP (4:5 o 9:16) con su pie de foto, y cada slide suelta en PNG.
 
+**El dato:** al generar, el Studio mira todos los partidos oficiales de los dos equipos desde 2003 (los amistosos de clubes y la pretemporada no cuentan; una tanda de penaltis cuenta como empate) y busca lo más llamativo:
+- **Rachas**, en todas las competiciones o en la del partido: victorias seguidas, sin perder, sin ganar, derrotas, sin encajar, marcando, sin marcar, en casa o fuera. Y las que se acaban hoy: «Se acaba la racha de la Roma: 14 partidos sin perder».
+- **Desde cuándo no pasaba:** «Primera victoria del Crystal Palace en casa ante el Forest desde diciembre de 2003», «La mayor victoria del Aston Villa desde agosto de 2021», la peor derrota, tantos goles, la primera victoria en la competición…
+- **El cara a cara:** primera victoria ante el rival desde…, en su campo por primera vez en N visitas, N victorias seguidas, sin perder ante él, la mayor victoria o el partido con más goles entre los dos desde…
+- **La temporada:** pleno de victorias, invicto o la primera derrota (en los torneos, «en este Mundial»).
+- **Los goleadores de hoy:** si marcan partido tras partido o cuántos llevan en la competición.
+
+Cada dato tiene un peso según lo raro que es; salen los 3 mejores (el primero, en grande) y solo si llegan al mínimo. «En casa» es en su campo de verdad: una final en campo neutral no cuenta. Las «primera vez desde…» solo se dicen si la vez anterior está en los datos de ESPN y no falta ninguna temporada entre medias. De las selecciones, ESPN solo da sus últimos 25 partidos o así, así que sus datos son de ese tramo.
+
+La primera vez que sale un equipo, el Studio baja su historial (unos segundos; avisa si tarda). Las temporadas acabadas se quedan guardadas en el navegador y la siguiente vez va al momento. Si ESPN tarda más de 15 segundos, el carrusel sale sin el dato. Sale en la slide, en una escena del vídeo (con su frase en el guion, más corta: sin «en todas las competiciones»), en el pie de foto («📊 …») y en «Para tu IA».
+
 **Para tu IA:** el botón de arriba copia un texto con qué es el Studio, cómo ayudarte (tono, no inventar datos, cuánto cabe en cada escena) y lo que hay en pantalla: el partido con sus goles, estadísticas, jugador del partido y clasificación, el titular, la pregunta del cierre y el guion del vídeo. Lo pegas en Claude (o en otra IA) y te devuelve un bloque «TITULAR: …», «PREGUNTA: …» y una línea por escena («Marcador: …», «Los goles: …»). «Pegar de tu IA», en el guion, lo coloca solo: el titular y la pregunta en sus slides (marcadas como retocadas) y las frases en el guion. Es copiar y pegar: el Studio no llama a ninguna IA ni usa claves.
 
 ## El vídeo short (paso 4)
 
-El partido en unos 30 segundos, en 1080×1920 para TikTok, Reels y Shorts, con música, subtítulos y, si quieres, tu voz.
+El partido en 30 a 40 segundos, en 1080×1920 para TikTok, Reels y Shorts, con música, subtítulos y, si quieres, tu voz.
 
 - **Escenas:**
   - **Apertura (1,6 s):** los dos escudos entran desde los lados y chocan en el centro. Se quita con «Apertura con los escudos».
   - **Marcador:** cada equipo en su mitad, con los goleadores y el titular de la portada en la cinta.
+  - **El dato:** «EL DATO», el número grande que sube, lo que significa y la frase. Dura 3 compases, o 4 si la frase es larga.
   - **Los goles:** la línea del partido baja minuto a minuto y cada gol, roja o penalti fallado salta cuando llega a su minuto. Arriba, el marcador cambia con cada gol. Con más goles, la escena dura más.
   - **Mapa de tiros:** el campo en vertical. Cada balón sale de donde se tiró y vuela a la portería: el gol mueve la red, la parada rebota y el que va fuera se pierde. Los contadores suben con los tiros.
   - **Jugador del partido:** su foto (o su dorsal) y sus 3 números.
@@ -129,7 +142,7 @@ El partido en unos 30 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
   - el Lech-Leverkusen de la Europa League (la clasificación, pedida aparte);
   - el Osnabrück-Bayern de la Copa de Alemania (un apellido con «ß»).
 
-  Prueba la versión en inglés (slides, guion, jornada y que se recuerde), el modo en directo (un partido que pasa de en juego a acabado: el aviso y generarlo a un clic), el resumen de la jornada, tu logo, las competiciones y sus logos, la lista, las 8 slides, el minuto a minuto sin solapes, la firma, el jugador del partido, el borrador, el ZIP, el 9:16, compartir, el vídeo (guion, grabar la voz con un micrófono de prueba, la mezcla y el MP4), «Para tu IA» (copiar y pegar), un partido en juego, uno con pocos datos, las eliminatorias (campeón, global, quién pasa), saltar a un día con partidos, el móvil y el Studio abierto como archivo (generar, descargar y recuperar el borrador).
+  Prueba «El dato» (la racha que se acaba, el cara a cara, el pie de foto, el guion y que el historial guardado no se vuelva a pedir), la versión en inglés (slides, guion, jornada y que se recuerde), el modo en directo (un partido que pasa de en juego a acabado: el aviso y generarlo a un clic), el resumen de la jornada, tu logo, las competiciones y sus logos, la lista, las 9 slides, el minuto a minuto sin solapes, la firma, el jugador del partido, el borrador, el ZIP, el 9:16, compartir, el vídeo (guion, grabar la voz con un micrófono de prueba, la mezcla y el MP4), «Para tu IA» (copiar y pegar), un partido en juego, uno con pocos datos, las eliminatorias (campeón, global, quién pasa), saltar a un día con partidos, el móvil y el Studio abierto como archivo (generar, descargar y recuperar el borrador).
 
 Corre sola en cada push y PR (`.github/workflows/tests.yml`). En local:
 
