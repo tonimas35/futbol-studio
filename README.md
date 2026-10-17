@@ -129,13 +129,15 @@ La primera vez que sale un equipo, el Studio baja su historial (unos segundos; a
 
 El partido en 30 a 40 segundos, en 1080×1920 para TikTok, Reels y Shorts, con música y subtítulos.
 
+**Que nada se quede quieto:** cada escena se acerca despacio (un 4,5 % de principio a fin) y da un pequeño golpe de cámara con cada golpe de la música (el marcador, el dato, la nota del jugador…).
+
 **Hecho para la pantalla de TikTok:** TikTok tapa la derecha (me gusta, comentarios, compartir), arriba (las pestañas) y abajo (tu nombre y la descripción), y en los móviles alargados recorta unos 50 px por cada lado. Por eso el contenido de cada escena (textos, números, subtítulos y tu logo) va reducido dentro de la zona que se ve siempre (de x = 60 a 902 y de y = 220 a unos 1550), y solo los fondos ocupan la pantalla entera. Sin grano (TikTok lo recomprime y emborrona) y a 12 Mbps. La cara del jugador (150 px en API-Football) se amplía en dos pasos con un enfoque suave, en el vídeo y en la slide.
 
 - **Escenas:**
   - **Apertura (1,6 s):** el gancho, desde el primer fotograma: «EL DATO» con el dato a medias (como en la portada del carrusel) o, si no hay, «FINAL» y el titular. Empieza grande en el centro, así es también la portada del vídeo, y sube arriba cuando los dos escudos entran desde los lados y chocan en el centro. Se quita con «Apertura con los escudos».
   - **Marcador:** cada equipo en su mitad, con los goleadores y el titular de la portada en la cinta.
   - **El dato:** «EL DATO», el número grande que sube, lo que significa y la frase. Dura 3 compases, o 4 si la frase es larga.
-  - **Minuto a minuto:** lo mismo que la slide. La línea del partido baja minuto a minuto y cada gol, roja o penalti fallado salta cuando llega a su minuto; las amarillas y los cambios, en pequeño (si en una parte no caben, fuera primero los cambios y luego las amarillas). Arriba, el marcador cambia con cada gol. Con más goles, la escena dura más.
+  - **Minuto a minuto:** lo mismo que la slide, con ritmo y cámara. La línea corre por los minutos en los que no pasa nada y se detiene en cada suceso lo que pide (un gol, más; una amarilla o un cambio, un suspiro), así que no pasa medio vídeo en un primer tiempo vacío ni se amontona el final. La escena dura de 2 a 4 compases según lo que haya. Arriba, fijos, el título y el marcador, que da un golpe con cada gol; debajo, una ventana por la que baja la línea: la cámara sigue la punta, cada gol da un pequeño golpe de cámara y un destello del color del equipo, y al final la cámara se aleja para enseñar el partido entero hasta «Final». Cada amarilla y cada cambio suenan con un tic suave.
   - **Mapa de tiros:** el campo en vertical. Cada balón sale de donde se tiró y vuela a la portería: el gol mueve la red, la parada rebota y el que va fuera se pierde. Los contadores suben con los tiros.
   - **Jugador del partido:** su foto o, si no hay, su cara de API-Football en un retrato con el escudo (o su dorsal), y sus 3 números.
   - **Estadísticas:** posesión, tiros, a puerta, pases y córners, una fila por pulso.

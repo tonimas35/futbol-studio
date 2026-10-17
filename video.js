@@ -540,9 +540,9 @@
     ctx.save();
     ctx.globalAlpha = a;
     ctx.translate((1 - a) * 60 * dir, 0);
-    const minFont = BARLOW(28);
+    const minFont = BARLOW(32);
     ctx.font = minFont;
-    const minW = ctx.measureText(e.min).width + 20, minH = 36;
+    const minW = ctx.measureText(e.min).width + 22, minH = 44;
     const x1 = AX + dir * 40;
     const mx = dir < 0 ? x1 - minW : x1;
     ctx.strokeStyle = P.faint;
@@ -552,27 +552,27 @@
     text(ctx, e.min, mx + minW / 2, cy + capHeight(ctx, minFont) / 2, minFont, P.mute, 'center');
     // Lo de dentro: [tarjeta] Nombre o [▲] Entra [▼] Sale, que quepa en su mitad
     const parts = e.kind === 'yellow' ? [['card', up(e.name)]] : [['in', up(e.name)], ...(e.out ? [['out', up(e.out)]] : [])];
-    const ICON = 26, GAP = 10;
+    const ICON = 30, GAP = 12;
     const room = W / 2 - 40 - M - minW - 14;
-    let size = 34, widths;
+    let size = 42, widths;
     do {
       ctx.font = BARLOW(size);
       widths = parts.map(([, t]) => ICON + 8 + ctx.measureText(t).width);
-    } while (size-- > 24 && widths.reduce((s2, w) => s2 + w, 0) + GAP * (parts.length - 1) > room);
+    } while (size-- > 26 && widths.reduce((s2, w) => s2 + w, 0) + GAP * (parts.length - 1) > room);
     const font = BARLOW(size + 1);
     const totalW = widths.reduce((s2, w) => s2 + w, 0) + GAP * (parts.length - 1);
     let x = dir < 0 ? mx - 14 - totalW : mx + minW + 14;
     parts.forEach(([icon, label], i) => {
       if (icon === 'card') {
         ctx.fillStyle = '#f5c400';
-        roundRect(ctx, x + 4, cy - 15, 18, 26, 3);
+        roundRect(ctx, x + 5, cy - 18, 22, 32, 3);
         ctx.fill();
       } else {
         const up_ = icon === 'in';
         ctx.fillStyle = up_ ? P.up : '#d8263a';
         ctx.beginPath();
-        if (up_) { ctx.moveTo(x + 2, cy + 8); ctx.lineTo(x + 22, cy + 8); ctx.lineTo(x + 12, cy - 10); }
-        else { ctx.moveTo(x + 2, cy - 8); ctx.lineTo(x + 22, cy - 8); ctx.lineTo(x + 12, cy + 10); }
+        if (up_) { ctx.moveTo(x + 2, cy + 10); ctx.lineTo(x + 28, cy + 10); ctx.lineTo(x + 15, cy - 12); }
+        else { ctx.moveTo(x + 2, cy - 10); ctx.lineTo(x + 28, cy - 10); ctx.lineTo(x + 15, cy + 12); }
         ctx.closePath();
         ctx.fill();
       }
@@ -585,21 +585,68 @@
   function sceneGoals(d, A) {
     const evs = d.goals;
     const total = d.extraTime ? 120 : 90;
-    const TOP = 520, BOTTOM = 1500, AX = W / 2;
+    const AX = W / 2;
+    // Arriba, fijos, el título y el marcador; debajo, una ventana (VT–VB) por la que baja la
+    // línea. La cámara sigue la punta de la línea y, al final, se aleja para enseñarla entera.
+    const VT = 440, VB = 1560;
+    const TOP = VT + 90;
+    const hOf = (e) => (e.kind === 'goal' ? 112 : e.tiny ? 58 : 84);
+    // Lo larga que es la línea: lo que pidan los sucesos de cada lado (para no tener que quitar
+    // ninguno), entre lo que cabe en la ventana y 2400.
+    const stack = Math.max(...['home', 'away'].map(s => evs.filter(e => e.side === s).reduce((sum, e) => sum + hOf(e) + 10, 0)));
+    const BOTTOM = TOP + Math.round(Math.min(2600, Math.max(VB - TOP - 120, stack * 1.5)));
     const yOf = (t) => TOP + (Math.min(Math.max(t, 0), total + 1) / (total + 1)) * (BOTTOM - TOP);
-    // La duración, por lo que importa (goles, rojas, penaltis); las amarillas y los cambios
-    // (tiny) van en pequeño y no la alargan.
-    const main = evs.filter(e => !e.tiny).length;
-    const bars = main <= 3 ? 2 : main <= 6 ? 3 : 4;
+
+    // El ritmo: la línea corre por los minutos sin nada (RUN segundos todo el partido) y se
+    // detiene en cada suceso lo que pide (un gol, más; una amarilla o un cambio, un suspiro).
+    // Los del mismo minuto van juntos.
+    const RUN = 1.1;
+    const SLOT = { goal: 0.6, red: 0.42, pen: 0.42, yellow: 0.16, sub: 0.14 };
+    const order = evs.map((e, i) => ({ e, i })).sort((a, b) => a.e.t - b.e.t || a.i - b.i);
+    const knots = [[0, 0]];
+    const startOf = new Map();
+    let T = 0, prevM = 0;
+    for (let k = 0; k < order.length;) {
+      const m = order[k].e.t;
+      T += RUN * (Math.max(0, m - prevM) / (total + 1));
+      knots.push([m, T]);
+      let off = 0;
+      for (; k < order.length && order[k].e.t === m; k++) {
+        startOf.set(order[k].e, T + off * 0.7);
+        off += SLOT[order[k].e.kind] ?? 0.3;
+      }
+      T += off;
+      knots.push([m, T]);
+      prevM = m;
+    }
+    T += RUN * ((total + 1 - prevM) / (total + 1));
+    knots.push([total + 1, T]);
+    // La duración: compases enteros (2 a 4) con el arranque, el paseo y la vista final.
+    const drawStart = BEAT, REVEAL = 1.0;
+    const bars = Math.min(4, Math.max(2, Math.ceil((drawStart + T + REVEAL - 0.25) / BAR)));
     const dur = bars * BAR;
-    const drawStart = BEAT, drawEnd = dur - BAR / 2;
-    const at = (t) => drawStart + ((yOf(t) - TOP) / (BOTTOM - TOP)) * (drawEnd - drawStart);
-    // Las tarjetas de cada lado, cerca de su minuto, sin pisarse ni tapar las marcas de la línea
-    // (el descanso y la prórroga).
-    let placed = evs.map(e => ({ ...e, h: e.kind === 'goal' ? 112 : e.tiny ? 46 : 84, appear: snap(at(e.t)) }));
-    // Como en la slide: cada tramo de la línea (hasta el descanso, la segunda parte, la
-    // prórroga) tiene su sitio y, si en un lado no cabe todo, fuera primero los cambios y luego
-    // las amarillas de ese tramo (los últimos primero). Nunca los goles.
+    const f = (dur - drawStart - REVEAL) / T;
+    const drawEnd = drawStart + f * T;
+    const minuteAt = (u) => {
+      const x = Math.max(0, Math.min(T, u));
+      for (let k = 1; k < knots.length; k++) {
+        const [m0, t0] = knots[k - 1], [m1, t1] = knots[k];
+        if (x <= t1) return t1 > t0 ? m0 + (m1 - m0) * ((x - t0) / (t1 - t0)) : m1;
+      }
+      return total + 1;
+    };
+    // La punta de la línea, suavizada (para que acelere y frene sin tirones).
+    const headMinute = (t) => {
+      let sum = 0;
+      for (const dt of [-0.12, -0.06, 0, 0.06, 0.12]) sum += minuteAt((t + dt - drawStart) / f);
+      return sum / 5;
+    };
+    const at = (e) => drawStart + f * startOf.get(e);
+
+    // Dónde va cada tarjeta, a su lado de la línea y cerca de su minuto, sin pisarse ni tapar
+    // las marcas (el descanso y la prórroga). Con la línea larga casi nunca hay que quitar nada;
+    // si hiciera falta, como en la slide: fuera primero los cambios y luego las amarillas.
+    let placed = evs.map(e => ({ ...e, h: hOf(e), appear: snap(at(e)) }));
     const cuts = [yOf(45.5), ...(d.extraTime ? [yOf(90.5)] : [])];
     const edges = [TOP - 30, ...cuts, BOTTOM + 10];
     const need = (list) => list.reduce((sum, e) => sum + e.h + 10, 0) - 10;
@@ -639,12 +686,29 @@
     };
     const lastGoal = [...placed].reverse().find(e => e.score);
     const finalScore = lastGoal ? lastGoal.score : [d.home.score, d.away.score];
+    const goals = placed.filter(e => e.kind === 'goal');
+
+    // La cámara: y' = o + s·y (y x' = AX + s·(x − AX)). Siguiendo, la punta va a un 60 % de la
+    // ventana; al final, se aleja hasta que cabe todo, del 0' al «Final».
+    const FOLLOW = VT + 0.6 * (VB - VT);
+    const camMax = Math.max(0, BOTTOM + 100 - VB);
+    const zFit = Math.min(1, (VB - VT - 30) / (BOTTOM + 100 - (TOP - 60)));
+    const camera = (t, headY) => {
+      const follow = -Math.min(camMax, Math.max(0, headY - FOLLOW));
+      const r = easeInOut(prog(t, drawEnd + 0.15, 0.55));
+      const s = 1 + (zFit - 1) * r;
+      const o = follow + ((VT + 15 - zFit * (TOP - 60)) - follow) * r;
+      return { s, o };
+    };
     return {
       id: 'goals',
       dur,
+      camera: false, // lleva la suya
       accent: (d.home.won ? d.home : d.away).style.acc,
       music: { energy: 'full' },
-      cues: placed.filter(e => !e.tiny).map(e => (e.kind === 'goal' ? { t: e.appear, kind: 'slam' } : { t: e.appear, kind: 'hit', vel: 0.8 })),
+      cues: placed.map(e => (e.kind === 'goal' ? { t: e.appear, kind: 'slam' }
+        : e.tiny ? { t: e.appear, kind: 'tick', p: e.kind === 'yellow' ? 0.7 : 0.35, vel: 0.5 }
+          : { t: e.appear, kind: 'hit', vel: 0.8 })),
       draw(ctx, t) {
         const P = sheet(d);
         sheetBg(ctx, d);
@@ -652,26 +716,68 @@
         ctx.save();
         ctx.globalAlpha = k;
         text(ctx, d.goalsTitle, M, 220, ANTON(fit(ctx, d.goalsTitle, ANTON, 120, W - 2 * M)), P.ink);
-        // El marcador, que cambia con cada gol: cada equipo a su lado de la línea
+        // El marcador, que cambia con cada gol (y da un golpe): cada equipo a su lado de la línea
         const s = scoreAt(t);
         logo(ctx, A.homeLogo, M + 40, 340, 80);
         text(ctx, up(d.home.short), M + 96, 362, BARLOW(fit(ctx, up(d.home.short), (z) => BARLOW(z), 44, 260)), P.ink);
         logo(ctx, A.awayLogo, W - M - 40, 340, 80);
         text(ctx, up(d.away.short), W - M - 96, 362, BARLOW(fit(ctx, up(d.away.short), (z) => BARLOW(z), 44, 260)), P.ink, 'right');
-        text(ctx, `${s[0]}-${s[1]}`, W / 2, 385, ANTON(110), P.ink, 'center');
+        const hit = goals.reduce((m, e) => Math.max(m, t >= e.appear ? 1 - prog(t, e.appear, 0.35) : 0), 0);
+        ctx.save();
+        ctx.translate(W / 2, 350);
+        ctx.scale(1 + 0.18 * hit, 1 + 0.18 * hit);
+        text(ctx, `${s[0]}-${s[1]}`, 0, 35, ANTON(110), P.ink, 'center');
         ctx.restore();
-        // La línea, que baja con el tiempo
-        const now = TOP + (BOTTOM - TOP) * easeInOut(prog(t, drawStart, drawEnd - drawStart));
+        ctx.fillStyle = P.track;
+        ctx.fillRect(M, VT - 2, W - 2 * M, 3);
+        ctx.restore();
+
+        // La ventana: lo de la línea se ve solo aquí (de lado a lado de la pantalla).
+        const head = headMinute(t);
+        const headY = yOf(head);
+        const cam = camera(t, headY);
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(...bleed(ctx, 0, VT, W, VB - VT));
+        ctx.clip();
+        // Cada gol da un pequeño golpe de cámara hacia su tarjeta.
+        const goalHit = goals.reduce((best, e) => {
+          const p = t >= e.appear ? prog(t, e.appear, 0.5) : 1;
+          const v = p < 1 ? Math.sin(Math.PI * Math.min(1, p * 1.6)) * (1 - p) : 0;
+          return v > best.v ? { v, e } : best;
+        }, { v: 0, e: null });
+        if (goalHit.e) {
+          const gx = AX + (goalHit.e.side === 'home' ? -200 : 200), gy = cam.o + cam.s * (goalHit.e.y + goalHit.e.h / 2);
+          const z = 1 + 0.06 * goalHit.v;
+          ctx.translate(gx, gy); ctx.scale(z, z); ctx.translate(-gx, -gy);
+        }
+        ctx.translate(AX * (1 - cam.s), cam.o);
+        ctx.scale(cam.s, cam.s);
+
+        // La línea, que baja con la punta
         ctx.lineCap = 'round';
         ctx.strokeStyle = P.track;
         ctx.lineWidth = 6;
         ctx.beginPath(); ctx.moveTo(AX, TOP); ctx.lineTo(AX, BOTTOM); ctx.stroke();
         ctx.strokeStyle = P.line;
-        ctx.beginPath(); ctx.moveTo(AX, TOP); ctx.lineTo(AX, now); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(AX, TOP); ctx.lineTo(AX, Math.max(TOP, Math.min(BOTTOM, headY))); ctx.stroke();
         ctx.lineWidth = 4;
         for (let m = 15; m < total; m += 15) {
           if (m === 45 || m === 90) continue;
           ctx.beginPath(); ctx.moveTo(AX - 14, yOf(m)); ctx.lineTo(AX + 14, yOf(m)); ctx.stroke();
+        }
+        // La punta: un punto que brilla mientras corre
+        if (t >= drawStart && head < total + 0.5) {
+          ctx.beginPath();
+          ctx.arc(AX, headY, 11, 0, Math.PI * 2);
+          ctx.fillStyle = P.line;
+          ctx.fill();
+          ctx.save();
+          ctx.globalAlpha = 0.18;
+          ctx.beginPath();
+          ctx.arc(AX, headY, 22, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
         }
         const mark = (label, y, show) => {
           if (show <= 0) return;
@@ -689,8 +795,8 @@
         const marks = () => {
           mark("0'", TOP - 4, k);
           const ht = d.t?.halftime || 'DESCANSO';
-          mark(d.halftime ? `${ht} · ${d.halftime[0]}-${d.halftime[1]}` : ht, yOf(45.5), easeOut(prog(now, yOf(45.5) - 10, 40)));
-          if (d.extraTime) mark(d.t?.extraTime || 'PRÓRROGA', yOf(90.5), easeOut(prog(now, yOf(90.5) - 10, 40)));
+          mark(d.halftime ? `${ht} · ${d.halftime[0]}-${d.halftime[1]}` : ht, yOf(45.5), easeOut(prog(headY, yOf(45.5) - 10, 40)));
+          if (d.extraTime) mark(d.t?.extraTime || 'PRÓRROGA', yOf(90.5), easeOut(prog(headY, yOf(90.5) - 10, 40)));
           mark(d.live ? `${d.t?.now || 'AHORA'} · ${d.clock}` : `${d.t?.fullTime || 'FINAL'} · ${finalScore[0]}-${finalScore[1]}`, BOTTOM + 40, easeOut(prog(t, drawEnd, 0.3)));
         };
         // Cada suceso: el punto en su minuto, la línea hasta su tarjeta y la tarjeta.
@@ -704,6 +810,17 @@
           if (e.tiny) {
             smallEvent(ctx, e, p, P, ink, dir, ty, cy);
             continue;
+          }
+          // Un gol: un destello del color de su equipo detrás de la tarjeta
+          if (e.kind === 'goal') {
+            const fl = 1 - prog(t, e.appear, 0.6);
+            if (fl > 0 && fl < 1) {
+              ctx.save();
+              ctx.globalAlpha = 0.35 * fl;
+              ctx.fillStyle = st.acc;
+              ctx.fillRect(dir < 0 ? M - 20 : AX + 20, e.y - 12, W / 2 - M, e.h + 24);
+              ctx.restore();
+            }
           }
           ctx.strokeStyle = rgba(ink, 0.7);
           ctx.lineWidth = 3;
@@ -759,6 +876,7 @@
           ctx.restore();
         }
         marks();
+        ctx.restore();
       },
     };
   }
@@ -1512,6 +1630,24 @@
     ctx.restore();
   }
 
+  // La cámara de cada escena, para que nada se quede quieto: se acerca despacio (un 4,5 % en toda
+  // la escena) y da un pequeño golpe con cada «slam» (el marcador, un gol, el dato, la nota…).
+  // La apertura y el logo llevan sus golpes; el minuto a minuto, su propia cámara (camera: false).
+  const kick = (x) => (x < 0 || x > 0.35 ? 0 : Math.sin(Math.PI * x / 0.35) * (1 - x / 0.35) * 1.6);
+  function drawScene(ctx, sc, t) {
+    inSafe(ctx, () => {
+      if (sc.camera !== false && sc.id !== 'intro' && sc.id !== 'marca') {
+        const push = 1 + 0.045 * clamp01(t / sc.dur); // a ritmo constante: que no se pare al final
+        const hit = (sc.cues || []).reduce((m, c) => (c.kind === 'slam' ? Math.max(m, kick(t - c.t)) : m), 0);
+        const z = push * (1 + 0.03 * hit);
+        ctx.translate(W / 2, H / 2);
+        ctx.scale(z, z);
+        ctx.translate(-W / 2, -H / 2);
+      }
+      sc.draw(ctx, t);
+    });
+  }
+
   // Sin grano: en el vídeo solo ensucia (TikTok lo recomprime y se ve borroso).
   function makeDrawer(scenes, captions = null, brandImg = null) {
     const starts = sceneStarts(scenes);
@@ -1526,7 +1662,7 @@
         const t = T - starts[i];
         ctx.save();
         if (i > 0 && t < TRANSITION) {
-          inSafe(ctx, () => scenes[i - 1].draw(ctx, scenes[i - 1].dur + t));
+          drawScene(ctx, scenes[i - 1], scenes[i - 1].dur + t);
           const e = easeInOut(t / TRANSITION);
           const SL = 320;
           const edge = H + SL - e * (H + 2 * SL);
@@ -1535,7 +1671,7 @@
           ctx.moveTo(0, H); ctx.lineTo(W, H); ctx.lineTo(W, edge - SL); ctx.lineTo(0, edge);
           ctx.closePath();
           ctx.clip();
-          inSafe(ctx, () => scenes[i].draw(ctx, t));
+          drawScene(ctx, scenes[i], t);
           ctx.restore();
           ctx.beginPath();
           ctx.moveTo(0, edge); ctx.lineTo(W, edge - SL); ctx.lineTo(W, edge - SL - 28); ctx.lineTo(0, edge - 28);
@@ -1543,7 +1679,7 @@
           ctx.fillStyle = scenes[i].accent;
           ctx.fill();
         } else {
-          inSafe(ctx, () => scenes[i].draw(ctx, t));
+          drawScene(ctx, scenes[i], t);
         }
         ctx.restore();
         inSafe(ctx, () => {
