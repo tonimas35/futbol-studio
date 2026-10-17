@@ -21,6 +21,16 @@ Arriba del todo, «Los partidos de hoy»: eliges qué competiciones vigilar (las
 - «Generar →» en la tarjeta elige la competición, el día y el partido, y genera el carrusel: en un clic lo tienes listo para revisar y publicar.
 - «↻ Actualizar» mira ESPN en ese momento; «×» deja de vigilar una competición y «+ Añadir competición» suma otra.
 
+## En inglés
+
+En «Idioma», **English** pasa a inglés todo lo que se publica: las slides, el vídeo (marcas, rótulos y cierre), el guion automático, el resumen de la jornada, el pie de foto con sus hashtags y «Para tu IA» (que pide la respuesta en inglés). La interfaz del Studio sigue en español.
+
+- Inglés británico, el del fútbol: «Full time», «Half-time», «Line-ups», «Player of the match», «(pen)», «(og)», «Real Madrid complete the comeback», «Spain are champions».
+- Los equipos, con su nombre en inglés: Bayern Munich, Inter, Spain, Germany, Man Utd, Spurs… Las competiciones y las rondas también (Champions League · League phase, Quarter-finals, 2nd leg, Agg. 3-1).
+- Al cambiar de idioma se vuelven a generar el partido y la jornada que haya en pantalla (avisa antes si hay textos retocados a mano). Se recuerda para la próxima vez.
+
+Para tener una cuenta en español y otra en inglés, se genera el partido una vez en cada idioma.
+
 ## Cómo se usa
 
 1. **Competición:** 43, cada una con su logo y agrupadas.
@@ -119,7 +129,7 @@ El partido en unos 30 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
   - el Lech-Leverkusen de la Europa League (la clasificación, pedida aparte);
   - el Osnabrück-Bayern de la Copa de Alemania (un apellido con «ß»).
 
-  Prueba el modo en directo (un partido que pasa de en juego a acabado: el aviso y generarlo a un clic), el resumen de la jornada, tu logo, las competiciones y sus logos, la lista, las 8 slides, el minuto a minuto sin solapes, la firma, el jugador del partido, el borrador, el ZIP, el 9:16, compartir, el vídeo (guion, grabar la voz con un micrófono de prueba, la mezcla y el MP4), «Para tu IA» (copiar y pegar), un partido en juego, uno con pocos datos, las eliminatorias (campeón, global, quién pasa), saltar a un día con partidos, el móvil y el Studio abierto como archivo (generar, descargar y recuperar el borrador).
+  Prueba la versión en inglés (slides, guion, jornada y que se recuerde), el modo en directo (un partido que pasa de en juego a acabado: el aviso y generarlo a un clic), el resumen de la jornada, tu logo, las competiciones y sus logos, la lista, las 8 slides, el minuto a minuto sin solapes, la firma, el jugador del partido, el borrador, el ZIP, el 9:16, compartir, el vídeo (guion, grabar la voz con un micrófono de prueba, la mezcla y el MP4), «Para tu IA» (copiar y pegar), un partido en juego, uno con pocos datos, las eliminatorias (campeón, global, quién pasa), saltar a un día con partidos, el móvil y el Studio abierto como archivo (generar, descargar y recuperar el borrador).
 
 Corre sola en cada push y PR (`.github/workflows/tests.yml`). En local:
 

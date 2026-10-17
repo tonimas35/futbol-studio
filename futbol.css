@@ -705,6 +705,11 @@ body.zoom-open { overflow: hidden; }
 .jornada-bar small { flex: 1 1 260px; color: var(--mute); font-size: 13px; }
 #jornadaSection .actions-row { margin-bottom: 18px; }
 
+/* Idioma de lo que se publica */
+.lang-switch { display: inline-flex; padding: 3px; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: 12px; }
+.lang-opt { height: 38px; padding: 0 16px; border: 0; border-radius: 9px; background: transparent; color: var(--mute); font-family: var(--label); font-weight: 700; font-size: 17px; letter-spacing: 0.03em; text-transform: uppercase; cursor: pointer; }
+.lang-opt[aria-checked="true"] { background: var(--bg-3); color: var(--accent); }
+
 /* Tu logo */
 .brand-field { margin-top: 12px; }
 .brand-preview { height: 44px; max-width: 140px; object-fit: contain; padding: 4px; border: 1px solid var(--line-2); border-radius: 10px; background: repeating-conic-gradient(#2a2e38 0 25%, #1e222c 0 50%) 0 0 / 14px 14px; }

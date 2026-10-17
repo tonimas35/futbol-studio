@@ -349,7 +349,7 @@
             ctx.restore();
           });
           if (h.side.shootout != null) {
-            text(ctx, `${h.side.shootout} EN LOS PENALTIS`, M, baseY + 70, BARLOW(44), st.fg);
+            text(ctx, `${h.side.shootout} ${d.t?.onPens || 'EN LOS PENALTIS'}`, M, baseY + 70, BARLOW(44), st.fg);
           }
           ctx.restore();
           if (h.side.lost) {
@@ -455,9 +455,10 @@
         // debajo de su marca y su tarjeta, al lado.
         const marks = () => {
           mark("0'", TOP - 4, k);
-          mark(d.halftime ? `DESCANSO · ${d.halftime[0]}-${d.halftime[1]}` : 'DESCANSO', yOf(45.5), easeOut(prog(now, yOf(45.5) - 10, 40)));
-          if (d.extraTime) mark('PRÓRROGA', yOf(90.5), easeOut(prog(now, yOf(90.5) - 10, 40)));
-          mark(d.live ? `AHORA · ${d.clock}` : `FINAL · ${finalScore[0]}-${finalScore[1]}`, BOTTOM + 40, easeOut(prog(t, drawEnd, 0.3)));
+          const ht = d.t?.halftime || 'DESCANSO';
+          mark(d.halftime ? `${ht} · ${d.halftime[0]}-${d.halftime[1]}` : ht, yOf(45.5), easeOut(prog(now, yOf(45.5) - 10, 40)));
+          if (d.extraTime) mark(d.t?.extraTime || 'PRÓRROGA', yOf(90.5), easeOut(prog(now, yOf(90.5) - 10, 40)));
+          mark(d.live ? `${d.t?.now || 'AHORA'} · ${d.clock}` : `${d.t?.fullTime || 'FINAL'} · ${finalScore[0]}-${finalScore[1]}`, BOTTOM + 40, easeOut(prog(t, drawEnd, 0.3)));
         };
         // Cada suceso: el punto en su minuto, la línea hasta su tarjeta y la tarjeta.
         for (const e of placed) {
@@ -578,14 +579,14 @@
         const k = easeOut(prog(t, 0.1, 0.4));
         ctx.save();
         ctx.globalAlpha = k;
-        text(ctx, 'MAPA DE TIROS', M, 200, ANTON(110), '#ffffff');
+        text(ctx, d.t?.shotMap || 'MAPA DE TIROS', M, 200, ANTON(110), '#ffffff');
         // Contadores: suben con los tiros que ya han llegado.
         const shown = (side) => s.list.filter((x, i) => x.side === side && t >= land(i));
         const counter = (side, img, right) => {
           const list = shown(side);
           const tot = Math.round(s[side].total * (list.length / Math.max(1, plotted[side][0])));
           const on = Math.round(s[side].on * (list.filter(x => x.kind === 'goal' || x.kind === 'on').length / Math.max(1, plotted[side][1])));
-          const label = `${tot} TIROS · ${on} A PUERTA`;
+          const label = (d.t?.shotCount || '{t} TIROS · {o} A PUERTA').replace('{t}', tot).replace('{o}', on);
           if (right) {
             logo(ctx, img, W - M - 38, 300, 72);
             text(ctx, label, W - M - 90, 316, BARLOW(42), '#ffffff', 'right');
@@ -703,11 +704,15 @@
         ctx.globalAlpha = k;
         const ly = 1560;
         football(ctx, M + 18, ly - 14, 16);
-        text(ctx, 'GOL', M + 46, ly, BARLOW(38), '#ffffff');
-        ctx.beginPath(); ctx.arc(M + 196, ly - 14, 11, 0, Math.PI * 2); ctx.fillStyle = '#ffffff'; ctx.fill();
-        text(ctx, 'A PUERTA', M + 218, ly, BARLOW(38), '#ffffff');
-        ctx.beginPath(); ctx.arc(M + 430, ly - 14, 10, 0, Math.PI * 2); ctx.lineWidth = 4; ctx.strokeStyle = '#ffffff'; ctx.stroke();
-        text(ctx, 'FUERA O BLOQUEADO', M + 452, ly, BARLOW(38), '#ffffff');
+        ctx.font = BARLOW(38);
+        const lw = (str) => ctx.measureText(str).width;
+        const [lg, lo, lf] = [d.t?.goal || 'GOL', d.t?.onTarget || 'A PUERTA', d.t?.offTarget || 'FUERA O BLOQUEADO'];
+        const x2 = M + 46 + lw(lg) + 60, x3 = x2 + 22 + lw(lo) + 60;
+        text(ctx, lg, M + 46, ly, BARLOW(38), '#ffffff');
+        ctx.beginPath(); ctx.arc(x2 - 22, ly - 14, 11, 0, Math.PI * 2); ctx.fillStyle = '#ffffff'; ctx.fill();
+        text(ctx, lo, x2, ly, BARLOW(38), '#ffffff');
+        ctx.beginPath(); ctx.arc(x3 - 22, ly - 14, 10, 0, Math.PI * 2); ctx.lineWidth = 4; ctx.strokeStyle = '#ffffff'; ctx.stroke();
+        text(ctx, lf, x3, ly, BARLOW(38), '#ffffff');
         ctx.restore();
       },
     };
@@ -747,8 +752,9 @@
         ctx.globalAlpha = k;
         ctx.translate((1 - k) * -80, 0);
         ctx.font = ANTON(64);
-        text(ctx, 'JUGADOR', M, 230, ANTON(64), st.hl);
-        text(ctx, ' DEL PARTIDO', M + ctx.measureText('JUGADOR').width, 230, ANTON(64), st.fg);
+        const [kw, kr] = [d.t?.player || 'JUGADOR', d.t?.ofMatch || ' DEL PARTIDO'];
+        text(ctx, kw, M, 230, ANTON(64), st.hl);
+        text(ctx, kr, M + ctx.measureText(kw).width, 230, ANTON(64), st.fg);
         if (m.first) text(ctx, up(m.first), M, 312, BARLOW(54), st.fg);
         text(ctx, up(m.last), M, 470, ANTON(fit(ctx, up(m.last), ANTON, 160, W - 2 * M)), st.fg);
         ctx.restore();
@@ -802,7 +808,7 @@
         ctx.save();
         ctx.globalAlpha = k;
         ctx.font = ANTON(56);
-        const title = 'ESTADÍSTICAS';
+        const title = d.t?.stats || 'ESTADÍSTICAS';
         const tw = ctx.measureText(title).width + 40;
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(W / 2 - tw / 2, 70, tw, 82);
@@ -919,7 +925,7 @@
         const e1 = easeOut(prog(t, 0.6, 0.4));
         ctx.save();
         ctx.globalAlpha = e1;
-        text(ctx, 'TE LEO EN COMENTARIOS', M, after + 30, BARLOW(48), st.hl);
+        text(ctx, d.t?.comments || 'TE LEO EN COMENTARIOS', M, after + 30, BARLOW(48), st.hl);
         ctx.restore();
         if (!d.sign && !A.brandImg) return;
         const e2 = easeOut(prog(t, BAR, 0.45));
@@ -934,7 +940,7 @@
           if (room >= 60) ctx.drawImage(img, M, top + (Math.min(170, room) - img.naturalHeight * k) / 2, img.naturalWidth * k, img.naturalHeight * k);
         }
         if (d.sign) {
-          chip(ctx, 'Sígueme para más fútbol', M, 1170, st, 40);
+          chip(ctx, d.t?.follow || 'Sígueme para más fútbol', M, 1170, st, 40);
           text(ctx, d.sign, M, 1330, ANTON(fit(ctx, d.sign, ANTON, 130, W - 2 * M)), st.fg);
         }
         ctx.restore();

@@ -88,6 +88,57 @@
   const compOf = (slug) => COMP[slug] || { slug, chip: slug, name: slug, tag: 'Futbol', logo: null, national: false };
   // El logo de la competición: el normal, para fondo claro, o el de fondo oscuro (los que no lo
   // tienen llevan su propio fondo y sirven para los dos).
+  // ----------------------------------------------------------
+  // IDIOMA DE LO QUE SE PUBLICA · las slides, el vídeo, el guion y el pie de foto salen en español
+  // o en inglés (británico, el del fútbol). La interfaz del Studio sigue en español.
+  // ----------------------------------------------------------
+  const LANG_KEY = 'fc-lang';
+  const isEn = () => state.lang === 'en';
+  const L = (es, en) => (isEn() ? en : es);            // un texto en los dos idiomas
+  const outLocale = () => (isEn() ? 'en-GB' : 'es-ES'); // fechas y horas de lo que se publica
+  // Las competiciones, en inglés
+  const COMP_EN = {
+    'esp.super_cup': 'Spanish Super Cup', 'uefa.super_cup': 'UEFA Super Cup', 'uefa.wchampions': "Women's Champions League",
+    'ger.dfb_pokal': 'DFB-Pokal', 'fra.coupe_de_france': 'Coupe de France', 'sco.1': 'Scottish Premiership',
+    'tur.1': 'Süper Lig', 'bel.1': 'Belgian Pro League', 'ksa.1': 'Saudi Pro League', 'fifa.world': 'World Cup',
+    'uefa.euro': 'Euro', 'fifa.worldq.uefa': 'World Cup qualifying', 'uefa.euroq': 'Euro qualifying',
+    'fifa.friendly': 'International friendly', 'arg.1': 'Liga Profesional', 'fifa.cwc': 'Club World Cup',
+  };
+  const compName = (slug) => (isEn() && COMP_EN[slug]) || compOf(slug).name;
+  // Las fases (la clave es el nombre en español, que es lo que guarda el partido)
+  const PHASE_EN = {
+    'Fase liga': 'League phase', 'Fase de grupos': 'Group stage', 'Playoff': 'Play-off round', 'Ronda previa': 'Qualifying round',
+    'Ronda preliminar': 'Preliminary round', 'Treintaidosavos': 'Round of 64', 'Dieciseisavos': 'Round of 32', 'Octavos': 'Round of 16',
+    'Cuartos': 'Quarter-finals', 'Semifinales': 'Semi-finals', 'Final': 'Final', 'Tercer puesto': 'Third-place play-off',
+    'Primera ronda': 'First round', 'Segunda ronda': 'Second round', 'Tercera ronda': 'Third round', 'Cuarta ronda': 'Fourth round',
+    'Quinta ronda': 'Fifth round', 'Sexta ronda': 'Sixth round',
+  };
+  const phaseOut = (phase) => (isEn() ? PHASE_EN[phase] || phase : phase);
+  const NEXT_ROUND_EN = {
+    'Playoff': 'the last 16', 'Treintaidosavos': 'the last 32', 'Dieciseisavos': 'the last 16', 'Octavos': 'the quarter-finals',
+    'Cuartos': 'the semi-finals', 'Semifinales': 'the final',
+  };
+  // Los clubes en inglés: los nombres de ESPN, con los cortos de siempre
+  const CLUB_NAMES_EN = {
+    'Atlético Madrid': ['Atlético Madrid', 'Atlético'], 'Athletic Club': ['Athletic Club', 'Athletic'], 'Celta Vigo': ['Celta Vigo', 'Celta'],
+    'Racing Santander': ['Racing Santander', 'Racing'], 'Rayo Vallecano': ['Rayo Vallecano', 'Rayo'], 'Real Betis': ['Real Betis', 'Betis'],
+    'Deportivo': ['Deportivo La Coruña', 'Deportivo'], 'Internazionale': ['Inter', 'Inter'], 'AC Milan': ['AC Milan', 'Milan'],
+    'AS Roma': ['Roma', 'Roma'], 'Paris Saint-Germain': ['Paris Saint-Germain', 'PSG'], 'Manchester City': ['Manchester City', 'Man City'],
+    'Manchester United': ['Manchester United', 'Man Utd'], 'Tottenham Hotspur': ['Tottenham Hotspur', 'Spurs'],
+    'Nottingham Forest': ['Nottingham Forest', 'Forest'], 'Brighton & Hove Albion': ['Brighton', 'Brighton'],
+    'Wolverhampton Wanderers': ['Wolves', 'Wolves'], 'West Ham United': ['West Ham', 'West Ham'], 'Queens Park Rangers': ['QPR', 'QPR'],
+    'Sheffield United': ['Sheffield United', 'Sheffield Utd'], 'Sheffield Wednesday': ['Sheffield Wednesday', 'Sheffield Wed'],
+    'West Bromwich Albion': ['West Brom', 'West Brom'], 'Borussia Dortmund': ['Borussia Dortmund', 'Dortmund'],
+    'Borussia Mönchengladbach': ["Borussia M'gladbach", 'Gladbach'], 'Bayer Leverkusen': ['Bayer Leverkusen', 'Leverkusen'],
+    'FC Cologne': ['FC Cologne', 'Cologne'], 'Sporting CP': ['Sporting CP', 'Sporting'], 'LASK Linz': ['LASK', 'LASK'],
+    'Feyenoord Rotterdam': ['Feyenoord', 'Feyenoord'], 'Ajax Amsterdam': ['Ajax', 'Ajax'], 'PSV Eindhoven': ['PSV Eindhoven', 'PSV'],
+    'AZ Alkmaar': ['AZ Alkmaar', 'AZ'], 'Union St.-Gilloise': ['Union Saint-Gilloise', 'Union SG'], 'Bodo/Glimt': ['Bodø/Glimt', 'Bodø/Glimt'],
+    'Fenerbahce': ['Fenerbahçe', 'Fenerbahçe'], 'Besiktas': ['Beşiktaş', 'Beşiktaş'], 'Caykur Rizespor': ['Rizespor', 'Rizespor'],
+    'Istanbul Basaksehir': ['Başakşehir', 'Başakşehir'], 'Famalicao': ['Famalicão', 'Famalicão'], 'FC Famalicao': ['Famalicão', 'Famalicão'],
+    'Atlético-MG': ['Atlético Mineiro', 'Atlético Mineiro'], 'Sarmiento (Junín)': ['Sarmiento', 'Sarmiento'],
+    'RB Leipzig': ['RB Leipzig', 'Leipzig'], 'Hellas Verona': ['Hellas Verona', 'Verona'], 'Eintracht Frankfurt': ['Eintracht Frankfurt', 'Frankfurt'],
+    'Crystal Palace': ['Crystal Palace', 'Palace'],
+  };
   const NO_DARK_LOGO = new Set([99, 431, 2192, 97]);
   const compLogo = (slug, dark = false) => {
     const n = compOf(slug).logo;
@@ -159,6 +210,7 @@
     'Sheffield United': ['Sheffield United', 'Sheffield Utd'],
     'Sheffield Wednesday': ['Sheffield Wednesday', 'Sheffield Wed'],
     'West Bromwich Albion': ['West Bromwich', 'West Brom'],
+    'Crystal Palace': ['Crystal Palace', 'Crystal Palace'],
     // Italia
     'Napoli': ['Nápoles', 'Nápoles'],
     'Bologna': ['Bolonia', 'Bolonia'],
@@ -231,7 +283,8 @@
   const CLUB_SUFFIX = /\s+(?:FC|CF|AFC|SC|SV|BSC|BK|FK|IF|\d{2,4})$/;
   const ENGLISH_SUFFIX = /\s+(?:City|United|Town|Rovers|Athletic|Albion|County|Wanderers|Hotspur)$/;
   function clubNames(espnName, espnShort, league = '') {
-    if (CLUB_NAMES[espnName]) return CLUB_NAMES[espnName];
+    const named = isEn() ? CLUB_NAMES_EN[espnName] : CLUB_NAMES[espnName];
+    if (named) return named;
     let short = (espnShort || espnName).trim().replace(/\s*\([A-Z]{1,3}\)$/, ''); // «Sarmiento (J)»
     for (const re of [CLUB_PREFIX, CLUB_SUFFIX]) {
       const cut = short.replace(re, '');
@@ -479,7 +532,7 @@
   // ----------------------------------------------------------
   const asDate = (iso) => new Date(/^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso}T12:00:00` : iso);
   const fmtDate = (iso) => asDate(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
-  const fmtDateLong = (iso) => asDate(iso).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const fmtDateLong = (iso) => asDate(iso).toLocaleDateString(outLocale(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const fmtFooterDate = (iso) => {
     const d = asDate(iso);
     return `${String(d.getDate()).padStart(2, '0')} · ${String(d.getMonth() + 1).padStart(2, '0')} · ${d.getFullYear()}`;
@@ -534,8 +587,9 @@
     const t = cmp?.team || {};
     const espnName = (t.displayName || t.name || '').trim();
     const national = compOf(league).national;
+    const country = isEn() ? null : COUNTRY_NAMES[espnName];
     const [long, short] = national
-      ? [COUNTRY_NAMES[espnName] || espnName, COUNTRY_NAMES[espnName] || (t.shortDisplayName || espnName).trim()]
+      ? [country || espnName, country || (t.shortDisplayName || espnName).trim()]
       : clubNames(espnName, t.shortDisplayName, league);
     return {
       id: String(t.id || ''),
@@ -572,7 +626,7 @@
         const who = d.athletesInvolved?.[0];
         const name = who?.shortName || who?.displayName || '';
         const min = (d.clock?.displayValue || '').replace(/'\+(\d+)'/, "+$1'");
-        return `${name} ${min}${d.penaltyKick ? ' (p)' : d.ownGoal ? ' (p.p.)' : ''}`.trim();
+        return `${name} ${min}${d.penaltyKick ? L(' (p)', ' (pen)') : d.ownGoal ? L(' (p.p.)', ' (og)') : ''}`.trim();
       });
   }
 
@@ -698,6 +752,7 @@
       agg: game.agg || null,
       through: game.through || null,
       final: !!comp.isFinal || game.phase === 'Final',
+      lang: state.lang,
       status: comp.status ? normalizeStatus(comp.status) : game.status,
       venue: sum.gameInfo?.venue?.fullName || game.venue,
       home: team('home'),
@@ -832,7 +887,7 @@
       const espnName = typeof e.team === 'string' ? e.team : e.team?.displayName || '';
       return {
         id,
-        name: national ? COUNTRY_NAMES[espnName] || espnName : clubNames(espnName, e.team?.shortDisplayName, league)[1],
+        name: national ? (!isEn() && COUNTRY_NAMES[espnName]) || espnName : clubNames(espnName, e.team?.shortDisplayName, league)[1],
         logo: e.team?.logos?.[0]?.href || logos[id] || LOGO(id),
         zone: /^#[0-9a-f]{6}$/i.test(e.note?.color || '') ? e.note.color : '',
         rank: stat(e, 'rank'), gp: stat(e, 'gamesPlayed'), gd: stat(e, 'pointDifferential'), pts: stat(e, 'points'),
@@ -876,6 +931,7 @@
     photoOverrides: {},   // id del jugador → foto subida (ya sin fondo)
     sign: '',
     brandLogo: '',        // tu logo (data URL), si lo has subido
+    lang: 'es',           // el idioma de lo que se publica: 'es' o 'en'
     generating: false,
   };
 
@@ -990,7 +1046,8 @@
   };
   const live = (m) => m.status.state === 'in';
   const pensWon = (m) => m.home.shootout != null && m.away.shootout != null;
-  const legLabel = (m) => (m.leg === 1 ? 'Ida' : m.leg === 2 ? 'Vuelta' : '');
+  const legLabel = (m) => (m.leg === 1 ? L('Ida', '1st leg') : m.leg === 2 ? L('Vuelta', '2nd leg') : '');
+  const aggLabel = (agg) => `${L('Global', 'Agg.')} ${agg[0]}-${agg[1]}`;
   const champion = (t) => (t.national || article(t) === 'la ' ? 'campeona' : 'campeón');
   const playerById = (m, id) => [...m.home.players, ...m.away.players].find(p => p.id === String(id));
   const surname = (p) => p?.last || p?.name || '';
@@ -1010,34 +1067,78 @@
     return m.goals.some(g => g.score[1 - w] > g.score[w]);
   };
 
-  function headline(m) {
+  // Lo que ha pasado en el partido (para el titular): el campeón, quién pasa, la remontada…
+  function story(m) {
     const { winner, draw } = sides(m);
     const h = m.home.score, a = m.away.score;
-    if (live(m)) return 'Así va el partido';
+    if (live(m)) return { k: 'live' };
     // Las eliminatorias: el campeón, el que pasa en los penaltis o el que pasa en el global
     const pens = pensSide(m);
     const through = pens || throughOf(m);
-    const the = (side) => cap(theTeam(m[side]));
-    if (m.final && (through || (winner && !m.leg))) return `${the(through || winner)}, ${champion(m[through || winner])}`;
-    if (pens || (through && draw && !m.leg)) return `${the(through)} pasa en los penaltis`;
-    if (through && m.leg) return NEXT_ROUND[m.phase] ? `${the(through)} pasa a ${NEXT_ROUND[m.phase]}` : `${the(through)} pasa la eliminatoria`;
+    if (m.final && (through || (winner && !m.leg))) return { k: 'champion', side: through || winner };
+    if (pens || (through && draw && !m.leg)) return { k: 'pens', side: through };
+    if (through && m.leg) return { k: 'through', side: through };
     if (draw) {
       const last = m.goals[m.goals.length - 1];
-      if (h === 0) return 'Empate sin goles';
-      if (m.goalsOk && last && last.min.base >= 85) return 'Empate en el último suspiro';
-      return `Empate a ${h}`;
+      if (h === 0) return { k: 'nil' };
+      if (m.goalsOk && last && last.min.base >= 85) return { k: 'lateDraw' };
+      return { k: 'draw' };
     }
-    const w = m[winner];
     const margin = Math.abs(h - a);
     const key = decisiveGoal(m);
-    if (cameBack(m)) return `Remontada ${ofTeam(w)}`;
-    if (key && key.min.base >= 85) return `${cap(theTeam(w))} lo gana en el ${key.min.label}`;
-    if (/AET|EXTRA/.test(m.status.name)) return `${cap(theTeam(w))} gana en la prórroga`;
-    if (margin >= 4) return `Goleada ${ofTeam(w)}`;
-    if (margin === 3) return `Exhibición ${ofTeam(w)}`;
-    if (h + a >= 6) return 'Festival de goles';
-    if (margin === 1 && h + a <= 3) return `${cap(theTeam(w))} gana por la mínima`;
-    return `Victoria ${ofTeam(w)}`;
+    if (cameBack(m)) return { k: 'comeback', side: winner };
+    if (key && key.min.base >= 85) return { k: 'late', side: winner, key };
+    if (/AET|EXTRA/.test(m.status.name)) return { k: 'aet', side: winner };
+    if (margin >= 4) return { k: 'rout', side: winner };
+    if (margin === 3) return { k: 'masterclass', side: winner };
+    if (h + a >= 6) return { k: 'fest' };
+    if (margin === 1 && h + a <= 3) return { k: 'narrow', side: winner };
+    return { k: 'win', side: winner };
+  }
+  const NUM_EN = ['nil', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+
+  function headline(m) {
+    const s = story(m);
+    const t = s.side && m[s.side];
+    const h = m.home.score;
+    if (isEn()) {
+      const n = Math.max(m.home.score, m.away.score);
+      return {
+        live: () => 'As it stands',
+        champion: () => `${t.short} are champions`,
+        pens: () => `${t.short} win on penalties`,
+        through: () => (NEXT_ROUND_EN[m.phase] ? `${t.short} reach ${NEXT_ROUND_EN[m.phase]}` : `${t.short} go through`),
+        nil: () => 'Goalless draw',
+        lateDraw: () => 'Late equaliser',
+        draw: () => `${h}-${h} draw`,
+        comeback: () => `${t.short} complete the comeback`,
+        late: () => (s.key.min.base >= 90 ? `${t.short} win it in stoppage time` : `${t.short} win it late on`),
+        aet: () => `${t.short} win in extra time`,
+        rout: () => `${t.short} hit ${NUM_EN[n] || n}`,
+        masterclass: () => `Masterclass from ${t.short}`,
+        fest: () => 'Goal fest',
+        narrow: () => `${t.short} edge it`,
+        win: () => `Victory for ${t.short}`,
+      }[s.k]();
+    }
+    const the = () => cap(theTeam(t));
+    return {
+      live: () => 'Así va el partido',
+      champion: () => `${the()}, ${champion(t)}`,
+      pens: () => `${the()} pasa en los penaltis`,
+      through: () => (NEXT_ROUND[m.phase] ? `${the()} pasa a ${NEXT_ROUND[m.phase]}` : `${the()} pasa la eliminatoria`),
+      nil: () => 'Empate sin goles',
+      lateDraw: () => 'Empate en el último suspiro',
+      draw: () => `Empate a ${h}`,
+      comeback: () => `Remontada ${ofTeam(t)}`,
+      late: () => `${the()} lo gana en el ${s.key.min.label}`,
+      aet: () => `${the()} gana en la prórroga`,
+      rout: () => `Goleada ${ofTeam(t)}`,
+      masterclass: () => `Exhibición ${ofTeam(t)}`,
+      fest: () => 'Festival de goles',
+      narrow: () => `${the()} gana por la mínima`,
+      win: () => `Victoria ${ofTeam(t)}`,
+    }[s.k]();
   }
 
   // Cuánto ha jugado: titular hasta que le cambian, suplente desde que entra.
@@ -1086,7 +1187,7 @@
     ? `<img class="${cls}" src="${team.logo}" alt="" crossorigin="anonymous" onerror="this.style.display='none'"/>`
     : '');
   const grain = '<div class="fc-grain"></div>';
-  const footLeft = (m) => `${compOf(m.league).name} · ${m.kind === 'jornada' ? fmtRange(m.from, m.to) : fmtFooterDate(m.date)}`;
+  const footLeft = (m) => `${compName(m.league)} · ${m.kind === 'jornada' ? fmtRange(m.from, m.to) : fmtFooterDate(m.date)}`;
   // Tu logo (si lo has subido): junto a la firma y, grande, en el cierre.
   const brandTag = (cls) => `<img class="${cls}" data-brand data-noedit src="${state.brandLogo || BLANK}" alt=""${state.brandLogo ? '' : ' hidden'}/>`;
   const foot = (m) => `<div class="fc-foot"><span>${esc(footLeft(m))}</span><span class="fc-mark">${brandTag('fc-brand')}<span class="fc-sign" data-noedit>${esc(state.sign)}</span></span></div>`;
@@ -1100,7 +1201,7 @@
     return `
       <div class="fc-in" style="${styleVars(teamStyle(null))}">
         <div class="fc-kick"><b>${title}</b></div>
-        <div class="fc-empty">ESPN aún no tiene estos datos del partido.<br>Prueba a generar de nuevo en unos minutos.</div>
+        <div class="fc-empty">${L('ESPN aún no tiene estos datos del partido.<br>Prueba a generar de nuevo en unos minutos.', 'ESPN does not have this data yet.<br>Try again in a few minutes.')}</div>
         ${foot(m)}${grain}
       </div>`;
   }
@@ -1114,8 +1215,8 @@
     const lines = [];
     const byName = new Map();
     for (const g of m.goals.filter(x => x.side === side)) {
-      const who = g.own ? `${nameOf(m, g.scorer, g.scorerName)} (p.p.)` : nameOf(m, g.scorer, g.scorerName);
-      const min = `${g.min.label}${g.pen ? ' (p)' : ''}`;
+      const who = g.own ? `${nameOf(m, g.scorer, g.scorerName)} ${L('(p.p.)', '(og)')}` : nameOf(m, g.scorer, g.scorerName);
+      const min = `${g.min.label}${g.pen ? L(' (p)', ' (pen)') : ''}`;
       if (byName.has(who)) byName.get(who).push(min);
       else { byName.set(who, [min]); lines.push(who); }
     }
@@ -1135,21 +1236,21 @@
         <div class="half ${side === 'home' ? 'l' : 'r'}${winner === side ? ' won' : ''}" style="${styleVars(teamStyle(team))}">
           ${logoTag(team, 'wm')}
           ${logoTag(team, 'crest')}
-          ${team.shootout != null && pensWon(m) ? `<div class="pens">${team.shootout} en los penaltis</div>` : ''}
+          ${team.shootout != null && pensWon(m) ? `<div class="pens">${team.shootout} ${L('en los penaltis', 'on penalties')}</div>` : ''}
           <div class="n">${team.score}</div>
           <div class="name" style="font-size:${fitSize(team.name, 34, [[10, 48], [14, 42], [18, 36]])}px">${esc(team.name)}</div>
           <div class="scorers" style="font-size:${size}px">${lines.slice(0, 7).map(l => `<div>${l}</div>`).join('')}</div>
         </div>`;
     };
     const c = compOf(m.league);
-    const chip = [c.name, m.phase, legLabel(m), live(m) ? `En juego · ${minuteText(m.status.clock)}` : ''].filter(Boolean).join(' · ');
+    const chip = [compName(m.league), phaseOut(m.phase), legLabel(m), live(m) ? `${L('En juego', 'Live')} · ${minuteText(m.status.clock)}` : ''].filter(Boolean).join(' · ');
     const logo = compLogo(m.league);
     return `
       ${half(m.home, 'home')}
       ${half(m.away, 'away')}
       <div class="fade"></div>
       <div class="comp">${logo ? `<img src="${logo}" alt="" crossorigin="anonymous" onerror="this.remove()"/>` : ''}<span>${esc(chip)}</span></div>
-      ${m.agg ? `<div class="agg">Global ${m.agg[0]}-${m.agg[1]}</div>` : ''}
+      ${m.agg ? `<div class="agg">${aggLabel(m.agg)}</div>` : ''}
       <div class="head"><h1>${esc(headline(m))}</h1></div>
       ${foot(m)}${grain}`;
   }
@@ -1163,12 +1264,13 @@
     const evs = [];
     m.goals.forEach(g => {
       if (!g.side) return;
-      const how = [g.own ? 'En propia puerta' : g.pen ? 'De penalti' : g.header ? 'De cabeza' : g.freeKick ? 'De falta' : g.volley ? 'De volea' : '',
-        g.assist ? `Asist. ${nameOf(m, g.assist, g.assistName)}` : ''].filter(Boolean).join(' · ');
+      const how = [g.own ? L('En propia puerta', 'Own goal') : g.pen ? L('De penalti', 'Penalty') : g.header ? L('De cabeza', 'Header')
+        : g.freeKick ? L('De falta', 'Free kick') : g.volley ? L('De volea', 'Volley') : '',
+      g.assist ? `${L('Asist.', 'Assist:')} ${nameOf(m, g.assist, g.assistName)}` : ''].filter(Boolean).join(' · ');
       evs.push({ side: g.side, min: g.min, kind: 'goal', name: nameOf(m, g.scorer, g.scorerName), how, score: m.goalsOk ? g.score : null });
     });
-    m.cards.filter(c => c.red && c.side).forEach(c => evs.push({ side: c.side, min: c.min, kind: 'red', name: nameOf(m, c.player, c.name), how: 'Tarjeta roja' }));
-    m.pens.filter(p => p.side).forEach(p => evs.push({ side: p.side, min: p.min, kind: 'pen', name: nameOf(m, p.player, p.name), how: p.saved ? 'Penalti parado' : 'Penalti fallado' }));
+    m.cards.filter(c => c.red && c.side).forEach(c => evs.push({ side: c.side, min: c.min, kind: 'red', name: nameOf(m, c.player, c.name), how: L('Tarjeta roja', 'Red card') }));
+    m.pens.filter(p => p.side).forEach(p => evs.push({ side: p.side, min: p.min, kind: 'pen', name: nameOf(m, p.player, p.name), how: p.saved ? L('Penalti parado', 'Penalty saved') : L('Penalti fallado', 'Penalty missed') }));
     return evs.sort((a, b) => a.min.t - b.min.t);
   }
 
@@ -1240,9 +1342,10 @@
     const total = et ? 120 : 90;
     const yOf = (t) => CRONO.top + (Math.min(Math.max(t, 0), total + 1) / (total + 1)) * (CRONO.bottom - CRONO.top);
     // Las marcas de la línea: el descanso, la prórroga y, en juego, el minuto de ahora.
-    const marks = [{ y: Math.round(yOf(45.5)), text: m.halftime ? `Descanso · ${m.halftime[0]}-${m.halftime[1]}` : 'Descanso' }];
-    if (et) marks.push({ y: Math.round(yOf(90.5)), text: 'Prórroga' });
-    if (live(m)) marks.push({ y: Math.round(yOf(clockMinute(m))), text: `Ahora · ${minuteText(m.status.clock)}` });
+    const ht = L('Descanso', 'Half-time');
+    const marks = [{ y: Math.round(yOf(45.5)), text: m.halftime ? `${ht} · ${m.halftime[0]}-${m.halftime[1]}` : ht }];
+    if (et) marks.push({ y: Math.round(yOf(90.5)), text: L('Prórroga', 'Extra time') });
+    if (live(m)) marks.push({ y: Math.round(yOf(clockMinute(m))), text: `${L('Ahora', 'Now')} · ${minuteText(m.status.clock)}` });
     if (live(m) && clockMinute(m) < 46) marks.shift(); // aún no ha llegado el descanso
     // «Sin goles», en un hueco de la línea sin marcas: la primera parte o, en juego antes del
     // descanso, lo que queda por jugar.
@@ -1260,13 +1363,13 @@
     };
     return `
       <div class="fc-in paper">
-        <h1 class="title">Minuto a minuto</h1>
+        <h1 class="title">${L('Minuto a minuto', 'Minute by minute')}</h1>
         <div class="teams"><span>${logoTag(m.home, 'lg')}${esc(m.home.short)}</span><span>${esc(m.away.short)}${logoTag(m.away, 'lg')}</span></div>
         <img class="axis" src="${cronoAxis(m, evs, yOf, total)}" alt=""/>
         <div class="ht" style="top:${CRONO.top - 6}px">0'</div>
         ${marks.map(k => `<div class="ht" style="top:${k.y}px">${k.text}</div>`).join('')}
-        ${live(m) ? '' : `<div class="ht" style="top:${CRONO.bottom + 44}px">Final · ${m.home.score}-${m.away.score}</div>`}
-        ${evs.length ? evs.map(ev).join('') : `<div class="none" style="top:${Math.round(noneY)}px">Sin goles</div>`}
+        ${live(m) ? '' : `<div class="ht" style="top:${CRONO.bottom + 44}px">${L('Final', 'Full time')} · ${m.home.score}-${m.away.score}</div>`}
+        ${evs.length ? evs.map(ev).join('') : `<div class="none" style="top:${Math.round(noneY)}px">${L('Sin goles', 'No goals')}</div>`}
         ${foot(m)}${grain}
       </div>`;
   }
@@ -1280,25 +1383,25 @@
     if (!H || !A) return [];
     const both = (k) => H[k] != null && A[k] != null;
     const rows = [];
-    if (both('possessionPct')) rows.push({ label: 'Posesión', v: [H.possessionPct, A.possessionPct], fmt: (x) => `${Math.round(x)}<small>%</small>`, more: true });
-    if (both('totalShots')) rows.push({ label: 'Tiros', v: [H.totalShots, A.totalShots], more: true });
-    if (both('shotsOnTarget')) rows.push({ label: 'A puerta', v: [H.shotsOnTarget, A.shotsOnTarget], more: true });
+    if (both('possessionPct')) rows.push({ label: L('Posesión', 'Possession'), v: [H.possessionPct, A.possessionPct], fmt: (x) => `${Math.round(x)}<small>%</small>`, more: true });
+    if (both('totalShots')) rows.push({ label: L('Tiros', 'Shots'), v: [H.totalShots, A.totalShots], more: true });
+    if (both('shotsOnTarget')) rows.push({ label: L('A puerta', 'On target'), v: [H.shotsOnTarget, A.shotsOnTarget], more: true });
     if (both('totalPasses')) {
       const pct = (s) => (s.accuratePasses != null && s.totalPasses ? Math.round(s.accuratePasses / s.totalPasses * 100) : null);
-      rows.push({ label: 'Pases', v: [H.totalPasses, A.totalPasses], pct: [pct(H), pct(A)], more: true });
+      rows.push({ label: L('Pases', 'Passes'), v: [H.totalPasses, A.totalPasses], pct: [pct(H), pct(A)], more: true });
     }
-    if (both('wonCorners')) rows.push({ label: 'Córners', v: [H.wonCorners, A.wonCorners], more: true });
+    if (both('wonCorners')) rows.push({ label: L('Córners', 'Corners'), v: [H.wonCorners, A.wonCorners], more: true });
     const reds = both('redCards') && (H.redCards || A.redCards);
-    if (both('saves') && !reds) rows.push({ label: 'Paradas', v: [H.saves, A.saves], more: true });
-    if (both('foulsCommitted')) rows.push({ label: 'Faltas', v: [H.foulsCommitted, A.foulsCommitted], more: false });
-    if (both('yellowCards')) rows.push({ label: 'Amarillas', v: [H.yellowCards, A.yellowCards], more: false });
-    if (reds) rows.push({ label: 'Rojas', v: [H.redCards, A.redCards], more: false });
+    if (both('saves') && !reds) rows.push({ label: L('Paradas', 'Saves'), v: [H.saves, A.saves], more: true });
+    if (both('foulsCommitted')) rows.push({ label: L('Faltas', 'Fouls'), v: [H.foulsCommitted, A.foulsCommitted], more: false });
+    if (both('yellowCards')) rows.push({ label: L('Amarillas', 'Yellow cards'), v: [H.yellowCards, A.yellowCards], more: false });
+    if (reds) rows.push({ label: L('Rojas', 'Red cards'), v: [H.redCards, A.redCards], more: false });
     return rows.slice(0, 8);
   }
 
   function tplStats(m) {
     const rows = statRows(m);
-    if (rows.length < 3) return tplSinDatos(m, 'Estadísticas');
+    if (rows.length < 3) return tplSinDatos(m, L('Estadísticas', 'Stats'));
     const cell = (r, i) => {
       const [a, b] = r.v;
       const worse = a === b ? false : r.more ? r.v[i] < r.v[1 - i] : r.v[i] > r.v[1 - i];
@@ -1395,15 +1498,15 @@
     const side = (team, s) => `
       <div class="side ${s === 'home' ? 'l' : 'r'}">
         ${logoTag(team, 'lg')}
-        <div><span class="n">${total(s)}</span><span class="l">tiros · ${onT(s)} a puerta</span></div>
+        <div><span class="n">${total(s)}</span><span class="l">${L(`tiros · ${onT(s)} a puerta`, `shots · ${onT(s)} on target`)}</span></div>
       </div>`;
     return `
       <div class="fc-in paper">
-        <h1 class="title">Mapa de tiros</h1>
+        <h1 class="title">${L('Mapa de tiros', 'Shot map')}</h1>
         <div class="sides">${side(m.home, 'home')}${side(m.away, 'away')}</div>
         <img class="pitch" src="${pitchChart(m)}" alt=""/>
-        <div class="arrows"><span>Tiros ${esc(ofTeam(m.home))}</span><span>Tiros ${esc(ofTeam(m.away))}</span></div>
-        <div class="key"><span><i class="goal"></i>Gol</span><span><i class="on"></i>A puerta</span><span><i class="off"></i>Fuera o bloqueado</span></div>
+        <div class="arrows"><span>${esc(L(`Tiros ${ofTeam(m.home)}`, `${m.home.short} shots`))}</span><span>${esc(L(`Tiros ${ofTeam(m.away)}`, `${m.away.short} shots`))}</span></div>
+        <div class="key"><span><i class="goal"></i>${L('Gol', 'Goal')}</span><span><i class="on"></i>${L('A puerta', 'On target')}</span><span><i class="off"></i>${L('Fuera o bloqueado', 'Off target or blocked')}</span></div>
         ${foot(m)}${grain}
       </div>`;
   }
@@ -1547,7 +1650,7 @@
       </div>`;
     return `
       <div class="fc-in pitchbg">
-        <h1 class="title" style="font-size:70px;width:190px;left:40px">Los<br>onces</h1>
+        <h1 class="title" style="font-size:70px;width:190px;left:40px">${L('Los<br>onces', 'Line-<br>ups')}</h1>
         <img class="pitch" src="${oncesPitch()}" alt=""/>
         ${label(m.away, top + half / 2 - 110)}
         ${label(m.home, top + half + half / 2 - 110)}
@@ -1564,13 +1667,13 @@
     const plural = (n, one, many) => (n === 1 ? one : many);
     const gk = p.pos === 'G';
     const cands = [
-      { v: v('totalGoals'), label: plural(v('totalGoals'), 'Gol', 'Goles'), w: 10 * v('totalGoals'), ok: v('totalGoals') > 0 },
-      { v: v('goalAssists'), label: plural(v('goalAssists'), 'Asistencia', 'Asistencias'), w: 8 * v('goalAssists'), ok: v('goalAssists') > 0 },
-      { v: v('saves'), label: plural(v('saves'), 'Parada', 'Paradas'), w: 3 * v('saves'), ok: gk && v('saves') > 0 },
-      { v: 0, label: 'Portería a cero', w: 9, ok: gk && v('goalsConceded') === 0 && p.starter, text: '0' },
-      { v: `${v('shotsOnTarget')}/${v('totalShots')}`, label: 'Tiros a puerta', w: 2 * v('shotsOnTarget'), ok: v('totalShots') > 0 },
-      { v: v('foulsSuffered'), label: plural(v('foulsSuffered'), 'Falta recibida', 'Faltas recibidas'), w: v('foulsSuffered'), ok: v('foulsSuffered') >= 2 },
-      { v: minutesPlayed(m, p), label: 'Minutos', w: 0.1, ok: true },
+      { v: v('totalGoals'), label: plural(v('totalGoals'), L('Gol', 'Goal'), L('Goles', 'Goals')), w: 10 * v('totalGoals'), ok: v('totalGoals') > 0 },
+      { v: v('goalAssists'), label: plural(v('goalAssists'), L('Asistencia', 'Assist'), L('Asistencias', 'Assists')), w: 8 * v('goalAssists'), ok: v('goalAssists') > 0 },
+      { v: v('saves'), label: plural(v('saves'), L('Parada', 'Save'), L('Paradas', 'Saves')), w: 3 * v('saves'), ok: gk && v('saves') > 0 },
+      { v: 0, label: L('Portería a cero', 'Clean sheet'), clean: true, w: 9, ok: gk && v('goalsConceded') === 0 && p.starter, text: '0' },
+      { v: `${v('shotsOnTarget')}/${v('totalShots')}`, label: L('Tiros a puerta', 'Shots on target'), w: 2 * v('shotsOnTarget'), ok: v('totalShots') > 0 },
+      { v: v('foulsSuffered'), label: plural(v('foulsSuffered'), L('Falta recibida', 'Foul won'), L('Faltas recibidas', 'Fouls won')), w: v('foulsSuffered'), ok: v('foulsSuffered') >= 2 },
+      { v: minutesPlayed(m, p), label: L('Minutos', 'Minutes'), w: 0.1, ok: true },
     ];
     return cands.filter(c => c.ok).sort((a, b) => b.w - a.w).slice(0, 3);
   }
@@ -1582,7 +1685,7 @@
 
   function tplJugador(m) {
     const p = bestPlayer(m);
-    if (!p) return tplSinDatos(m, 'Jugador del partido');
+    if (!p) return tplSinDatos(m, L('Jugador del partido', 'Player of the match'));
     const team = m[p.side];
     const st = teamStyle(team);
     const nums = keyNumbers(m, p);
@@ -1595,7 +1698,7 @@
         <div class="ph-photo" data-noedit data-for="${p.id}"${hasPhoto(p) ? ' hidden' : ''}>Toca aquí para poner su foto</div>
         <div class="fade"></div>
         <div class="bar"><span>${esc(p.name)}</span></div>
-        <div class="fc-kick"><b>Jugador</b> del partido</div>
+        <div class="fc-kick">${L('<b>Jugador</b> del partido', '<b>Player</b> of the match')}</div>
         <div class="stats">
           ${nums.map(s => `
             <div class="st">
@@ -1643,8 +1746,11 @@
   // «LaLiga», «la Champions», «el grupo B»…
   function tableName(m) {
     const group = (m.standingsName || '').match(/group\s+([A-Z0-9]+)/i)?.[1];
+    if (isEn()) return group ? `Group ${group}` : compName(m.league);
     return group ? `el grupo ${group}` : TABLE_NAMES[m.league] || compOf(m.league).name;
   }
+  // «Así va LaLiga» (o «Así queda», al final de la jornada) · «Premier League table»
+  const tableTitle = (what, after = false) => (isEn() ? `${esc(what)}<br>table` : `${after ? 'Así queda' : 'Así va'}<br>${esc(what)}`);
 
   function tplTabla(m) {
     const rows = tableRows(m);
@@ -1672,9 +1778,9 @@
     const what = tableName(m);
     return `
       <div class="fc-in paper">
-        <h1 class="title" style="font-size:${what.length > 16 ? 88 : 104}px">Así va<br>${esc(what)}</h1>
+        <h1 class="title" style="font-size:${what.length > 16 ? 88 : 104}px">${tableTitle(what)}</h1>
         <div class="tbl">
-          <div class="row head"><span class="rk">#</span><span></span><span>Equipo</span><span class="c">PJ</span><span class="c">DG</span><span class="pts">Pts</span></div>
+          <div class="row head"><span class="rk">#</span><span></span><span>${L('Equipo', 'Team')}</span><span class="c">${L('PJ', 'P')}</span><span class="c">${L('DG', 'GD')}</span><span class="pts">Pts</span></div>
           ${rows.map(row).join('')}
         </div>
         ${foot(m)}${grain}
@@ -1684,7 +1790,8 @@
   // ----------------------------------------------------------
   // 8 · CIERRE · la pregunta para los comentarios y tu firma
   // ----------------------------------------------------------
-  const closingQuestion = (m) => (live(m) ? '¿Cómo acaba?' : sides(m).draw && !pensWon(m) ? '¿Quién mereció ganar?' : '¿Quién fue el mejor del partido?');
+  const closingQuestion = (m) => (live(m) ? L('¿Cómo acaba?', 'How will it end?')
+    : sides(m).draw && !pensWon(m) ? L('¿Quién mereció ganar?', 'Who deserved to win?') : L('¿Quién fue el mejor del partido?', 'Who was your player of the match?'));
 
   function tplCierre(m) {
     const { winner } = sides(m);
@@ -1694,10 +1801,10 @@
       <div class="fc-in" style="${styleVars(teamStyle(team))}">
         ${p && hasPhoto(p) ? photoTag(p, 'photo') : logoTag(team, 'wm')}
         <div class="fade"></div>
-        <div class="qwrap"><h1 class="q">${closingQuestion(m)}</h1><div class="sub">Te leo en comentarios</div></div>
+        <div class="qwrap"><h1 class="q">${closingQuestion(m)}</h1><div class="sub">${L('Te leo en comentarios', 'Let me know in the comments')}</div></div>
         <div class="handle">
           ${brandTag('brand-big')}
-          <span class="fc-chip">Sígueme para más fútbol</span>
+          <span class="fc-chip">${L('Sígueme para más fútbol', 'Follow for more football')}</span>
           <div class="h fc-sign" data-noedit>${esc(state.sign)}</div>
         </div>
         ${grain}
@@ -2100,6 +2207,43 @@
     if (state.rendered) contentChanged();
   }
 
+  // El idioma de lo que se publica. Al cambiarlo se vuelve a generar lo que hay (el partido y la
+  // jornada), porque los nombres de los equipos también cambian.
+  function updateLangUi() {
+    document.querySelectorAll('.lang-opt').forEach(b => b.setAttribute('aria-checked', String(b.dataset.lang === state.lang)));
+  }
+  async function setLang(lang) {
+    if (lang === state.lang || !['es', 'en'].includes(lang) || state.generating) return;
+    if (!canDiscardEdits()) return;
+    state.lang = lang;
+    try { localStorage.setItem(LANG_KEY, lang); } catch (e) { /* sin almacenamiento: no se recuerda */ }
+    updateLangUi();
+    const m = state.rendered;
+    const keep = m && { league: m.league, id: m.id, day: localIso(0, new Date(m.date)) };
+    const jKeep = jornada.data && { league: jornada.data.league, day: jornada.data.day };
+    // El guion era del otro idioma: se escribe otra vez. Los retoques ya se han descartado.
+    state.script = null;
+    state.scriptGame = null;
+    document.querySelectorAll('#slidesPreview .slide-wrap.edited').forEach(w => w.classList.remove('edited'));
+    await loadGames(state.selectedDate || localIso());
+    if (keep) {
+      const g = (keep.league === state.league && state.games.find(x => x.id === keep.id))
+        || (await fetchGames(keep.league, keep.day).catch(() => [])).find(x => x.id === keep.id);
+      if (g) {
+        if (state.games.includes(g)) selectGame(g.id);
+        else state.selectedGame = g;
+        await generateCarousel();
+      }
+    }
+    if (jKeep) {
+      try {
+        jornada.data = await fetchJornada(jKeep.league, jKeep.day);
+        renderJornada();
+      } catch (e) { console.error(e); }
+    }
+    showToast(lang === 'en' ? 'Ahora en inglés: slides, vídeo, guion y pie de foto' : 'Ahora en español', 'success');
+  }
+
   // Tu logo: se guarda en este navegador, reducido a 480 px como mucho (en PNG, con su
   // transparencia), y sale en las slides y en el vídeo.
   const BRAND_KEY = 'fc-logo';
@@ -2252,7 +2396,8 @@
     copy.querySelectorAll('br').forEach(br => br.replaceWith(' '));
     return copy.textContent.replace(/\s+/g, ' ').trim();
   }
-  const listEs = (xs) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} y ${xs[xs.length - 1]}` : xs[0] || '');
+  // «A, B y C» (en inglés, «A, B and C»)
+  const listEs = (xs) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} ${L('y', 'and')} ${xs[xs.length - 1]}` : xs[0] || '');
   // «al Real Madrid», «a la Roma», «a España»
   const toTeam = (t) => (article(t) === 'el ' ? `al ${t.short}` : `a ${article(t)}${t.short}`);
   const extraTime = (m, evs) => m.status.period > 2 || /AET|EXTRA|PEN/.test(m.status.name) || evs.some(e => e.min.period > 2);
@@ -2265,7 +2410,7 @@
         name: t.name, short: t.short, abbr: t.abbr, score: t.score, shootout: pensWon(m) ? t.shootout : null,
         logo: t.logo, style: teamStyle(t), won: winner === side, lost: !!winner && winner !== side,
         the: theTeam(t), to: toTeam(t),
-        lines: scorerList(m, side).map(x => (x.red ? `${x.text} · roja` : x.text)),
+        lines: scorerList(m, side).map(x => (x.red ? `${x.text} · ${L('roja', 'red card')}` : x.text)),
       };
     };
     const evs = cronoEvents(m);
@@ -2274,19 +2419,19 @@
     const rows = statRows(m);
     const tbl = (m.standings?.length || 0) >= 4 ? tableRows(m, 11) : null;
     const closingSide = winner || 'home';
-    const c = compOf(m.league);
     return {
       home: team('home'),
       away: team('away'),
       live: live(m),
       clock: minuteText(m.status.clock),
-      comp: [c.name, m.phase, legLabel(m)].filter(Boolean).join(' · '),
+      lang: state.lang,
+      comp: [compName(m.league), phaseOut(m.phase), legLabel(m)].filter(Boolean).join(' · '),
       through: live(m) ? null : pensSide(m) || throughOf(m),
       agg: m.agg,
-      date: asDate(m.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }),
+      date: asDate(m.date).toLocaleDateString(outLocale(), { day: 'numeric', month: 'long', year: 'numeric' }),
       headline: writtenText('#slide-portada .head h1') || headline(m),
       goals: evs.map(e => ({ side: e.side, min: e.min.label, t: e.min.t, kind: e.kind, name: e.name, how: e.how, score: e.score || null, style: teamStyle(m[e.side]) })),
-      goalsTitle: evs.every(e => e.kind === 'goal') ? 'LOS GOLES' : 'MINUTO A MINUTO',
+      goalsTitle: evs.every(e => e.kind === 'goal') ? L('LOS GOLES', 'THE GOALS') : L('MINUTO A MINUTO', 'MINUTE BY MINUTE'),
       halftime: m.halftime,
       extraTime: extraTime(m, evs),
       shots: m.shots.length >= 4 ? {
@@ -2298,12 +2443,12 @@
         last: surname(p), number: p.jersey,
         photo: hasPhoto(p) ? [photoSrc(p)] : null,
         logo: m[p.side].logo, style: teamStyle(m[p.side]),
-        stats: keys.map(s => ({ v: s.text ?? s.v, label: s.label })),
+        stats: keys.map(s => ({ v: s.text ?? s.v, label: s.label, clean: !!s.clean })),
         scoreLine: scoreLine(m),
       },
-      stats: rows.length >= 3 ? rows.slice(0, 5).map(r => ({ label: r.label, v: r.v, more: r.more, pct: r.label === 'Posesión' })) : null,
+      stats: rows.length >= 3 ? rows.slice(0, 5).map(r => ({ label: r.label, v: r.v, more: r.more, pct: !!r.fmt })) : null,
       table: tbl && {
-        title: `Así va ${tableName(m)}`,
+        title: L(`Así va ${tableName(m)}`, `${tableName(m)} table`),
         rows: tbl.map(r => r && {
           rank: r.rank, pts: r.pts, logo: r.logo,
           name: r.id === m.home.id ? m.home.short : r.id === m.away.id ? m.away.short : r.name,
@@ -2318,6 +2463,18 @@
       sign: state.sign,
       brand: state.brandLogo || null,
       grain: grainUrl(),
+      // Los textos fijos del vídeo, en el idioma de lo que se publica
+      t: {
+        shotMap: L('MAPA DE TIROS', 'SHOT MAP'),
+        shotCount: L('{t} TIROS · {o} A PUERTA', '{t} SHOTS · {o} ON TARGET'),
+        goal: L('GOL', 'GOAL'), onTarget: L('A PUERTA', 'ON TARGET'), offTarget: L('FUERA O BLOQUEADO', 'OFF TARGET OR BLOCKED'),
+        player: L('JUGADOR', 'PLAYER'), ofMatch: L(' DEL PARTIDO', ' OF THE MATCH'),
+        stats: L('ESTADÍSTICAS', 'STATS'),
+        halftime: L('DESCANSO', 'HALF-TIME'), extraTime: L('PRÓRROGA', 'EXTRA TIME'), now: L('AHORA', 'NOW'), fullTime: L('FINAL', 'FULL TIME'),
+        onPens: L('EN LOS PENALTIS', 'ON PENALTIES'),
+        comments: L('TE LEO EN COMENTARIOS', 'LET ME KNOW IN THE COMMENTS'),
+        follow: L('Sígueme para más fútbol', 'Follow for more football'),
+      },
     };
   }
 
@@ -2420,7 +2577,78 @@
   const ORDINALS = ['', 'primero', 'segundo', 'tercero', 'cuarto', 'quinto', 'sexto', 'séptimo', 'octavo', 'noveno', 'décimo'];
   const ordinal = (n) => ORDINALS[n] || `${n}.º`;
 
+  // El guion en inglés: lo mismo, dicho como en la Premier.
+  const ORDINALS_EN = ['', 'first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'];
+  const ordinalEn = (n) => ORDINALS_EN[n] || `${n}${[11, 12, 13].includes(n % 100) ? 'th' : { 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th'}`;
+  const TIMES_EN = ['', 'once', 'twice', 'three times', 'four times', 'five times'];
+  function autoScriptEn(d) {
+    const end = (str) => (/[.!?…]$/.test(str) ? str : `${str}.`);
+    const H = d.home, A = d.away;
+    const hl = end(d.headline);
+    const bare = hl.replace(/[.!?…]$/, '');
+    const says = (t) => plain(hl).includes(plain(t.short));
+    const T = d.through ? d[d.through] : null, O = T === H ? A : H;
+    let score;
+    if (d.live) {
+      score = `${hl} Right now, it's ${H.score}-${A.score}.`;
+    } else if (T && T.shootout != null) {
+      score = says(T) ? `${bare}: ${T.shootout}-${O.shootout}.` : `${hl} ${T.short} win ${T.shootout}-${O.shootout} on penalties.`;
+    } else if (T && d.agg) {
+      const [x, y] = T === H ? d.agg : [d.agg[1], d.agg[0]];
+      score = says(T) ? `${bare}: ${x}-${y} on aggregate.` : `${hl} ${T.short} go through ${x}-${y} on aggregate.`;
+    } else if (H.score === A.score) {
+      score = /^(Goalless|\d+-\d+) draw$/.test(bare) ? `${bare} between ${H.short} and ${A.short}.`
+        : `${hl} ${H.short} and ${A.short} draw ${H.score}-${A.score}.`;
+    } else {
+      const W = H.score > A.score ? H : A, Lo = W === H ? A : H;
+      score = says(W) ? `${bare}: ${W.score}-${Lo.score} against ${Lo.short}.` : `${hl} ${W.short} beat ${Lo.short} ${W.score}-${Lo.score}.`;
+    }
+    const script = { score, outro: d.closing.question };
+    const goals = d.goals.filter(e => e.kind === 'goal');
+    if (d.goals.length) {
+      const tally = new Map();
+      goals.forEach(e => tally.set(e.name, (tally.get(e.name) || 0) + 1));
+      const top = [...tally].sort((a, b) => b[1] - a[1])[0];
+      const reds = d.goals.filter(e => e.kind === 'red').map(e => e.name);
+      const parts = [];
+      if (top && top[1] > 1) {
+        const others = [...tally.keys()].filter(n => n !== top[0]);
+        parts.push(top[1] === 3 ? `Hat-trick for ${top[0]}.` : `${top[0]} scores ${TIMES_EN[top[1]] || `${top[1]} times`}.`);
+        if (others.length) parts.push(`${listEs(others)} ${others.length > 1 ? 'also score' : 'also scores'}.`);
+      } else if (tally.size) {
+        parts.push(`${tally.size > 1 ? 'Goals from' : 'The goal from'} ${listEs([...tally.keys()])}.`);
+      }
+      if (reds.length) parts.push(`Red card for ${listEs(reds)}.`);
+      script.goals = parts.join(' ') || 'Here is the game, minute by minute.';
+    }
+    if (d.shots) {
+      script.tiros = `${H.short}: ${d.shots.home.total} shots, ${d.shots.home.on} on target. ${A.short}: ${d.shots.away.total} and ${d.shots.away.on}.`;
+    }
+    if (d.jugador) {
+      const say = (s) => (s.clean ? 'a clean sheet' : `${String(s.v).replace('/', ' of ')} ${s.label.toLowerCase()}`);
+      const [a, b] = d.jugador.stats;
+      script.jugador = `${d.jugador.last}, player of the match${a ? `: ${say(a)}${b ? ` and ${say(b)}` : ''}` : ''}.`;
+    }
+    if (d.stats) {
+      const pos = d.stats.find(r => r.pct);
+      if (pos && pos.v[0] !== pos.v[1]) {
+        const i = pos.v[0] > pos.v[1] ? 0 : 1;
+        script.stats = `${(i ? A : H).short} had the ball: ${Math.round(pos.v[i])}% possession.`;
+      } else {
+        script.stats = 'Here are the stats.';
+      }
+    }
+    if (d.table) {
+      const rank = (side) => d.table.rows.find(r => r?.me === side)?.rank;
+      const [rh, ra] = [rank('home'), rank('away')];
+      script.tabla = rh && ra ? `${H.short}, ${ordinalEn(rh)}; ${A.short}, ${ordinalEn(ra)}.`
+        : rh ? `${H.short} sit ${ordinalEn(rh)}.` : ra ? `${A.short} sit ${ordinalEn(ra)}.` : 'Here is the table.';
+    }
+    return script;
+  }
+
   function autoScript(d) {
+    if (d.lang === 'en') return autoScriptEn(d);
     const end = (str) => (/[.!?…]$/.test(str) ? str : `${str}.`);
     const H = d.home, A = d.away;
     const hl = end(d.headline);
@@ -2465,12 +2693,12 @@
       script.tiros = `${cap(H.the)}, ${d.shots.home.total} tiros y ${d.shots.home.on} a puerta; ${A.the}, ${d.shots.away.total} y ${d.shots.away.on}.`;
     }
     if (d.jugador) {
-      const say = (s) => (s.label === 'Portería a cero' ? 'portería a cero' : `${String(s.v).replace('/', ' de ')} ${s.label.toLocaleLowerCase('es')}`);
+      const say = (s) => (s.clean ? 'portería a cero' : `${String(s.v).replace('/', ' de ')} ${s.label.toLocaleLowerCase('es')}`);
       const [a, b] = d.jugador.stats;
       script.jugador = `${d.jugador.last}, el mejor del partido${a ? `: ${say(a)}${b ? ` y ${say(b)}` : ''}` : ''}.`;
     }
     if (d.stats) {
-      const pos = d.stats.find(r => r.label === 'Posesión');
+      const pos = d.stats.find(r => r.pct);
       if (pos && pos.v[0] !== pos.v[1]) {
         const i = pos.v[0] > pos.v[1] ? 0 : 1;
         script.stats = `${cap((i ? A : H).the)} tuvo el balón: ${Math.round(pos.v[i])}% de posesión.`;
@@ -2847,7 +3075,8 @@
       '- Paso 4: el vídeo short (1080×1920, unos 30 s): una escena por slide. Lleva un guion, una frase por escena, que sale en los subtítulos y que Toni lee si graba su voz.',
       '',
       '## Cómo ayudar',
-      '- Español de España: cercano, con gancho y sin exagerar.',
+      isEn() ? '- **Idioma: inglés.** Esta vez las slides y el vídeo van en inglés: escribe el titular, la pregunta y el guion en inglés británico (el del fútbol), cercano, con gancho y sin exagerar.'
+        : '- Español de España: cercano, con gancho y sin exagerar.',
       '- No te inventes datos: usa los de abajo.',
       '- Guion: una frase por escena que quepa en su tiempo (unas 2,8 palabras por segundo; las cifras cuentan casi el doble). Escríbelo como se dice en voz alta.',
       '- Titular de portada: de 2 a 5 palabras, que enganche.',
@@ -2885,7 +3114,7 @@
     if (reds.length) lines.push(`**Rojas:** ${reds.join(', ')}`);
     if (d.stats) lines.push(`**Estadísticas (${d.home.short} – ${d.away.short}):** ${d.stats.map(r => `${r.label} ${r.pct ? `${Math.round(r.v[0])}%-${Math.round(r.v[1])}%` : `${r.v[0]}-${r.v[1]}`}`).join(', ')}`);
     if (d.shots) lines.push(`**Tiros:** ${d.home.short} ${d.shots.home.total} (${d.shots.home.on} a puerta) · ${d.away.short} ${d.shots.away.total} (${d.shots.away.on} a puerta)`);
-    if (d.jugador) lines.push(`**Jugador del partido:** ${[d.jugador.first, d.jugador.last].filter(Boolean).join(' ')}: ${d.jugador.stats.map(x => (x.label === 'Portería a cero' ? 'portería a cero' : `${x.v} ${x.label.toLocaleLowerCase('es')}`)).join(', ')}`);
+    if (d.jugador) lines.push(`**Jugador del partido:** ${[d.jugador.first, d.jugador.last].filter(Boolean).join(' ')}: ${d.jugador.stats.map(x => (x.clean ? L('portería a cero', 'clean sheet') : `${x.v} ${x.label.toLocaleLowerCase('es')}`)).join(', ')}`);
     if (d.table) {
       const mine = d.table.rows.filter(r => r?.me).map(r => `${r.name} ${r.rank}.º (${r.pts} pts)`);
       if (mine.length) lines.push(`**Clasificación (${tableName(m)}):** ${mine.join(' · ')}`);
@@ -3101,6 +3330,10 @@
       }
       const d = await dbGet('drafts', 'match');
       if (!d?.match || state.rendered || state.generating) return;
+      if (d.match.lang && d.match.lang !== state.lang) {
+        state.lang = d.match.lang;
+        updateLangUi();
+      }
       state.rendered = d.match;
       state.jugadorId = d.jugadorId || null;
       state.script = d.script || null;
@@ -3518,18 +3751,20 @@
   // El pie de foto para Instagram (va en el ZIP y se copia al compartir).
   function generateCaption(m) {
     const c = compOf(m.league);
-    const pens = pensWon(m) ? ` (${m.home.shootout}-${m.away.shootout} pen.)` : '';
+    const pens = pensWon(m) ? ` (${m.home.shootout}-${m.away.shootout} ${L('pen.', 'pens')})` : '';
     const goals = ['home', 'away'].map(s => scorerList(m, s).filter(x => !x.red).map(x => x.text).join(', ')).filter(Boolean);
     const best = bestPlayer(m);
     const tag = (t) => `#${t.short.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]/g, '')}`;
     // Lo que hay dentro del carrusel (las slides que han salido)
-    const INSIDE = { crono: 'el minuto a minuto', stats: 'las estadísticas', tiros: 'el mapa de tiros', onces: 'los onces', tabla: 'la clasificación' };
+    const INSIDE = isEn()
+      ? { crono: 'the minute by minute', stats: 'the stats', tiros: 'the shot map', onces: 'the line-ups', tabla: 'the table' }
+      : { crono: 'el minuto a minuto', stats: 'las estadísticas', tiros: 'el mapa de tiros', onces: 'los onces', tabla: 'la clasificación' };
     const inside = slideDefs().map(d => INSIDE[d.id]).filter(Boolean);
     return `⚽ ${m.home.name.toUpperCase()} ${m.home.score}-${m.away.score} ${m.away.name.toUpperCase()}${pens}
-${[c.name, m.phase, legLabel(m), m.agg ? `Global ${m.agg[0]}-${m.agg[1]}` : ''].filter(Boolean).join(' · ')} · ${fmtDateLong(m.date)}
-${goals.length ? `\nGoles: ${goals.join(' · ')}` : ''}${best ? `\nJugador del partido: ${best.name}` : ''}
-${inside.length ? `\nDesliza para ver ${listEs(inside)}.\n` : ''}
-#Futbol #${c.tag} ${tag(m.home)} ${tag(m.away)}`;
+${[compName(m.league), phaseOut(m.phase), legLabel(m), m.agg ? aggLabel(m.agg) : ''].filter(Boolean).join(' · ')} · ${fmtDateLong(m.date)}
+${goals.length ? `\n${L('Goles', 'Goals')}: ${goals.join(' · ')}` : ''}${best ? `\n${L('Jugador del partido', 'Player of the match')}: ${best.name}` : ''}
+${inside.length ? `\n${L('Desliza para ver', 'Swipe for')} ${listEs(inside)}.\n` : ''}
+#${L('Futbol', 'Football')} #${c.tag} ${tag(m.home)} ${tag(m.away)}`;
   }
 
   // ----------------------------------------------------------
@@ -3566,13 +3801,13 @@ ${inside.length ? `\nDesliza para ver ${listEs(inside)}.\n` : ''}
         table = tableOf(data.children || (data.standings ? [data] : []), [...teams], league, logos);
       } catch (e) { /* sin clasificación: la slide no sale */ }
     }
-    return { kind: 'jornada', league, date: list[0]?.date || iso, from: isos[0] || iso, to: isos[isos.length - 1] || iso, games: list, table };
+    return { kind: 'jornada', league, lang: state.lang, day: iso, date: list[0]?.date || iso, from: isos[0] || iso, to: isos[isos.length - 1] || iso, games: list, table };
   }
 
   // «17 oct 2026», «17-20 oct 2026», «30 sep-2 oct 2026»
   function fmtRange(from, to) {
     const a = asDate(from), b = asDate(to);
-    const mon = (d) => d.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '');
+    const mon = (d) => d.toLocaleDateString(outLocale(), { month: 'short' }).replace('.', '');
     if (from === to) return `${a.getDate()} ${mon(a)} ${a.getFullYear()}`;
     return a.getMonth() === b.getMonth()
       ? `${a.getDate()}-${b.getDate()} ${mon(b)} ${b.getFullYear()}`
@@ -3591,11 +3826,11 @@ ${inside.length ? `\nDesliza para ver ${listEs(inside)}.\n` : ''}
     const line = (g) => `${g.home.short} ${g.home.score}-${g.away.score} ${g.away.short}`;
     const facts = [];
     const big = [...done].sort((a, b) => margin(b) - margin(a) || total(b) - total(a))[0];
-    if (big && margin(big) >= 3) facts.push(`La mayor goleada: ${line(big)}`);
+    if (big && margin(big) >= 3) facts.push(`${L('La mayor goleada', 'Biggest win')}: ${line(big)}`);
     const multi = [];
     done.forEach(g => ['home', 'away'].forEach(side => {
       const count = new Map();
-      g.scorers[side].filter(t => !/\(p\.p\.\)/.test(t)).forEach(t => {
+      g.scorers[side].filter(t => !/\((p\.p\.|og)\)/.test(t)).forEach(t => {
         const who = scorerShort(t).replace(/\s+\d.*$/, '').trim();
         count.set(who, (count.get(who) || 0) + 1);
       });
@@ -3603,19 +3838,23 @@ ${inside.length ? `\nDesliza para ver ${listEs(inside)}.\n` : ''}
     }));
     multi.sort((a, b) => b.n - a.n);
     const hat = multi.filter(x => x.n >= 3), dbl = multi.filter(x => x.n === 2);
-    if (hat.length) facts.push(`${hat.length > 1 ? 'Hat-tricks' : 'Hat-trick'} de ${listEs(hat.map(x => `${x.who} (${x.team.short})`))}`);
-    if (dbl.length && facts.length < 3) facts.push(`${dbl.length > 1 ? 'Dobletes' : 'Doblete'} de ${listEs(dbl.slice(0, 3).map(x => x.who))}`);
+    if (hat.length) facts.push(`${hat.length > 1 ? 'Hat-tricks' : 'Hat-trick'} ${L('de', 'for')} ${listEs(hat.map(x => `${x.who} (${x.team.short})`))}`);
+    if (dbl.length && facts.length < 3) facts.push(`${dbl.length > 1 ? L('Dobletes', 'Braces') : L('Doblete', 'Brace')} ${L('de', 'for')} ${listEs(dbl.slice(0, 3).map(x => x.who))}`);
     const most = [...done].sort((a, b) => total(b) - total(a))[0];
-    if (most && total(most) >= 5 && most !== big && facts.length < 3) facts.push(`El partido con más goles: ${line(most)}`);
+    if (most && total(most) >= 5 && most !== big && facts.length < 3) facts.push(`${L('El partido con más goles', 'Highest-scoring game')}: ${line(most)}`);
     if (facts.length < 3 && done.length >= 3) {
-      const h = done.filter(g => g.home.score > g.away.score).length, a = done.filter(g => g.away.score > g.home.score).length;
-      facts.push(`${h} ${h === 1 ? 'victoria' : 'victorias'} en casa, ${done.length - h - a} ${done.length - h - a === 1 ? 'empate' : 'empates'} y ${a} fuera`);
+      const h = done.filter(g => g.home.score > g.away.score).length, a = done.filter(g => g.away.score > g.home.score).length, d = done.length - h - a;
+      facts.push(L(`${h} ${h === 1 ? 'victoria' : 'victorias'} en casa, ${d} ${d === 1 ? 'empate' : 'empates'} y ${a} fuera`,
+        `${h} home ${h === 1 ? 'win' : 'wins'}, ${d} ${d === 1 ? 'draw' : 'draws'} and ${a} away ${a === 1 ? 'win' : 'wins'}`));
     }
     const pending = j.games.length - done.length;
-    if (pending) facts.push(`${pending === 1 ? 'Queda 1 partido' : `Quedan ${pending} partidos`} por jugar`);
+    if (pending) facts.push(L(`${pending === 1 ? 'Queda 1 partido' : `Quedan ${pending} partidos`} por jugar`, `${pending === 1 ? '1 game' : `${pending} games`} still to play`));
     return { done, goals, facts: facts.slice(0, 4) };
   }
 
+  // «31 goles en 9 partidos» · «31 goals in 9 games»
+  const goalsIn = (f) => L(`${f.goals === 1 ? 'gol' : 'goles'} en ${f.done.length} ${f.done.length === 1 ? 'partido' : 'partidos'}`,
+    `${f.goals === 1 ? 'goal' : 'goals'} in ${f.done.length} ${f.done.length === 1 ? 'game' : 'games'}`);
   const jWatermark = (j) => (compLogo(j.league, true) ? `<img class="jwm" src="${compLogo(j.league, true)}" alt="" crossorigin="anonymous" onerror="this.remove()"/>` : '');
 
   function tplJornadaPortada(j) {
@@ -3624,10 +3863,10 @@ ${inside.length ? `\nDesliza para ver ${listEs(inside)}.\n` : ''}
     return `
       <div class="fc-in" style="${styleVars(teamStyle(JORNADA_STYLE))}">
         ${jWatermark(j)}
-        <div class="jt-comp">${compLogo(j.league, true) ? `<img src="${compLogo(j.league, true)}" alt="" crossorigin="anonymous" onerror="this.remove()"/>` : ''}<span>${esc(c.name)}</span></div>
-        <h1 class="jt-title">Así fue<br>la jornada</h1>
+        <div class="jt-comp">${compLogo(j.league, true) ? `<img src="${compLogo(j.league, true)}" alt="" crossorigin="anonymous" onerror="this.remove()"/>` : ''}<span>${esc(compName(j.league))}</span></div>
+        <h1 class="jt-title">${L('Así fue<br>la jornada', 'Matchday<br>round-up')}</h1>
         <div class="jt-dates">${esc(fmtRange(j.from, j.to))}</div>
-        <div class="jt-big"><span class="n">${f.goals}</span><span class="l">${f.goals === 1 ? 'gol' : 'goles'} en ${f.done.length} ${f.done.length === 1 ? 'partido' : 'partidos'}</span></div>
+        <div class="jt-big"><span class="n">${f.goals}</span><span class="l">${goalsIn(f)}</span></div>
         <div class="jt-facts">${f.facts.map(x => `<div>${esc(x)}</div>`).join('')}</div>
         ${foot(j)}${grain}
       </div>`;
@@ -3636,8 +3875,8 @@ ${inside.length ? `\nDesliza para ver ${listEs(inside)}.\n` : ''}
   function tplJornadaResultados(j, games, page, pages) {
     const cell = (g) => {
       const ph = gamePhase(g);
-      if (ph === 'pre') return `<div class="jr-score pre">${esc(cap(asDate(g.date).toLocaleDateString('es-ES', { weekday: 'short' }).replace('.', '')))} ${fmtTime(g.date)}</div>`;
-      const pens = g.home.shootout != null && g.away.shootout != null ? `<small>${g.home.shootout}-${g.away.shootout} pen.</small>` : '';
+      if (ph === 'pre') return `<div class="jr-score pre">${esc(cap(asDate(g.date).toLocaleDateString(outLocale(), { weekday: 'short' }).replace('.', '')))} ${fmtTime(g.date)}</div>`;
+      const pens = g.home.shootout != null && g.away.shootout != null ? `<small>${g.home.shootout}-${g.away.shootout} ${L('pen.', 'pens')}</small>` : '';
       const now = ph === 'live' ? `<small class="now">${esc(minuteText(g.status.clock))}</small>` : '';
       return `<div class="jr-score ${ph}"><b>${g.home.score}-${g.away.score}</b>${pens}${now}</div>`;
     };
@@ -3648,8 +3887,8 @@ ${inside.length ? `\nDesliza para ver ${listEs(inside)}.\n` : ''}
     };
     return `
       <div class="fc-in paper">
-        <h1 class="title">Resultados</h1>
-        <div class="jr-sub">${esc(compOf(j.league).name)} · ${esc(fmtRange(j.from, j.to))}${pages > 1 ? ` · ${page + 1}/${pages}` : ''}</div>
+        <h1 class="title">${L('Resultados', 'Results')}</h1>
+        <div class="jr-sub">${esc(compName(j.league))} · ${esc(fmtRange(j.from, j.to))}${pages > 1 ? ` · ${page + 1}/${pages}` : ''}</div>
         <div class="jr-list">
           ${games.map(g => `
             <div class="jr-row">
@@ -3663,14 +3902,14 @@ ${inside.length ? `\nDesliza para ver ${listEs(inside)}.\n` : ''}
   }
 
   function tplJornadaTabla(j, rows, page, pages) {
-    const what = TABLE_NAMES[j.league] || compOf(j.league).name;
+    const what = isEn() ? compName(j.league) : TABLE_NAMES[j.league] || compOf(j.league).name;
     const playing = new Set(j.games.flatMap(g => [g.home.id, g.away.id]));
     const h = Math.min(66, Math.floor(930 / (rows.length + 1)));
     return `
       <div class="fc-in paper">
-        <h1 class="title" style="font-size:${what.length > 16 ? 76 : 88}px">Así queda<br>${esc(what)}</h1>
+        <h1 class="title" style="font-size:${what.length > 16 ? 76 : 88}px">${tableTitle(what, true)}</h1>
         <div class="jt-tbl" style="--rh:${h}px">
-          <div class="row head"><span class="rk">#</span><span></span><span>Equipo${pages > 1 ? ` · ${page + 1}/${pages}` : ''}</span><span class="c">PJ</span><span class="c">DG</span><span class="pts">Pts</span></div>
+          <div class="row head"><span class="rk">#</span><span></span><span>${L('Equipo', 'Team')}${pages > 1 ? ` · ${page + 1}/${pages}` : ''}</span><span class="c">${L('PJ', 'P')}</span><span class="c">${L('DG', 'GD')}</span><span class="pts">Pts</span></div>
           ${rows.map(r => {
             const gd = r.gd == null ? '' : r.gd > 0 ? `+${r.gd}` : `${r.gd}`;
             return `
@@ -3693,10 +3932,10 @@ ${inside.length ? `\nDesliza para ver ${listEs(inside)}.\n` : ''}
       <div class="fc-in" style="${styleVars(teamStyle(JORNADA_STYLE))}">
         ${jWatermark(j)}
         <div class="fade"></div>
-        <div class="qwrap"><h1 class="q">¿Cuál fue el partido de la jornada?</h1><div class="sub">Te leo en comentarios</div></div>
+        <div class="qwrap"><h1 class="q">${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')}</h1><div class="sub">${L('Te leo en comentarios', 'Let me know in the comments')}</div></div>
         <div class="handle">
           ${brandTag('brand-big')}
-          <span class="fc-chip">Sígueme para más fútbol</span>
+          <span class="fc-chip">${L('Sígueme para más fútbol', 'Follow for more football')}</span>
           <div class="h fc-sign" data-noedit>${esc(state.sign)}</div>
         </div>
         ${grain}
@@ -3778,17 +4017,17 @@ ${inside.length ? `\nDesliza para ver ${listEs(inside)}.\n` : ''}
     const c = compOf(j.league);
     const f = jornadaFacts(j);
     const res = j.games.map(g => (gamePhase(g) === 'pre'
-      ? `${g.home.short} - ${g.away.short} (${cap(asDate(g.date).toLocaleDateString('es-ES', { weekday: 'long' }))}, ${fmtTime(g.date)})`
+      ? `${g.home.short} - ${g.away.short} (${cap(asDate(g.date).toLocaleDateString(outLocale(), { weekday: 'long' }))}, ${fmtTime(g.date)})`
       : `${g.home.short} ${g.home.score}-${g.away.score} ${g.away.short}`));
-    return `⚽ RESULTADOS · ${c.name.toUpperCase()} · ${fmtRange(j.from, j.to)}
+    return `⚽ ${L('RESULTADOS', 'RESULTS')} · ${compName(j.league).toUpperCase()} · ${fmtRange(j.from, j.to)}
 
 ${res.join('\n')}
 
-${f.goals} ${f.goals === 1 ? 'gol' : 'goles'} en ${f.done.length} ${f.done.length === 1 ? 'partido' : 'partidos'}.${f.facts.length ? `\n${f.facts.join('.\n')}.` : ''}
+${f.goals} ${goalsIn(f)}.${f.facts.length ? `\n${f.facts.join('.\n')}.` : ''}
 
-¿Cuál fue el partido de la jornada? 👇
+${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')} 👇
 
-#Futbol #${c.tag}`;
+#${L('Futbol', 'Football')} #${c.tag}`;
   }
 
   async function downloadJornada(vertical = false) {
@@ -4124,6 +4363,7 @@ ${f.goals} ${f.goals === 1 ? 'gol' : 'goles'} en ${f.done.length} ${f.done.lengt
       if (COMP[saved]) state.league = saved;
       state.sign = localStorage.getItem(SIGN_KEY) || '';
       state.brandLogo = localStorage.getItem(BRAND_KEY) || '';
+      if (localStorage.getItem(LANG_KEY) === 'en') state.lang = 'en';
     } catch (e) { /* sin almacenamiento: los valores por defecto */ }
     renderCompPicker();
     setupDirecto();
@@ -4132,6 +4372,11 @@ ${f.goals} ${f.goals === 1 ? 'gol' : 'goles'} en ${f.done.length} ${f.done.lengt
     signInput.value = state.sign;
     signInput.addEventListener('input', onSignInput);
     updateBrandUi();
+    updateLangUi();
+    document.querySelector('.lang-switch').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-lang]');
+      if (btn) setLang(btn.dataset.lang);
+    });
     document.getElementById('brandInput').addEventListener('change', (e) => { onBrandFile(e.target.files[0]); e.target.value = ''; });
     document.getElementById('brandDel').addEventListener('click', () => setBrand(''));
 

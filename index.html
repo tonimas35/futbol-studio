@@ -16,7 +16,7 @@
     rel="stylesheet"
   />
 
-  <link rel="stylesheet" href="futbol.css?v=7" />
+  <link rel="stylesheet" href="futbol.css?v=8" />
 </head>
 
 <body>
@@ -139,6 +139,14 @@
       </div>
 
       <!-- Tu firma: sale abajo a la derecha de cada slide y en el cierre. Se recuerda en este navegador. -->
+      <div class="sign-field lang-field">
+        <span>Idioma</span>
+        <div class="lang-switch" role="radiogroup" aria-label="Idioma de lo que publicas">
+          <button class="lang-opt" type="button" role="radio" data-lang="es" aria-checked="true">Español</button>
+          <button class="lang-opt" type="button" role="radio" data-lang="en" aria-checked="false">English</button>
+        </div>
+        <small>El de las slides, el vídeo, el guion y el pie de foto (los equipos, con sus nombres en ese idioma). La interfaz sigue en español.</small>
+      </div>
       <label class="sign-field">
         <span>Tu firma</span>
         <input type="text" id="signInput" maxlength="32" placeholder="@tu_usuario" autocomplete="off" spellcheck="false" />
@@ -290,7 +298,7 @@
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 
   <script src="audio.js?v=1"></script>
-  <script src="video.js?v=3"></script>
-  <script src="futbol.js?v=7"></script>
+  <script src="video.js?v=4"></script>
+  <script src="futbol.js?v=8"></script>
 </body>
 </html>
