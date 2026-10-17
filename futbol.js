@@ -1264,7 +1264,15 @@
         const espn = m[side].players.find(x => x.jersey && String(x.jersey) === String(g.number))
           || (last.length >= 3 && m[side].players.find(x => plain(x.name).endsWith(last)));
         // Los que no han jugado vienen con nota «0»: sin nota
-        if (espn) players[espn.id] = { rating: num(g.rating) > 0 ? num(g.rating) : null, photo: p.player?.photo || '' };
+        const st = p.statistics?.[0] || {};
+        const n = (v) => num(v) || 0;
+        if (espn) {
+          players[espn.id] = {
+            rating: num(g.rating) > 0 ? num(g.rating) : null, photo: p.player?.photo || '',
+            s: { passes: n(st.passes?.total), keyPasses: n(st.passes?.key), dribbles: n(st.dribbles?.success), duels: n(st.duels?.won),
+              tackles: n(st.tackles?.total), interceptions: n(st.tackles?.interceptions), shots: n(st.shots?.total), saves: n(st.goals?.saves), drawn: n(st.fouls?.drawn) },
+          };
+        }
       }
     }
     return Object.keys(players).length ? { fixture: fx.fixture.id, players } : null;
@@ -2035,9 +2043,11 @@
         const red = m.cards.some(c => c.red && c.player === p.id);
         const off = m.subs.find(s => s.out === p.id);
         const tags = '<b class="ball"></b>'.repeat(Math.min(goals, 3)) + (red ? '<i class="red"></i>' : yellow ? '<i></i>' : '');
+        // Con API-Football, su cara en el círculo y el dorsal al lado (si la foto no carga, el dorsal)
+        const face = afPhoto(m, p);
         players.push(`
           <div class="pl${p === gk ? ' gk' : ''}" style="left:${Math.round(px)}px;top:${Math.round(py - 41)}px;${styleVars(st)}">
-            <div class="dot">${esc(p.jersey)}</div>
+            <div class="dot${face ? ' has-face' : ''}">${esc(p.jersey)}${face ? `<img class="face" src="${esc(face)}" alt="" crossorigin="anonymous" onerror="this.parentNode.classList.remove('has-face');this.remove()"/><span class="num">${esc(p.jersey)}</span>` : ''}</div>
             <div class="nm" style="max-width:${nameW}px;font-size:${nameSize}px">${esc(nm)}</div>
             ${tags ? `<div class="tags">${tags}</div>` : ''}
             ${off ? `<div class="sub">▼ ${off.min.label}</div>` : ''}
@@ -2143,6 +2153,51 @@
         <h1 class="title">${L('Las notas', 'Player ratings')}</h1>
         <div class="cols">${col('home')}${col('away')}</div>
         <div class="src">${L('Notas', 'Ratings')}: API-Football</div>
+        ${foot(m)}${grain}
+      </div>`;
+  }
+
+  // ----------------------------------------------------------
+  // LÍDERES DEL PARTIDO · el mejor en cada cosa (más pases, regates, duelos ganados…), con su
+  // cara, su escudo y el número en grande. Con los datos de API-Football (solo en la web)
+  // ----------------------------------------------------------
+  const LEADERS = [
+    { k: 'passes', es: 'Más pases', en: 'Most passes', min: 30 },
+    { k: 'keyPasses', es: 'Pases clave', en: 'Key passes', min: 2 },
+    { k: 'dribbles', es: 'Regates completados', en: 'Successful dribbles', min: 2 },
+    { k: 'duels', es: 'Duelos ganados', en: 'Duels won', min: 5 },
+    { k: 'tackles', es: 'Entradas', en: 'Tackles', min: 2 },
+    { k: 'interceptions', es: 'Intercepciones', en: 'Interceptions', min: 2 },
+    { k: 'shots', es: 'Tiros', en: 'Shots', min: 3 },
+    { k: 'saves', es: 'Paradas', en: 'Saves', min: 3 },
+    { k: 'drawn', es: 'Faltas recibidas', en: 'Fouls won', min: 3 },
+  ];
+  function matchLeaders(m) {
+    const all = playedList(m).filter(p => m.af?.players?.[p.id]?.s);
+    return LEADERS.map(c => {
+      const val = (p) => m.af.players[p.id].s[c.k] || 0;
+      const top = [...all].sort((a, b) => val(b) - val(a) || (afRating(m, b) ?? 0) - (afRating(m, a) ?? 0))[0];
+      return top && val(top) >= c.min ? { label: L(c.es, c.en), p: top, v: val(top) } : null;
+    }).filter(Boolean).slice(0, 8);
+  }
+  function tplLideres(m) {
+    const rows = matchLeaders(m);
+    const lead = m[sides(m).winner || 'home'];
+    return `
+      <div class="fc-in" style="${styleVars(teamStyle(JORNADA_STYLE))}">
+        ${logoTag(lead, 'wm')}
+        <h1 class="title">${L('Líderes<br>del partido', 'Match<br>leaders')}</h1>
+        <div class="rows">${rows.map(r => {
+          const face = afPhoto(m, r.p);
+          const team = m[r.p.side];
+          return `
+          <div class="row">
+            <span class="face" style="${styleVars(teamStyle(team))}"><b>${esc(r.p.jersey)}</b>${face ? `<img src="${esc(face)}" alt="" crossorigin="anonymous" onerror="this.remove()"/>` : ''}</span>
+            <div class="who"><span class="lb">${esc(r.label)}</span><span class="nm">${logoTag(team, 'lg')}${esc(surname(r.p))}</span></div>
+            <span class="v">${r.v}</span>
+          </div>`;
+        }).join('')}</div>
+        <div class="src">${L('Datos', 'Data')}: API-Football</div>
         ${foot(m)}${grain}
       </div>`;
   }
@@ -2393,6 +2448,7 @@
       pickValue: (m) => bestPlayer(m)?.id || '',
       onPick: (value) => { state.jugadorId = value; } },
     { id: 'notas', name: 'Las notas', cls: 'fc fc-notas', tpl: tplNotas, show: (m) => ratedPlayers(m, 'home').length >= 8 && ratedPlayers(m, 'away').length >= 8 },
+    { id: 'lideres', name: 'Líderes del partido', cls: 'fc fc-lideres', tpl: tplLideres, show: (m) => matchLeaders(m).length >= 4 },
     { id: 'tabla', name: 'Clasificación', cls: 'fc fc-tabla', tpl: tplTabla, show: (m) => (m.standings?.length || 0) >= 4 },
     { id: 'cierre', name: 'Cierre', cls: 'fc fc-cierre', tpl: tplCierre },
   ];
