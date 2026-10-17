@@ -804,6 +804,8 @@ body.zoom-open { overflow: hidden; }
 .video-meta { flex: 1 1 100%; order: 9; font-size: 14px; color: var(--mute); }
 /* Volumen de la música y de la voz */
 .mix-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; margin-top: 14px; }
+.mix-style { display: inline-flex; align-items: center; gap: 10px; min-height: 50px; font-family: var(--label); font-weight: 700; font-size: 18px; letter-spacing: 0.03em; text-transform: uppercase; }
+.mix-style .lang-opt:disabled { opacity: 0.4; cursor: default; }
 .mix-slider { display: inline-flex; align-items: center; gap: 10px; min-height: 50px; font-family: var(--label); font-weight: 700; font-size: 18px; letter-spacing: 0.03em; text-transform: uppercase; }
 .mix-slider[hidden] { display: none; }
 .mix-slider input { width: 170px; accent-color: var(--accent); }

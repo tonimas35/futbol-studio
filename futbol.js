@@ -3443,6 +3443,7 @@
   const videoOptions = () => ({
     music: document.getElementById('videoMusic').checked,
     script: state.script, ...mixLevels(), intro: document.getElementById('videoIntro').checked,
+    musicStyle: musicStyle(),
   });
 
   async function makeVideo() {
@@ -3455,9 +3456,10 @@
     btn.classList.add('btn-loading');
     document.activeElement?.blur();
     try {
+      const opts = { ...videoOptions(), captions: document.getElementById('videoSubs').checked };
       const out = await window.StudioVideo.render(videoData(m), (p, stage) => {
         label.textContent = stage || `Creando el vídeo… ${Math.round(p * 100)}%`;
-      }, { ...videoOptions(), captions: document.getElementById('videoSubs').checked });
+      }, opts);
       if (state.rendered !== m) {
         showToast('Has generado otro partido mientras tanto: vuelve a crear el vídeo', 'error');
         return;
@@ -3481,7 +3483,7 @@
         adl.href = audioUrl;
         adl.download = `${base}-musica.wav`;
       }
-      const parts = [out.mix?.voice && 'tu voz', out.mix?.music && 'música', out.mix?.captions && 'subtítulos', out.mix?.intro && 'la apertura con los escudos'].filter(Boolean);
+      const parts = [out.mix?.voice && 'tu voz', out.mix?.music && `música ${MUSIC_STYLES[opts.musicStyle]}`, out.mix?.captions && 'subtítulos', out.mix?.intro && 'la apertura con los escudos'].filter(Boolean);
       document.getElementById('videoMeta').textContent = parts.length ? `Lleva ${listEs(parts)}.` : 'Sin sonido ni subtítulos.';
       document.getElementById('videoOut').hidden = false;
       showToast(out.note || 'Vídeo listo · revísalo y descárgalo', out.note ? '' : 'success');
@@ -3739,17 +3741,25 @@
   const MIX_KEY = 'fc-mix';
   let mixBusy = false;
   let mixUrl = null;
+  // El estilo de la música: «épica» (por defecto) o «urbana» (el trap de antes).
+  const MUSIC_STYLES = { epica: 'épica', trap: 'urbana' };
+  const musicStyle = () => document.querySelector('.lang-opt[data-music][aria-checked="true"]')?.dataset.music || 'epica';
+  const setMusicStyle = (style) => document.querySelectorAll('.lang-opt[data-music]')
+    .forEach(b => b.setAttribute('aria-checked', String(b.dataset.music === style)));
   const mixLevels = () => ({ musicVolume: Number(document.getElementById('musicVol').value) / 100 });
   function showMix() {
     const music = document.getElementById('musicVol');
+    const on = document.getElementById('videoMusic').checked;
     document.getElementById('musicVolOut').textContent = `${music.value}%`;
-    music.disabled = !document.getElementById('videoMusic').checked;
-    document.getElementById('mixResetBtn').hidden = music.value === '100';
+    music.disabled = !on;
+    document.querySelectorAll('.lang-opt[data-music]').forEach(b => { b.disabled = !on; });
+    document.getElementById('mixResetBtn').hidden = music.value === '100' && musicStyle() === 'epica';
   }
   function loadMix() {
     try {
       const saved = JSON.parse(localStorage.getItem(MIX_KEY) || '{}');
       if (Number.isFinite(saved.music)) document.getElementById('musicVol').value = saved.music;
+      if (MUSIC_STYLES[saved.style]) setMusicStyle(saved.style);
     } catch (e) { /* sin localStorage: por defecto */ }
     showMix();
   }
@@ -3759,11 +3769,14 @@
     player.pause();
     player.hidden = true;
     try {
-      localStorage.setItem(MIX_KEY, JSON.stringify({ music: Number(document.getElementById('musicVol').value) }));
+      localStorage.setItem(MIX_KEY, JSON.stringify({
+        music: Number(document.getElementById('musicVol').value), style: musicStyle(),
+      }));
     } catch (e) { /* sin localStorage: vale para esta vez */ }
   }
   function resetMix() {
     document.getElementById('musicVol').value = 100;
+    setMusicStyle('epica');
     mixChanged();
   }
   async function previewMix() {
@@ -5242,6 +5255,12 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
     document.getElementById('scriptLines').addEventListener('input', onScriptInput);
     document.getElementById('scriptResetBtn').addEventListener('click', resetScript);
     ['musicVol', 'videoMusic', 'videoIntro'].forEach(id => document.getElementById(id).addEventListener('input', mixChanged));
+    document.getElementById('musicStyle').addEventListener('click', (e) => {
+      const btn = e.target.closest('.lang-opt[data-music]');
+      if (!btn || btn.disabled || btn.dataset.music === musicStyle()) return;
+      setMusicStyle(btn.dataset.music);
+      mixChanged();
+    });
     document.getElementById('mixResetBtn').addEventListener('click', resetMix);
     document.getElementById('mixPreviewBtn').addEventListener('click', previewMix);
     loadMix();

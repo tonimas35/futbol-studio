@@ -24,7 +24,7 @@
     rel="stylesheet"
   />
 
-  <link rel="stylesheet" href="futbol.css?v=15" />
+  <link rel="stylesheet" href="futbol.css?v=16" />
 </head>
 
 <body>
@@ -206,7 +206,7 @@
       <div class="section-head">
         <p class="section-eyebrow">PASO 4</p>
         <h2 class="section-title">El vídeo <em>short</em></h2>
-        <p class="section-sub">El partido en unos 30 segundos, en vertical (1080×1920) para TikTok, Reels y Shorts. Abre con los dos escudos chocando y lleva música propia, sin derechos de autor, a tiempo con las animaciones. Usa el titular de la portada, la pregunta del cierre y tu firma.</p>
+        <p class="section-sub">El partido en unos 40 segundos, en vertical (1080×1920) para TikTok, Reels y Shorts. Abre con los dos escudos chocando y lleva música propia (épica o urbana), sin derechos de autor, a tiempo con las animaciones. Usa el titular de la portada, la pregunta del cierre y tu firma.</p>
       </div>
 
       <!-- Guion: una frase por escena, para los subtítulos (y para la voz, cuando llegue) -->
@@ -238,7 +238,13 @@
 
       <!-- Volumen: por defecto, como suena siempre; la barra se recuerda en este navegador -->
       <div class="mix-row">
-        <label class="mix-slider"><span>Música</span><input type="range" id="musicVol" min="0" max="100" step="5" value="100" /><output id="musicVolOut">100%</output></label>
+        <div class="mix-style"><span>Música</span>
+          <div class="lang-switch" id="musicStyle" role="radiogroup" aria-label="Estilo de la música">
+            <button class="lang-opt" type="button" role="radio" data-music="epica" aria-checked="true">Épica</button>
+            <button class="lang-opt" type="button" role="radio" data-music="trap" aria-checked="false">Urbana</button>
+          </div>
+        </div>
+        <label class="mix-slider"><span>Volumen</span><input type="range" id="musicVol" min="0" max="100" step="5" value="100" /><output id="musicVolOut">100%</output></label>
         <button class="btn btn-ghost" id="mixPreviewBtn" type="button" disabled>
           <span class="label">Escuchar la mezcla</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -293,8 +299,8 @@
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 
-  <script src="audio.js?v=1"></script>
-  <script src="video.js?v=8"></script>
-  <script src="futbol.js?v=19"></script>
+  <script src="audio.js?v=2"></script>
+  <script src="video.js?v=9"></script>
+  <script src="futbol.js?v=20"></script>
 </body>
 </html>
