@@ -16,7 +16,7 @@
     rel="stylesheet"
   />
 
-  <link rel="stylesheet" href="futbol.css?v=4" />
+  <link rel="stylesheet" href="futbol.css?v=5" />
 </head>
 
 <body>
@@ -38,6 +38,23 @@
         </button>
       </div>
     </header>
+
+    <!-- En directo: vigila tus competiciones y avisa cuando acaba un partido -->
+    <section class="section live" id="liveSection">
+      <div class="live-head">
+        <div class="section-head">
+          <p class="section-eyebrow">EN DIRECTO</p>
+          <h2 class="section-title">Los partidos de <em>hoy</em></h2>
+          <p class="section-sub" id="liveSub">Elige qué competiciones vigilar y activa «Vigilar»: el Studio mira ESPN cada minuto y, cuando acaba un partido, te avisa y lo tienes a un clic.</p>
+        </div>
+        <div class="live-controls">
+          <label class="live-switch"><input type="checkbox" id="liveToggle" /><span class="live-knob" aria-hidden="true"></span><span>Vigilar</span></label>
+          <button class="slide-reset-btn" id="liveRefresh" type="button" hidden>↻ Actualizar</button>
+        </div>
+      </div>
+      <div class="live-leagues" id="liveLeagues"></div>
+      <div class="live-grid" id="liveList"></div>
+    </section>
 
     <!-- Paso 1: competición, fecha y partido -->
     <section class="section">
@@ -242,6 +259,6 @@
 
   <script src="audio.js?v=1"></script>
   <script src="video.js?v=2"></script>
-  <script src="futbol.js?v=4"></script>
+  <script src="futbol.js?v=5"></script>
 </body>
 </html>
