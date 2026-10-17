@@ -94,6 +94,7 @@
   // o en inglés (británico, el del fútbol). La interfaz del Studio sigue en español.
   // ----------------------------------------------------------
   const LANG_KEY = 'fc-lang';
+  const THEME_KEY = 'fc-theme';
   const isEn = () => state.lang === 'en';
   const L = (es, en) => (isEn() ? en : es);            // un texto en los dos idiomas
   const outLocale = () => (isEn() ? 'en-GB' : 'es-ES'); // fechas y horas de lo que se publica
@@ -1294,6 +1295,7 @@
     sign: '',
     brandLogo: '',        // tu logo (data URL), si lo has subido
     lang: 'es',           // el idioma de lo que se publica: 'es' o 'en'
+    theme: 'claro',       // el fondo de las slides de datos y del vídeo: 'claro' u 'oscuro'
     generating: false,
   };
 
@@ -1679,6 +1681,40 @@
       artVignette(ctx, w, h, 0.3);
     });
   }
+  // El fondo claro de las slides de datos: papel con la luz de cada equipo en su esquina de
+  // arriba, la trama abajo y, al pie, una franja con el color de cada uno (sin equipos, la del
+  // acento del Studio).
+  function paperArt(a, b) {
+    const glow = (t) => {
+      const g = glowOf(teamStyle(t));
+      return g.c === '#ffffff' ? null : { c: g.c, a: 0.2 };
+    };
+    const ga = a ? glow(a) : { c: '#c8f53c', a: 0.25 };
+    const gb = b ? glow(b) : ga;
+    const [sa, sb] = a && b ? [teamStyle(a).ink, teamStyle(b).ink] : ['#c8f53c', '#c8f53c'];
+    return paintArt(`p|${ga?.c}|${gb?.c}|${sa}|${sb}`, 1080, 1350, (ctx, w, h) => {
+      const base = ctx.createLinearGradient(0, 0, 0, h);
+      base.addColorStop(0, '#f6f4ef'); base.addColorStop(1, '#e9e5dc');
+      ctx.fillStyle = base;
+      ctx.fillRect(0, 0, w, h);
+      for (const [g, x] of [[ga, -0.12], [gb, 1.12]]) {
+        if (!g) continue;
+        const r = ctx.createRadialGradient(x * w, -0.08 * h, 0, x * w, -0.08 * h, w * 0.85);
+        r.addColorStop(0, rgba(g.c, g.a)); r.addColorStop(0.55, rgba(g.c, g.a * 0.25)); r.addColorStop(1, rgba(g.c, 0));
+        ctx.fillStyle = r;
+        ctx.fillRect(0, 0, w, h);
+      }
+      artDots(ctx, w, h, w, h, w * 0.8, 'rgba(0,0,0,.05)');
+      artVignette(ctx, w, h, 0.08);
+      ctx.fillStyle = sa; ctx.fillRect(0, h - 14, w / 2, 14);
+      ctx.fillStyle = sb; ctx.fillRect(w / 2, h - 14, w / 2, 14);
+    });
+  }
+  // Según el estilo elegido: claro (papel) u oscuro
+  const dark = () => state.theme === 'oscuro';
+  const sheetArt = (a, b) => (dark() ? nightArt(a, b) : paperArt(a, b));
+  const sheetCls = () => `fc-in paper${dark() ? ' night' : ''}`;
+  const sheetInk = (st) => (dark() ? nightInk(st) : st.ink);
   const artTag = (src) => `<img class="fc-art" src="${src}" alt="" data-noedit/>`;
   // Cada mitad (portada, estadísticas): los haces bajan desde el centro y la trama, por fuera
   const halfArt = (side) => (side === 'home' ? { rays: 'r', dots: 'l' } : { rays: 'l', dots: 'r' });
@@ -1829,12 +1865,13 @@
     ctx.lineCap = 'round';
     // La línea del partido (en juego, a rayas lo que queda) y una marca cada 15 minutos
     const now = live(m) ? yOf(clockMinute(m)) : CRONO.bottom;
-    ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 6;
+    const line = dark() ? 'rgba(255,255,255,.9)' : '#111111';
+    ctx.strokeStyle = line; ctx.lineWidth = 6;
     ctx.beginPath(); ctx.moveTo(X, CRONO.top); ctx.lineTo(X, now); ctx.stroke();
     if (now < CRONO.bottom) {
-      ctx.strokeStyle = 'rgba(255,255,255,.3)'; ctx.setLineDash([10, 12]);
+      ctx.strokeStyle = dark() ? 'rgba(255,255,255,.3)' : 'rgba(17,17,17,.3)'; ctx.setLineDash([10, 12]);
       ctx.beginPath(); ctx.moveTo(X, now); ctx.lineTo(X, CRONO.bottom); ctx.stroke();
-      ctx.setLineDash([]); ctx.strokeStyle = 'rgba(255,255,255,.9)';
+      ctx.setLineDash([]); ctx.strokeStyle = line;
     }
     ctx.lineWidth = 4;
     for (let t = 15; t < total; t += 15) {
@@ -1843,14 +1880,14 @@
     }
     // Cada suceso: un punto en su minuto y una línea hasta su tarjeta
     for (const e of evs) {
-      const ink = nightInk(teamStyle(m[e.side]));
+      const ink = sheetInk(teamStyle(m[e.side]));
       const dir = e.side === 'home' ? -1 : 1;
       const ty = yOf(e.min.t), cy = e.y + e.h / 2;
       ctx.strokeStyle = rgba(ink, e.tiny ? 0.35 : 0.7); ctx.lineWidth = e.tiny ? 2 : 3;
       ctx.beginPath(); ctx.moveTo(X, ty); ctx.lineTo(X + dir * 22, cy); ctx.lineTo(X + dir * 36, cy); ctx.stroke();
       ctx.beginPath(); ctx.arc(X, ty, e.kind === 'goal' ? 14 : e.tiny ? 7 : 10, 0, Math.PI * 2);
-      ctx.fillStyle = e.kind === 'red' ? '#e3172d' : e.kind === 'yellow' ? '#f5c400' : e.kind === 'sub' ? '#7d8594' : ink; ctx.fill();
-      ctx.lineWidth = e.tiny ? 3 : 4; ctx.strokeStyle = NIGHT; ctx.stroke();
+      ctx.fillStyle = e.kind === 'red' ? '#e3172d' : e.kind === 'yellow' ? '#f5c400' : e.kind === 'sub' ? (dark() ? '#7d8594' : '#8a8a8a') : ink; ctx.fill();
+      ctx.lineWidth = e.tiny ? 3 : 4; ctx.strokeStyle = dark() ? NIGHT : '#ece9e2'; ctx.stroke();
     }
     return c.toDataURL('image/png');
   }
@@ -1905,8 +1942,8 @@
         </div>`;
     };
     return `
-      <div class="fc-in paper">
-        ${artTag(nightArt(m.home, m.away))}
+      <div class="${sheetCls()}">
+        ${artTag(sheetArt(m.home, m.away))}
         <h1 class="title">${L('Minuto a minuto', 'Minute by minute')}</h1>
         <div class="teams"><span>${logoTag(m.home, 'lg')}${esc(m.home.short)}</span><span>${esc(m.away.short)}${logoTag(m.away, 'lg')}</span></div>
         <img class="axis" src="${cronoAxis(m, evs, yOf, total)}" alt=""/>
@@ -1977,9 +2014,10 @@
     c.width = W; c.height = H;
     const ctx = c.getContext('2d');
     const sx = W / 105, sy = H / 68; // metros → píxeles
-    ctx.fillStyle = '#1a202b'; ctx.fillRect(0, 0, W, H);
-    for (let i = 0; i < 10; i += 2) { ctx.fillStyle = '#1d2430'; ctx.fillRect((i * W) / 10, 0, W / 10, H); }
-    ctx.strokeStyle = 'rgba(255,255,255,.28)'; ctx.lineWidth = 3;
+    const turf = dark() ? ['#1a202b', '#1d2430', 'rgba(255,255,255,.28)'] : ['#e1ddd3', '#dcd8cd', 'rgba(17,17,17,.35)'];
+    ctx.fillStyle = turf[0]; ctx.fillRect(0, 0, W, H);
+    for (let i = 0; i < 10; i += 2) { ctx.fillStyle = turf[1]; ctx.fillRect((i * W) / 10, 0, W / 10, H); }
+    ctx.strokeStyle = turf[2]; ctx.lineWidth = 3;
     const rect = (x, y, w, h) => ctx.strokeRect(x * sx, y * sy, w * sx, h * sy);
     rect(0.05, 0.05, 104.9, 67.9);
     ctx.beginPath(); ctx.moveTo(52.5 * sx, 0); ctx.lineTo(52.5 * sx, H); ctx.stroke();
@@ -1990,7 +2028,7 @@
       const box = (depth, width) => rect(left ? 0 : 105 - depth, 34 - width / 2, depth, width);
       box(16.5, 40.32);
       box(5.5, 18.32);
-      ctx.fillStyle = 'rgba(255,255,255,.28)';
+      ctx.fillStyle = turf[2];
       ctx.beginPath(); ctx.arc((x0 + d * 11) * sx, 34 * sy, 4, 0, Math.PI * 2); ctx.fill();
       const a = Math.acos(5.5 / 9.15);
       ctx.beginPath();
@@ -2007,7 +2045,7 @@
     const order = { off: 0, post: 0, on: 1, goal: 2 };
     const shots = [...m.shots].sort((a, b) => order[a.kind] - order[b.kind]);
     for (const s of shots) {
-      const ink = nightInk(teamStyle(m[s.side]));
+      const ink = sheetInk(teamStyle(m[s.side]));
       const [x, y] = at(s, s.x, s.y);
       if (s.kind === 'goal') {
         if (s.x2 != null && s.y2 != null) {
@@ -2025,7 +2063,7 @@
         ctx.fillStyle = ink; ctx.fill();
       } else {
         ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI * 2);
-        ctx.fillStyle = '#1a202b'; ctx.fill();
+        ctx.fillStyle = dark() ? turf[0] : '#ece9e2'; ctx.fill();
         ctx.lineWidth = 4; ctx.strokeStyle = ink; ctx.stroke();
       }
     }
@@ -2047,8 +2085,8 @@
         <div><span class="n">${total(s)}</span><span class="l">${L(`tiros · ${onT(s)} a puerta`, `shots · ${onT(s)} on target`)}</span></div>
       </div>`;
     return `
-      <div class="fc-in paper">
-        ${artTag(nightArt(m.home, m.away))}
+      <div class="${sheetCls()}">
+        ${artTag(sheetArt(m.home, m.away))}
         <h1 class="title">${L('Mapa de tiros', 'Shot map')}</h1>
         <div class="sides">${side(m.home, 'home')}${side(m.away, 'away')}</div>
         <img class="pitch" src="${pitchChart(m)}" alt=""/>
@@ -2317,8 +2355,8 @@
         }).join('')}
       </div>`;
     return `
-      <div class="fc-in paper">
-        ${artTag(nightArt(m.home, m.away))}
+      <div class="${sheetCls()}">
+        ${artTag(sheetArt(m.home, m.away))}
         <h1 class="title">${L('Las notas', 'Player ratings')}</h1>
         <div class="cols">${col('home')}${col('away')}</div>
         <div class="src">${L('Notas', 'Ratings')}: API-Football</div>
@@ -2416,11 +2454,11 @@
   function tplTabla(m) {
     const rows = tableRows(m);
     const mine = { [m.home.id]: m.home, [m.away.id]: m.away };
-    // La fila de cada equipo del partido, con su color (los de fondo negro, con el del acento:
-    // el negro no se vería sobre el fondo oscuro).
+    // La fila de cada equipo del partido, con su color (si no se vería sobre el fondo, el blanco
+    // en el claro o el negro en el oscuro, con el del acento).
     const meStyle = (team) => {
       const st = teamStyle(team);
-      return contrast(st.bg, NIGHT) < 1.4 ? `background:${st.acc};color:${st.on}` : `background:${st.bg};color:${st.fg}`;
+      return contrast(st.bg, dark() ? NIGHT : '#ece9e2') < (dark() ? 1.4 : 1.3) ? `background:${st.acc};color:${st.on}` : `background:${st.bg};color:${st.fg}`;
     };
     const row = (r) => {
       if (!r) return '<div class="gap">···</div>';
@@ -2438,8 +2476,8 @@
     };
     const what = tableName(m);
     return `
-      <div class="fc-in paper">
-        ${artTag(nightArt(m.home, m.away))}
+      <div class="${sheetCls()}">
+        ${artTag(sheetArt(m.home, m.away))}
         <h1 class="title" style="font-size:${what.length > 16 ? 88 : 104}px">${tableTitle(what)}</h1>
         <div class="tbl">
           <div class="row head"><span class="rk">#</span><span></span><span>${L('Equipo', 'Team')}</span><span class="c">${L('PJ', 'P')}</span><span class="c">${L('DG', 'GD')}</span><span class="pts">Pts</span></div>
@@ -3037,7 +3075,7 @@
   // El idioma de lo que se publica. Al cambiarlo se vuelve a generar lo que hay (el partido y la
   // jornada), porque los nombres de los equipos también cambian.
   function updateLangUi() {
-    document.querySelectorAll('.lang-opt').forEach(b => b.setAttribute('aria-checked', String(b.dataset.lang === state.lang)));
+    document.querySelectorAll('.lang-opt[data-lang]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.lang === state.lang)));
   }
   async function setLang(lang) {
     if (lang === state.lang || !['es', 'en'].includes(lang) || state.generating) return;
@@ -3069,6 +3107,28 @@
       } catch (e) { console.error(e); }
     }
     showToast(lang === 'en' ? 'Ahora en inglés: slides, vídeo, guion y pie de foto' : 'Ahora en español', 'success');
+  }
+
+  // El estilo de las slides de datos y del vídeo (claro u oscuro). Al cambiarlo se rehacen las
+  // slides con los mismos datos (sin volver a pedirlos); los retoques se descartan, como al
+  // cambiar de idioma.
+  function updateThemeUi() {
+    document.querySelectorAll('.lang-opt[data-theme]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.theme === state.theme)));
+  }
+  function setTheme(theme) {
+    if (theme === state.theme || !['claro', 'oscuro'].includes(theme) || state.generating) return;
+    if (!canDiscardEdits()) return;
+    state.theme = theme;
+    try { localStorage.setItem(THEME_KEY, theme); } catch (e) { /* sin almacenamiento: no se recuerda */ }
+    updateThemeUi();
+    if (state.rendered) {
+      renderSlides(state.rendered);
+      resetVideo();
+      afterRender(state.rendered);
+      contentChanged(true);
+    }
+    if (jornada.data) renderJornada();
+    showToast(theme === 'oscuro' ? 'Estilo oscuro' : 'Estilo claro', 'success');
   }
 
   // Tu logo: se guarda en este navegador, reducido a 480 px como mucho (en PNG, con su
@@ -4107,10 +4167,14 @@
     return () => rows;
   });
 
+  // Sin los fondos pintados (pesan y se pueden volver a pintar): al aplicar los retoques, cada
+  // slide se queda con los de la slide recién generada.
   function slideEdits() {
     const edits = {};
     document.querySelectorAll('#slidesPreview .slide-wrap.edited').forEach(w => {
-      edits[w.dataset.slideId] = w.querySelector('.slide').innerHTML;
+      const copy = w.querySelector('.slide').cloneNode(true);
+      copy.querySelectorAll('.fc-art').forEach(img => img.setAttribute('src', ''));
+      edits[w.dataset.slideId] = copy.innerHTML;
     });
     return edits;
   }
@@ -4119,7 +4183,9 @@
       const wrap = document.querySelector(`#slidesPreview .slide-wrap[data-slide-id="${id}"]`);
       if (!wrap) return;
       const slide = wrap.querySelector('.slide');
+      const art = [...slide.querySelectorAll('.fc-art')].map(img => img.src);
       slide.innerHTML = html;
+      slide.querySelectorAll('.fc-art').forEach((img, i) => { if (!img.getAttribute('src') && art[i]) img.src = art[i]; });
       // Las fotos subidas eran URLs de la sesión anterior: se vuelven a enlazar.
       slide.querySelectorAll('img[data-player]').forEach(img => {
         img.src = state.photoOverrides[img.dataset.player] || img.dataset.official;
@@ -4746,8 +4812,8 @@ ${inside.length ? `\n${L('Desliza para ver', 'Swipe for')} ${listEs(inside)}.\n`
       return `<div class="jr-team ${side === 'home' ? 'l' : 'r'}${lost ? ' lost' : ''}">${logoTag(t, 'lg')}<span class="nm">${esc(t.short)}</span></div>`;
     };
     return `
-      <div class="fc-in paper">
-        ${artTag(nightArt(null, null))}
+      <div class="${sheetCls()}">
+        ${artTag(sheetArt(null, null))}
         <h1 class="title">${L('Resultados', 'Results')}</h1>
         <div class="jr-sub">${esc(compName(j.league))} · ${esc(fmtRange(j.from, j.to))}${pages > 1 ? ` · ${page + 1}/${pages}` : ''}</div>
         <div class="jr-list">
@@ -4767,8 +4833,8 @@ ${inside.length ? `\n${L('Desliza para ver', 'Swipe for')} ${listEs(inside)}.\n`
     const playing = new Set(j.games.flatMap(g => [g.home.id, g.away.id]));
     const h = Math.min(66, Math.floor(930 / (rows.length + 1)));
     return `
-      <div class="fc-in paper">
-        ${artTag(nightArt(null, null))}
+      <div class="${sheetCls()}">
+        ${artTag(sheetArt(null, null))}
         <h1 class="title" style="font-size:${what.length > 16 ? 76 : 88}px">${tableTitle(what, true)}</h1>
         <div class="jt-tbl" style="--rh:${h}px">
           <div class="row head"><span class="rk">#</span><span></span><span>${L('Equipo', 'Team')}${pages > 1 ? ` · ${page + 1}/${pages}` : ''}</span><span class="c">${L('PJ', 'P')}</span><span class="c">${L('DG', 'GD')}</span><span class="pts">Pts</span></div>
@@ -5227,6 +5293,7 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
       state.sign = localStorage.getItem(SIGN_KEY) || '';
       state.brandLogo = localStorage.getItem(BRAND_KEY) || '';
       if (localStorage.getItem(LANG_KEY) === 'en') state.lang = 'en';
+      if (localStorage.getItem(THEME_KEY) === 'oscuro') state.theme = 'oscuro';
     } catch (e) { /* sin almacenamiento: los valores por defecto */ }
     renderCompPicker();
     setupDirecto();
@@ -5236,9 +5303,14 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
     signInput.addEventListener('input', onSignInput);
     updateBrandUi();
     updateLangUi();
-    document.querySelector('.lang-switch').addEventListener('click', (e) => {
+    updateThemeUi();
+    document.querySelector('.lang-switch:not(.theme-switch)').addEventListener('click', (e) => {
       const btn = e.target.closest('[data-lang]');
       if (btn) setLang(btn.dataset.lang);
+    });
+    document.querySelector('.theme-switch').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-theme]');
+      if (btn) setTheme(btn.dataset.theme);
     });
     document.getElementById('brandInput').addEventListener('change', (e) => { onBrandFile(e.target.files[0]); e.target.value = ''; });
     document.getElementById('brandDel').addEventListener('click', () => setBrand(''));

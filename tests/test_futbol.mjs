@@ -192,6 +192,19 @@ try {
   }));
   check(look.seam === 'Final' && look.balls === 6, `«Final» entre los marcadores y un balón por goleador (${look.seam} · ${look.balls})`);
   check(look.art.every((n) => n > 0) && look.art[0] === 2, `cada slide con su fondo pintado; la portada, uno por mitad (${look.art.join(' ')})`);
+  // El estilo: claro por defecto; en oscuro, las slides de datos cambian de fondo (sin volver a pedir nada)
+  const sheets = () => page.evaluate(() => ({
+    night: ['crono', 'tiros', 'tabla'].filter((id) => document.querySelector(`#slide-${id} .fc-in.paper.night`)).length,
+    paper: ['crono', 'tiros', 'tabla'].filter((id) => document.querySelector(`#slide-${id} .fc-in.paper`)).length,
+    slides: document.querySelectorAll('#slidesPreview .slide').length,
+  }));
+  const day = await sheets();
+  await page.click('[data-theme="oscuro"]');
+  const night = await sheets();
+  await page.click('[data-theme="claro"]');
+  const back = await sheets();
+  check(day.night === 0 && day.paper === 3 && night.night === 3 && night.slides === 9 && back.night === 0,
+    `estilo claro por defecto y, al elegir oscuro, las slides de datos en oscuro (${night.night}/3)`);
   const tease = await page.$$eval('#slide-portada .tease > span', (s) => s.map((x) => x.textContent));
   check(tease[0] === 'El dato' && tease[1] === '14 partidos sin perder… hasta hoy', `y abajo, para deslizar, el dato a medias (${tease.join(' · ')})`);
 
@@ -603,11 +616,11 @@ try {
       first: [...document.querySelectorAll('#slide-notas .col')].map((c) => `${c.querySelector('.row .nm')?.textContent} ${c.querySelector('.row .rt')?.textContent}`),
       mvp: document.querySelector('#slide-notas .row.mvp .nm')?.textContent,
       faces: [...document.querySelectorAll('#slide-notas .face img')].filter((i) => i.src.startsWith('https://media.api-sports.io/')).length,
-      gollini: [...document.querySelectorAll('#slide-notas .row')].find((r) => r.querySelector('.nm').textContent === 'Gollini')?.querySelector('.face').innerHTML,
+      gollini: ((f) => (f && !f.querySelector('img') ? f.textContent : 'con foto'))([...document.querySelectorAll('#slide-notas .row')].find((r) => r.querySelector('.nm').textContent === 'Gollini')?.querySelector('.face')),
     }));
     check(notas.rows.join('-') === '15-15' && notas.first.join(' · ') === 'Malen 8,9 · Mbappé 8,1' && notas.mvp === 'Malen' && notas.faces === 29,
       `la nota y la cara de cada uno, de mejor a peor (${notas.first.join(' · ')} · ${notas.faces} caras)`);
-    check(notas.gollini === '<b>95</b>', `sin foto (la silueta de API-Football), el dorsal (${notas.gollini})`);
+    check(notas.gollini === '95', `sin foto (la silueta de API-Football), el dorsal (${notas.gollini})`);
     const top = await pa.evaluate(() => ({
       name: document.querySelector('#slide-jugador .bar span')?.textContent,
       stat: document.querySelector('#slide-jugador .st')?.textContent.replace(/\s+/g, ' ').trim(),

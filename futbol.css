@@ -859,7 +859,7 @@ body.zoom-open { overflow: hidden; }
   color: var(--t-fg);
   background: radial-gradient(ellipse at 78% 62%, var(--t-hi) 0%, var(--t-bg) 42%, var(--t-lo) 100%);
 }
-.fc .fc-in.paper { background: #10141b; color: #fff; }
+.fc .fc-in.paper { background: #ece9e2; color: #111; }
 /* El fondo pintado (futbol.js, «FONDOS CON PROFUNDIDAD»): debajo de todo */
 .fc .fc-art { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
 /* El grano va dentro del CSS: abierto como archivo (doble clic en index.html), una imagen suelta
@@ -1005,24 +1005,24 @@ body.zoom-open { overflow: hidden; }
 .fc-crono .ev .min { flex: none; padding: 4px 10px 2px; border-radius: 8px; background: var(--t-acc); color: var(--t-on); font-family: 'Anton', sans-serif; font-size: 34px; line-height: 1.1; }
 .fc-crono .ev .who { min-width: 0; display: flex; flex-direction: column; }
 .fc-crono .ev .name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-family: 'Anton', sans-serif; font-size: 44px; line-height: 1.05; text-transform: uppercase; }
-.fc-crono .ev .how { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: rgba(255, 255, 255, 0.6); font-weight: 700; font-size: 26px; line-height: 1.1; }
-.fc-crono .ev .sc { flex: none; font-family: 'Anton', sans-serif; font-size: 40px; line-height: 1; color: #fff; }
+.fc-crono .ev .how { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: #555; font-weight: 700; font-size: 26px; line-height: 1.1; }
+.fc-crono .ev .sc { flex: none; font-family: 'Anton', sans-serif; font-size: 40px; line-height: 1; color: #111; }
 .fc-crono .ev.minor .name { font-size: 34px; }
 .fc-crono .ev.minor .min { font-size: 28px; }
 /* Amarillas y cambios: una línea pequeña, en gris, para que manden los goles */
 .fc-crono .ev.tiny { gap: 10px; }
-.fc-crono .ev.tiny .min { padding: 2px 8px 0; background: none; border: 2px solid rgba(255, 255, 255, 0.22); color: rgba(255, 255, 255, 0.6); font-size: 24px; }
-.fc-crono .ev.tiny .name { color: rgba(255, 255, 255, 0.78); font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 28px; letter-spacing: 0.02em; }
+.fc-crono .ev.tiny .min { padding: 2px 8px 0; background: none; border: 2px solid rgba(17, 17, 17, 0.25); color: #555; font-size: 24px; }
+.fc-crono .ev.tiny .name { color: #333; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 28px; letter-spacing: 0.02em; }
 .fc i.arr { display: inline-block; width: 0; height: 0; margin: 0 0.25em 0 0.1em; border-left: 0.3em solid transparent; border-right: 0.3em solid transparent; vertical-align: 0.12em; }
-.fc i.arr.in { border-bottom: 0.5em solid #34c46e; }
+.fc i.arr.in { border-bottom: 0.5em solid #1f9d55; }
 .fc i.arr.out { border-top: 0.5em solid #d8263a; }
 .fc-crono .ht {
   position: absolute;
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 2;
-  background: #fff;
-  color: #111;
+  background: #111;
+  color: #fff;
   font-weight: 800;
   font-size: 28px;
   letter-spacing: 0.05em;
@@ -1030,7 +1030,7 @@ body.zoom-open { overflow: hidden; }
   white-space: nowrap;
   padding: 6px 14px 4px;
 }
-.fc-crono .none { position: absolute; left: 64px; right: 64px; top: 560px; padding: 20px 0; background: transparent; text-align: center; font-family: 'Anton', sans-serif; font-size: 80px; line-height: 1.1; text-transform: uppercase; }
+.fc-crono .none { position: absolute; left: 64px; right: 64px; top: 560px; padding: 20px 0; background: #ece9e2; text-align: center; font-family: 'Anton', sans-serif; font-size: 80px; line-height: 1.1; text-transform: uppercase; }
 
 /* ─── 3 · LAS ESTADÍSTICAS · cada equipo en su mitad, frente a frente ─── */
 .fc-stats .half {
@@ -1064,16 +1064,16 @@ body.zoom-open { overflow: hidden; }
 .fc-tiros .side.r { flex-direction: row-reverse; text-align: right; }
 .fc-tiros .side .lg { width: 92px; height: 92px; }
 .fc-tiros .side .n { display: block; font-family: 'Anton', sans-serif; font-size: 80px; line-height: 1; }
-.fc-tiros .side .l { display: block; font-weight: 800; font-size: 28px; letter-spacing: 0.03em; text-transform: uppercase; color: rgba(255, 255, 255, 0.6); }
+.fc-tiros .side .l { display: block; font-weight: 800; font-size: 28px; letter-spacing: 0.03em; text-transform: uppercase; color: #444; }
 .fc-tiros .pitch { position: absolute; left: 64px; top: 420px; width: 952px; }
-.fc-tiros .arrows { position: absolute; left: 64px; right: 64px; top: 1056px; display: flex; justify-content: space-between; font-weight: 800; font-size: 26px; letter-spacing: 0.04em; text-transform: uppercase; color: rgba(255, 255, 255, 0.5); }
+.fc-tiros .arrows { position: absolute; left: 64px; right: 64px; top: 1056px; display: flex; justify-content: space-between; font-weight: 800; font-size: 26px; letter-spacing: 0.04em; text-transform: uppercase; color: #555; }
 .fc-tiros .key { position: absolute; left: 64px; right: 64px; top: 1124px; display: flex; justify-content: center; gap: 46px; font-weight: 800; font-size: 32px; text-transform: uppercase; }
 .fc-tiros .key span { display: flex; align-items: center; gap: 12px; }
 .fc-tiros .key i { display: inline-block; border-radius: 50%; }
-.fc-tiros .pitch { border-radius: 6px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45); }
-.fc-tiros .key .goal { width: 34px; height: 34px; background: #fff; border: 4px solid #10141b; box-shadow: 0 0 0 3px #fff; }
-.fc-tiros .key .on { width: 24px; height: 24px; background: #fff; }
-.fc-tiros .key .off { width: 24px; height: 24px; border: 4px solid #fff; }
+.fc-tiros .pitch { border-radius: 6px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.16); }
+.fc-tiros .key .goal { width: 34px; height: 34px; background: #111; border: 4px solid #fff; box-shadow: 0 0 0 3px #111; }
+.fc-tiros .key .on { width: 24px; height: 24px; background: #111; }
+.fc-tiros .key .off { width: 24px; height: 24px; border: 4px solid #111; }
 
 /* ─── 5 · LOS ONCES · las alineaciones dibujadas en el campo ─── */
 /* Con la posición escrita (at 50% 46%): sin ella, html2canvas no pinta el degradado */
@@ -1190,15 +1190,15 @@ body.zoom-open { overflow: hidden; }
 .fc-tabla .title { position: absolute; left: 64px; top: 56px; font-family: 'Anton', sans-serif; font-size: 104px; line-height: 1.06; text-transform: uppercase; }
 .fc-tabla .tbl { position: absolute; left: 48px; right: 48px; top: 312px; }
 .fc-tabla .row { display: grid; grid-template-columns: 70px 64px minmax(0, 1fr) 80px 96px 104px; align-items: center; gap: 0 10px; height: 68px; padding: 0 16px; border-radius: 14px; }
-.fc-tabla .row.head { height: 46px; color: rgba(255, 255, 255, 0.5); font-weight: 800; font-size: 26px; letter-spacing: 0.06em; text-transform: uppercase; }
+.fc-tabla .row.head { height: 46px; color: #666; font-weight: 800; font-size: 26px; letter-spacing: 0.06em; text-transform: uppercase; }
 .fc-tabla .row .rk { font-family: 'Anton', sans-serif; font-size: 40px; text-align: center; }
 .fc-tabla .row .lg { width: 48px; height: 48px; }
 .fc-tabla .row .tn { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 800; font-size: 38px; letter-spacing: 0.02em; text-transform: uppercase; }
 .fc-tabla .row .c { text-align: center; font-weight: 700; font-size: 34px; }
 .fc-tabla .row .pts { text-align: center; font-family: 'Anton', sans-serif; font-size: 44px; }
 .fc-tabla .row.head .c, .fc-tabla .row.head .pts { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 26px; }
-.fc-tabla .row:not(.head):not(.me):nth-child(odd) { background: rgba(255, 255, 255, 0.035); }
-.fc-tabla .gap { height: 40px; text-align: center; color: rgba(255, 255, 255, 0.4); font-family: 'Anton', sans-serif; font-size: 34px; line-height: 40px; letter-spacing: 0.3em; }
+.fc-tabla .row:not(.head):not(.me):nth-child(odd) { background: rgba(0, 0, 0, 0.035); }
+.fc-tabla .gap { height: 40px; text-align: center; color: #888; font-family: 'Anton', sans-serif; font-size: 34px; line-height: 40px; letter-spacing: 0.3em; }
 
 /* ─── LÍDERES DEL PARTIDO · el mejor en cada cosa, con su cara y el número en grande ─── */
 .fc-lideres .wm { position: absolute; right: -200px; top: 260px; width: 900px; height: 900px; opacity: 0.07; }
@@ -1220,14 +1220,13 @@ body.zoom-open { overflow: hidden; }
 .fc-notas .cols { position: absolute; left: 48px; right: 48px; top: 206px; display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
 .fc-notas .team { display: flex; align-items: center; gap: 12px; height: 60px; margin-bottom: 6px; font-weight: 800; font-size: 32px; letter-spacing: 0.04em; text-transform: uppercase; }
 .fc-notas .team .lg { width: 48px; height: 48px; }
-.fc-notas .row { display: flex; align-items: center; gap: 12px; height: 58px; padding: 0 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
-.fc-notas .row.mvp { border: 2px solid rgba(200, 245, 60, 0.75); border-radius: 10px; background: rgba(200, 245, 60, 0.14); }
-.fc-notas .row.mvp .nm { color: #c8f53c; }
+.fc-notas .row { display: flex; align-items: center; gap: 12px; height: 58px; padding: 0 8px; border-bottom: 1px solid rgba(17, 17, 17, 0.1); }
+.fc-notas .row.mvp { border-bottom-color: transparent; border-radius: 10px; background: rgba(200, 245, 60, 0.55); }
 .fc-notas .face { position: relative; flex: none; display: grid; place-items: center; width: 46px; height: 46px; overflow: hidden; border-radius: 50%; background: var(--t-bg); color: var(--t-fg); font-family: 'Anton', sans-serif; font-size: 22px; }
 .fc-notas .face img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #dcd8cd; }
-.fc-notas .nm { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: #fff; font-weight: 800; font-size: 28px; letter-spacing: 0.02em; text-transform: uppercase; }
+.fc-notas .nm { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: #111; font-weight: 800; font-size: 28px; letter-spacing: 0.02em; text-transform: uppercase; }
 .fc-notas .rt { flex: none; min-width: 66px; padding: 5px 8px 2px; border-radius: 8px; text-align: center; font-family: 'Anton', sans-serif; font-size: 30px; line-height: 1.1; }
-.fc-notas .src { position: absolute; right: 64px; bottom: 96px; color: rgba(255, 255, 255, 0.4); font-weight: 700; font-size: 20px; letter-spacing: 0.04em; text-transform: uppercase; }
+.fc-notas .src { position: absolute; right: 64px; bottom: 96px; color: #777; font-weight: 700; font-size: 20px; letter-spacing: 0.04em; text-transform: uppercase; }
 
 /* ─── EL DATO · el número grande, lo que significa, la frase entera y los otros datos ─── */
 .fc-dato .wm { position: absolute; right: -170px; top: 150px; width: 820px; height: 820px; opacity: 0.1; }
@@ -1313,32 +1312,64 @@ body.zoom-open { overflow: hidden; }
 .fc-jportada .fc-foot { color: #fff; }
 
 .fc-jresultados .title { position: absolute; left: 64px; top: 52px; font-family: 'Anton', sans-serif; font-size: 120px; line-height: 1.05; text-transform: uppercase; }
-.fc-jresultados .jr-sub { position: absolute; left: 64px; top: 196px; color: rgba(255, 255, 255, 0.55); font-weight: 800; font-size: 34px; letter-spacing: 0.05em; text-transform: uppercase; }
+.fc-jresultados .jr-sub { position: absolute; left: 64px; top: 196px; color: #666; font-weight: 800; font-size: 34px; letter-spacing: 0.05em; text-transform: uppercase; }
 .fc-jresultados .jr-list { position: absolute; left: 40px; right: 40px; top: 270px; }
-.fc-jresultados .jr-row { display: grid; grid-template-columns: minmax(0, 1fr) 220px minmax(0, 1fr); grid-template-rows: 100px 70px; align-items: center; border-bottom: 2px solid rgba(255, 255, 255, 0.08); }
+.fc-jresultados .jr-row { display: grid; grid-template-columns: minmax(0, 1fr) 220px minmax(0, 1fr); grid-template-rows: 100px 70px; align-items: center; border-bottom: 2px solid rgba(0, 0, 0, 0.08); }
 .fc-jresultados .jr-row:last-child { border-bottom: 0; }
 .fc-jresultados .jr-team { display: flex; align-items: center; gap: 16px; min-width: 0; }
 .fc-jresultados .jr-team.l { flex-direction: row-reverse; }
 .fc-jresultados .jr-team .lg { flex: none; width: 70px; height: 70px; }
 .fc-jresultados .jr-team .nm { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 800; font-size: 44px; letter-spacing: 0.02em; text-transform: uppercase; }
-.fc-jresultados .jr-team.lost .nm { color: rgba(255, 255, 255, 0.45); }
+.fc-jresultados .jr-team.lost .nm { color: #8a8a8a; }
 .fc-jresultados .jr-score { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 .fc-jresultados .jr-score b { font-family: 'Anton', sans-serif; font-weight: 400; font-size: 80px; line-height: 1; }
-.fc-jresultados .jr-score small { margin-top: 4px; color: rgba(255, 255, 255, 0.55); font-weight: 800; font-size: 24px; letter-spacing: 0.04em; text-transform: uppercase; }
-.fc-jresultados .jr-score small.now { color: #ff4d5e; }
-.fc-jresultados .jr-score.pre { color: rgba(255, 255, 255, 0.55); font-weight: 800; font-size: 34px; letter-spacing: 0.04em; text-transform: uppercase; }
-.fc-jresultados .jr-sc { align-self: start; max-height: 62px; overflow: hidden; color: rgba(255, 255, 255, 0.6); font-weight: 700; font-size: 25px; line-height: 1.22; }
+.fc-jresultados .jr-score small { margin-top: 4px; color: #666; font-weight: 800; font-size: 24px; letter-spacing: 0.04em; text-transform: uppercase; }
+.fc-jresultados .jr-score small.now { color: #e3172d; }
+.fc-jresultados .jr-score.pre { color: #666; font-weight: 800; font-size: 34px; letter-spacing: 0.04em; text-transform: uppercase; }
+.fc-jresultados .jr-sc { align-self: start; max-height: 62px; overflow: hidden; color: #555; font-weight: 700; font-size: 25px; line-height: 1.22; }
 .fc-jresultados .jr-sc.l { grid-column: 1; padding-right: 12px; text-align: right; }
 .fc-jresultados .jr-sc.r { grid-column: 3; padding-left: 12px; text-align: left; }
 
 .fc-jtabla .title { position: absolute; left: 64px; top: 52px; font-family: 'Anton', sans-serif; line-height: 1.06; text-transform: uppercase; }
 .fc-jtabla .jt-tbl { position: absolute; left: 48px; right: 48px; top: 290px; }
 .fc-jtabla .row { display: grid; grid-template-columns: 62px 52px minmax(0, 1fr) 70px 86px 92px; align-items: center; gap: 0 10px; height: var(--rh); padding: 0 14px 0 8px; border-left: 8px solid var(--z, transparent); }
-.fc-jtabla .row:nth-child(even) { background: rgba(255, 255, 255, 0.04); }
-.fc-jtabla .row.head { height: 46px; border-left-color: transparent; background: none; color: rgba(255, 255, 255, 0.5); font-weight: 800; font-size: 24px; letter-spacing: 0.06em; text-transform: uppercase; }
+.fc-jtabla .row:nth-child(even) { background: rgba(0, 0, 0, 0.04); }
+.fc-jtabla .row.head { height: 46px; border-left-color: transparent; background: none; color: #666; font-weight: 800; font-size: 24px; letter-spacing: 0.06em; text-transform: uppercase; }
 .fc-jtabla .row .rk { font-family: 'Anton', sans-serif; font-size: 34px; text-align: center; }
 .fc-jtabla .row .lg { width: 40px; height: 40px; object-fit: contain; }
 .fc-jtabla .row .tn { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 800; font-size: 32px; letter-spacing: 0.02em; text-transform: uppercase; }
 .fc-jtabla .row .c { text-align: center; font-weight: 700; font-size: 30px; }
 .fc-jtabla .row .pts { text-align: center; font-family: 'Anton', sans-serif; font-size: 38px; }
 .fc-jtabla .row.head .c, .fc-jtabla .row.head .pts, .fc-jtabla .row.head .rk { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 24px; }
+
+/* ─── ESTILO OSCURO (el selector «Estilo»): las slides de datos en .paper.night ─── */
+.fc .fc-in.paper.night { background: #10141b; color: #fff; }
+.fc .night i.arr.in { border-bottom-color: #34c46e; }
+.fc-crono .night .ev .how { color: rgba(255, 255, 255, 0.6); }
+.fc-crono .night .ev .sc { color: #fff; }
+.fc-crono .night .ev.tiny .min { border-color: rgba(255, 255, 255, 0.22); color: rgba(255, 255, 255, 0.6); }
+.fc-crono .night .ev.tiny .name { color: rgba(255, 255, 255, 0.78); }
+.fc-crono .night .ht { background: #fff; color: #111; }
+.fc-crono .night .none { background: transparent; }
+.fc-tiros .night .side .l { color: rgba(255, 255, 255, 0.6); }
+.fc-tiros .night .arrows { color: rgba(255, 255, 255, 0.5); }
+.fc-tiros .night .pitch { box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45); }
+.fc-tiros .night .key .goal { background: #fff; border-color: #10141b; box-shadow: 0 0 0 3px #fff; }
+.fc-tiros .night .key .on { background: #fff; }
+.fc-tiros .night .key .off { border-color: #fff; }
+.fc-tabla .night .row.head { color: rgba(255, 255, 255, 0.5); }
+.fc-tabla .night .row:not(.head):not(.me):nth-child(odd) { background: rgba(255, 255, 255, 0.035); }
+.fc-tabla .night .gap { color: rgba(255, 255, 255, 0.4); }
+.fc-notas .night .row { border-bottom-color: rgba(255, 255, 255, 0.08); }
+.fc-notas .night .row.mvp { border: 2px solid rgba(200, 245, 60, 0.75); background: rgba(200, 245, 60, 0.14); }
+.fc-notas .night .row.mvp .nm { color: #c8f53c; }
+.fc-notas .night .nm { color: #fff; }
+.fc-notas .night .src { color: rgba(255, 255, 255, 0.4); }
+.fc-jresultados .night .jr-sub { color: rgba(255, 255, 255, 0.55); }
+.fc-jresultados .night .jr-row { border-bottom-color: rgba(255, 255, 255, 0.08); }
+.fc-jresultados .night .jr-team.lost .nm { color: rgba(255, 255, 255, 0.45); }
+.fc-jresultados .night .jr-score small, .fc-jresultados .night .jr-score.pre { color: rgba(255, 255, 255, 0.55); }
+.fc-jresultados .night .jr-score small.now { color: #ff4d5e; }
+.fc-jresultados .night .jr-sc { color: rgba(255, 255, 255, 0.6); }
+.fc-jtabla .night .row:nth-child(even) { background: rgba(255, 255, 255, 0.04); }
+.fc-jtabla .night .row.head { color: rgba(255, 255, 255, 0.5); }
