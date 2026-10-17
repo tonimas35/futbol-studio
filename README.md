@@ -1,6 +1,6 @@
 # Studio Fútbol
 
-Mi herramienta para hacer contenido de fútbol: eliges competición, día y partido, y sale un carrusel de hasta 9 slides (1080×1350) para Instagram o TikTok y un vídeo short con música, subtítulos y tu voz, con los datos de ESPN. Se retoca en la propia página y se descarga en PNG, ZIP o MP4.
+Mi herramienta para hacer contenido de fútbol: eliges competición, día y partido, y sale un carrusel de hasta 9 slides (1080×1350) para Instagram o TikTok y un vídeo short con música y subtítulos, con los datos de ESPN. Se retoca en la propia página y se descarga en PNG, ZIP o MP4.
 
 Es solo para mí: no es una web publicada. Se abre en el navegador desde el propio ordenador.
 
@@ -112,7 +112,7 @@ La primera vez que sale un equipo, el Studio baja su historial (unos segundos; a
 
 ## El vídeo short (paso 4)
 
-El partido en 30 a 40 segundos, en 1080×1920 para TikTok, Reels y Shorts, con música, subtítulos y, si quieres, tu voz.
+El partido en 30 a 40 segundos, en 1080×1920 para TikTok, Reels y Shorts, con música y subtítulos.
 
 - **Escenas:**
   - **Apertura (1,6 s):** el gancho, desde el primer fotograma: «EL DATO» con el dato a medias (como en la portada del carrusel) o, si no hay, «FINAL» y el titular. Empieza grande en el centro, así es también la portada del vídeo, y sube arriba cuando los dos escudos entran desde los lados y chocan en el centro. Se quita con «Apertura con los escudos».
@@ -129,12 +129,8 @@ El partido en 30 a 40 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
   - **El aspecto:** los fondos de equipo llevan la misma luz que el carrusel (haces en diagonal, trama y viñeta), y los goles y la clasificación siguen el **Estilo** elegido: claro (papel con la franja de los dos equipos) u oscuro.
 - **Música (`audio.js`):** propia, sintetizada en el navegador y sin derechos de autor. Es una base de 150 BPM con un efecto por animación (el golpe del marcador, cada gol, cada tiro…) y va a tiempo: cada escena dura compases enteros.
 - **Guion y subtítulos:** el Studio escribe una frase por escena con los datos del partido («Remontada del Real Madrid: 4-3 a la Roma.»). Se retoca en el paso 4 y cada frase avisa si no cabe a ritmo normal; «↺ Automático» la vuelve a escribir. Los subtítulos salen de dos en dos o de tres en tres palabras, con la que suena en verde lima. Se quitan con «Subtítulos».
-- **Tu voz:** «Grabar mi voz» abre un teleprompter con el vídeo en directo y la frase que toca, tras una cuenta atrás de 3 s.
-  - El teleprompter va 0,2 s por delante.
-  - Al acabar, el Studio mide cuánto llega tarde tu voz y la adelanta.
-  - La barra «Sincronía» la afina a mano.
-  - En el vídeo, la música baja a un tercio mientras hablas.
-- **Volumen:** las barras «Música» y «Tu voz» (se recuerdan) y «Escuchar la mezcla», que crea solo el sonido en un par de segundos.
+- **Voz:** ya no se graba en el Studio (se quitó «Grabar mi voz» y el teleprompter). `video.js` sigue sabiendo mezclar una voz con la música (la música baja a un tercio mientras se habla): queda preparado para una voz de ElevenLabs o clonada, que leería el guion escena a escena.
+- **Volumen:** la barra «Música» (se recuerda) y «Escuchar la mezcla», que crea solo el sonido en un par de segundos.
 - **El archivo:** MP4 (H.264 + AAC) codificado en el navegador con WebCodecs y `mp4-muxer`. Si el navegador no tiene H.264, sale en VP9 y avisa; con Chrome sale en H.264. También se puede bajar la música sola en WAV.
 
 ## Datos y ajustes
@@ -154,8 +150,8 @@ El partido en 30 a 40 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
 | Archivo | Qué es |
 |---|---|
 | `index.html` | La página |
-| `futbol.js` | Datos de ESPN, slides, retoques, borradores, descargas, y el guion, la voz y el volumen del vídeo |
-| `video.js` | El vídeo: las escenas, los subtítulos, la mezcla con tu voz y la codificación |
+| `futbol.js` | Datos de ESPN, slides, retoques, borradores, descargas, y el guion y el volumen del vídeo |
+| `video.js` | El vídeo: las escenas, los subtítulos, la mezcla (preparada para una voz) y la codificación |
 | `audio.js` | La música y los efectos del vídeo |
 | `futbol.css` | La interfaz y las slides (`.fc`); el grano de las slides va dentro, en base64, para que la descarga funcione abriendo el archivo |
 | `manifest.webmanifest`, `apple-touch-icon.png`, `icon-*.png` | El nombre y el icono al añadirlo a la pantalla de inicio del móvil |
@@ -175,7 +171,7 @@ El partido en 30 a 40 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
   - el Lech-Leverkusen de la Europa League (la clasificación, pedida aparte);
   - el Osnabrück-Bayern de la Copa de Alemania (un apellido con «ß»).
 
-  Prueba las notas de API-Football (la slide, los líderes del partido, las caras en los onces, el jugador del partido por nota y el aviso si el plan no deja), «El dato» (la racha que se acaba, el cara a cara, el pie de foto, el guion y que el historial guardado no se vuelva a pedir), la versión en inglés (slides, guion, jornada y que se recuerde), el modo en directo (un partido que pasa de en juego a acabado: el aviso y generarlo a un clic), el resumen de la jornada, tu logo, las competiciones y sus logos, la lista, las 9 slides, el minuto a minuto sin solapes, la firma, el jugador del partido, el borrador, el ZIP, el 9:16, compartir, el vídeo (guion, grabar la voz con un micrófono de prueba, la mezcla y el MP4), «Para tu IA» (copiar y pegar), un partido en juego, uno con pocos datos, las eliminatorias (campeón, global, quién pasa), saltar a un día con partidos, el móvil y el Studio abierto como archivo (generar, descargar y recuperar el borrador).
+  Prueba las notas de API-Football (la slide, los líderes del partido, las caras en los onces, el jugador del partido por nota y el aviso si el plan no deja), «El dato» (la racha que se acaba, el cara a cara, el pie de foto, el guion y que el historial guardado no se vuelva a pedir), la versión en inglés (slides, guion, jornada y que se recuerde), el modo en directo (un partido que pasa de en juego a acabado: el aviso y generarlo a un clic), el resumen de la jornada, tu logo, las competiciones y sus logos, la lista, las 9 slides, el minuto a minuto sin solapes, la firma, el jugador del partido, el borrador, el ZIP, el 9:16, compartir, el vídeo (guion, la mezcla y el MP4), «Para tu IA» (copiar y pegar), un partido en juego, uno con pocos datos, las eliminatorias (campeón, global, quién pasa), saltar a un día con partidos, el móvil y el Studio abierto como archivo (generar, descargar y recuperar el borrador).
 
 Corre sola en cada push y PR (`.github/workflows/tests.yml`). En local:
 
