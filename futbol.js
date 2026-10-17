@@ -1519,6 +1519,14 @@
   }
   const scorerLines = (m, side) => scorerList(m, side).map(x => (x.red ? `<i class="card red"></i>${esc(x.text)}` : esc(x.text)));
 
+  // Lo que invita a deslizar: «El dato» a medias o, si no hay, lo mejor de lo que hay dentro
+  function portadaTease(m) {
+    const dato = datoFacts(m)[0];
+    if (dato) return { chip: L('El dato', 'The stat'), text: `${dato.big} ${dato.unit}` };
+    const inside = insideList(['jugador', 'tiros', 'stats', 'onces', 'crono']).slice(0, 2);
+    return inside.length ? { chip: L('Desliza', 'Swipe'), text: listEs(inside) } : null;
+  }
+
   function tplPortada(m) {
     const { winner } = sides(m);
     const half = (team, side) => {
@@ -1537,13 +1545,15 @@
     const c = compOf(m.league);
     const chip = [compName(m.league), phaseOut(m.phase), legLabel(m), live(m) ? `${L('En juego', 'Live')} · ${minuteText(m.status.clock)}` : ''].filter(Boolean).join(' · ');
     const logo = compLogo(m.league);
+    const tease = portadaTease(m);
     return `
       ${half(m.home, 'home')}
       ${half(m.away, 'away')}
       <div class="fade"></div>
       <div class="comp">${logo ? `<img src="${logo}" alt="" crossorigin="anonymous" onerror="this.remove()"/>` : ''}<span>${esc(chip)}</span></div>
       ${m.agg ? `<div class="agg">${aggLabel(m.agg)}</div>` : ''}
-      <div class="head"><h1>${esc(headline(m))}</h1></div>
+      <div class="head${tease ? ' up' : ''}"><h1>${esc(headline(m))}</h1></div>
+      ${tease ? `<div class="tease"><span class="chip">${esc(tease.chip)}</span><span class="tx">${esc(tease.text)}</span><span class="go"></span></div>` : ''}
       ${foot(m)}${grain}`;
   }
 
@@ -1552,7 +1562,9 @@
   // ----------------------------------------------------------
   const CRONO = { top: 320, bottom: 1150, axis: 540 };
 
-  function cronoEvents(m) {
+  // all: también las amarillas y los cambios (en la slide, en pequeño; el vídeo solo cuenta los
+  // goles, las rojas y los penaltis fallados)
+  function cronoEvents(m, all = false) {
     const evs = [];
     m.goals.forEach(g => {
       if (!g.side) return;
@@ -1563,13 +1575,18 @@
     });
     m.cards.filter(c => c.red && c.side).forEach(c => evs.push({ side: c.side, min: c.min, kind: 'red', name: nameOf(m, c.player, c.name), how: L('Tarjeta roja', 'Red card') }));
     m.pens.filter(p => p.side).forEach(p => evs.push({ side: p.side, min: p.min, kind: 'pen', name: nameOf(m, p.player, p.name), how: p.saved ? L('Penalti parado', 'Penalty saved') : L('Penalti fallado', 'Penalty missed') }));
+    if (all) {
+      m.cards.filter(c => !c.red && c.side).forEach(c => evs.push({ side: c.side, min: c.min, kind: 'yellow', tiny: true, name: nameOf(m, c.player, c.name) }));
+      m.subs.filter(x => x.side && x.in).forEach(x => evs.push({ side: x.side, min: x.min, kind: 'sub', tiny: true, name: nameOf(m, x.in), out: x.out ? nameOf(m, x.out) : '' }));
+    }
     return evs.sort((a, b) => a.min.t - b.min.t);
   }
 
   // Coloca las tarjetas de cada lado lo más cerca posible de su minuto, sin pisarse entre
   // ellas ni tapar las marcas de la línea (el descanso, la prórroga, «ahora»): bands.
+  const evHeight = (e) => (e.kind === 'goal' ? 84 : e.tiny ? 40 : 62);
   function placeEvents(evs, yOf, bands) {
-    const gap = 10;
+    const gap = 8;
     const clear = (y, h, down) => {
       for (const b of bands) if (y < b.y1 && y + h > b.y0) y = down ? b.y1 + gap : b.y0 - gap - h;
       return y;
@@ -1577,7 +1594,7 @@
     for (const side of ['home', 'away']) {
       const list = evs.filter(e => e.side === side);
       list.forEach((e, i) => {
-        e.h = e.kind === 'goal' ? 84 : 62;
+        e.h = evHeight(e);
         let y = Math.max(yOf(e.min.t) - e.h / 2, CRONO.top - 20);
         if (i) y = Math.max(y, list[i - 1].y + list[i - 1].h + gap);
         e.y = clear(y, e.h, true);
@@ -1619,17 +1636,17 @@
       const ink = st.ink;
       const dir = e.side === 'home' ? -1 : 1;
       const ty = yOf(e.min.t), cy = e.y + e.h / 2;
-      ctx.strokeStyle = rgba(ink.length === 7 ? ink : '#111111', 0.6); ctx.lineWidth = 3;
+      ctx.strokeStyle = rgba(ink.length === 7 ? ink : '#111111', e.tiny ? 0.3 : 0.6); ctx.lineWidth = e.tiny ? 2 : 3;
       ctx.beginPath(); ctx.moveTo(X, ty); ctx.lineTo(X + dir * 22, cy); ctx.lineTo(X + dir * 36, cy); ctx.stroke();
-      ctx.beginPath(); ctx.arc(X, ty, e.kind === 'goal' ? 14 : 10, 0, Math.PI * 2);
-      ctx.fillStyle = e.kind === 'red' ? '#e3172d' : ink; ctx.fill();
-      ctx.lineWidth = 4; ctx.strokeStyle = '#ece9e2'; ctx.stroke();
+      ctx.beginPath(); ctx.arc(X, ty, e.kind === 'goal' ? 14 : e.tiny ? 7 : 10, 0, Math.PI * 2);
+      ctx.fillStyle = e.kind === 'red' ? '#e3172d' : e.kind === 'yellow' ? '#f5c400' : e.kind === 'sub' ? '#8a8a8a' : ink; ctx.fill();
+      ctx.lineWidth = e.tiny ? 3 : 4; ctx.strokeStyle = '#ece9e2'; ctx.stroke();
     }
     return c.toDataURL('image/png');
   }
 
   function tplCrono(m) {
-    const evs = cronoEvents(m);
+    let evs = cronoEvents(m, true);
     const et = m.status.period > 2 || /AET|EXTRA|PEN/.test(m.status.name) || evs.some(e => e.min.period > 2);
     const total = et ? 120 : 90;
     const yOf = (t) => CRONO.top + (Math.min(Math.max(t, 0), total + 1) / (total + 1)) * (CRONO.bottom - CRONO.top);
@@ -1642,9 +1659,33 @@
     // «Sin goles», en un hueco de la línea sin marcas: la primera parte o, en juego antes del
     // descanso, lo que queda por jugar.
     const noneY = (live(m) && clockMinute(m) < 46 ? (yOf(clockMinute(m)) + CRONO.bottom) / 2 : (CRONO.top + yOf(45.5)) / 2) - 64;
+    // Cada tramo de la línea (entre el 0', el descanso, la prórroga y el final) tiene su sitio:
+    // si en un lado no cabe todo, fuera primero los cambios y luego las amarillas de ese tramo
+    // (los últimos primero). Así nada de la segunda parte acaba antes del descanso.
+    const cuts = marks.map(k => k.y).sort((a, b) => a - b);
+    const edges = [CRONO.top - 20, ...cuts, CRONO.bottom + 16];
+    const need = (list) => list.reduce((sum, e) => sum + evHeight(e) + 8, 0) - 8;
+    for (const side of ['home', 'away']) {
+      for (let i = 0; i < edges.length - 1; i++) {
+        const top = edges[i] + (i ? 34 : 0), bottom = edges[i + 1] - (i < cuts.length ? 34 : 0);
+        const inSeg = () => evs.filter(e => e.side === side && yOf(e.min.t) >= edges[i] && yOf(e.min.t) < edges[i + 1]);
+        for (const drop of ['sub', 'yellow']) {
+          let extra;
+          while (need(inSeg()) > bottom - top && (extra = inSeg().filter(e => e.kind === drop).pop())) evs = evs.filter(e => e !== extra);
+        }
+      }
+    }
     placeEvents(evs, yOf, marks.map(k => ({ y0: k.y - 26, y1: k.y + 26 })));
     const ev = (e) => {
       const st = teamStyle(m[e.side]);
+      if (e.tiny) {
+        const what = e.kind === 'yellow' ? `<i class="card"></i>${esc(e.name)}`
+          : `<i class="arr in"></i>${esc(e.name)}${e.out ? ` <i class="arr out"></i>${esc(e.out)}` : ''}`;
+        return `
+        <div class="ev ${e.side === 'home' ? 'l' : 'r'} tiny" style="top:${Math.round(e.y)}px;height:${e.h}px;${styleVars(st)}">
+          <span class="min">${e.min.label}</span><span class="name">${what}</span>
+        </div>`;
+      }
       const icon = e.kind === 'red' ? '<i class="card red"></i>' : '';
       return `
         <div class="ev ${e.side === 'home' ? 'l' : 'r'}${e.kind === 'goal' ? '' : ' minor'}" style="top:${Math.round(e.y)}px;height:${e.h}px;${styleVars(st)}">
@@ -1661,7 +1702,8 @@
         <div class="ht" style="top:${CRONO.top - 6}px">0'</div>
         ${marks.map(k => `<div class="ht" style="top:${k.y}px">${k.text}</div>`).join('')}
         ${live(m) ? '' : `<div class="ht" style="top:${CRONO.bottom + 44}px">${L('Final', 'Full time')} · ${m.home.score}-${m.away.score}</div>`}
-        ${evs.length ? evs.map(ev).join('') : `<div class="none" style="top:${Math.round(noneY)}px">${L('Sin goles', 'No goals')}</div>`}
+        ${evs.map(ev).join('')}
+        ${evs.length ? '' : `<div class="none" style="top:${Math.round(noneY)}px">${L('Sin goles', 'No goals')}</div>`}
         ${foot(m)}${grain}
       </div>`;
   }
@@ -4211,6 +4253,15 @@
     }
   }
 
+  // Lo que hay dentro del carrusel (de las slides que han salido, en el orden pedido)
+  function insideList(order) {
+    const INSIDE = isEn()
+      ? { crono: 'the minute by minute', stats: 'the stats', tiros: 'the shot map', onces: 'the line-ups', jugador: 'the player of the match', tabla: 'the table' }
+      : { crono: 'el minuto a minuto', stats: 'las estadísticas', tiros: 'el mapa de tiros', onces: 'los onces', jugador: 'el mejor del partido', tabla: 'la clasificación' };
+    const shown = new Set(slideDefs().map(d => d.id));
+    return order.filter(id => shown.has(id)).map(id => INSIDE[id]);
+  }
+
   // El pie de foto para Instagram (va en el ZIP y se copia al compartir).
   function generateCaption(m) {
     const c = compOf(m.league);
@@ -4219,11 +4270,7 @@
     const best = bestPlayer(m);
     const dato = slideDefs().some(d => d.id === 'dato') && (writtenText('#slide-dato .dt-line') || datoFacts(m)[0]?.sentence);
     const tag = (t) => `#${t.short.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]/g, '')}`;
-    // Lo que hay dentro del carrusel (las slides que han salido)
-    const INSIDE = isEn()
-      ? { crono: 'the minute by minute', stats: 'the stats', tiros: 'the shot map', onces: 'the line-ups', tabla: 'the table' }
-      : { crono: 'el minuto a minuto', stats: 'las estadísticas', tiros: 'el mapa de tiros', onces: 'los onces', tabla: 'la clasificación' };
-    const inside = slideDefs().map(d => INSIDE[d.id]).filter(Boolean);
+    const inside = insideList(['crono', 'stats', 'tiros', 'onces', 'tabla']);
     return `⚽ ${m.home.name.toUpperCase()} ${m.home.score}-${m.away.score} ${m.away.name.toUpperCase()}${pens}
 ${[compName(m.league), phaseOut(m.phase), legLabel(m), m.agg ? aggLabel(m.agg) : ''].filter(Boolean).join(' · ')} · ${fmtDateLong(m.date)}
 ${dato ? `\n📊 ${dato}` : ''}${goals.length ? `\n${L('Goles', 'Goals')}: ${goals.join(' · ')}` : ''}${best ? `\n${L('Jugador del partido', 'Player of the match')}: ${best.name}` : ''}

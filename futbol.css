@@ -976,6 +976,13 @@ body.zoom-open { overflow: hidden; }
 .fc-portada .head { position: absolute; left: 64px; right: 64px; bottom: 116px; z-index: 10; color: #fff; }
 /* Interlineado holgado: en Anton el acento de una mayúscula sube hasta la línea de arriba */
 .fc-portada .head h1 { font-family: 'Anton', sans-serif; font-size: 104px; line-height: 1.1; text-transform: uppercase; }
+.fc-portada .head.up { bottom: 170px; }
+/* Lo que invita a deslizar: «El dato» a medias o lo que hay dentro, con la flecha */
+.fc-portada .tease { position: absolute; left: 64px; right: 64px; bottom: 100px; z-index: 10; display: flex; align-items: center; gap: 16px; color: #fff; }
+.fc-portada .tease .chip { flex: none; padding: 6px 12px 3px; background: #c8f53c; color: #111; font-weight: 800; font-size: 28px; letter-spacing: 0.05em; text-transform: uppercase; }
+.fc-portada .tease .tx { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 800; font-size: 34px; letter-spacing: 0.03em; text-transform: uppercase; }
+.fc-portada .tease .go { position: relative; flex: none; width: 52px; height: 52px; margin-left: auto; border-radius: 50%; background: #c8f53c; }
+.fc-portada .tease .go::after { content: ''; position: absolute; left: 21px; top: 15px; border-left: 16px solid #111; border-top: 11px solid transparent; border-bottom: 11px solid transparent; }
 .fc-portada .fc-foot { color: #fff; }
 
 /* ─── 2 · MINUTO A MINUTO · la línea del partido con los goles y las rojas ─── */
@@ -994,6 +1001,13 @@ body.zoom-open { overflow: hidden; }
 .fc-crono .ev .sc { flex: none; font-family: 'Anton', sans-serif; font-size: 40px; line-height: 1; color: #111; }
 .fc-crono .ev.minor .name { font-size: 34px; }
 .fc-crono .ev.minor .min { font-size: 28px; }
+/* Amarillas y cambios: una línea pequeña, en gris, para que manden los goles */
+.fc-crono .ev.tiny { gap: 10px; }
+.fc-crono .ev.tiny .min { padding: 2px 8px 0; background: none; border: 2px solid rgba(17, 17, 17, 0.25); color: #555; font-size: 24px; }
+.fc-crono .ev.tiny .name { color: #333; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 28px; letter-spacing: 0.02em; }
+.fc i.arr { display: inline-block; width: 0; height: 0; margin: 0 0.25em 0 0.1em; border-left: 0.3em solid transparent; border-right: 0.3em solid transparent; vertical-align: 0.12em; }
+.fc i.arr.in { border-bottom: 0.5em solid #1f9d55; }
+.fc i.arr.out { border-top: 0.5em solid #d8263a; }
 .fc-crono .ht {
   position: absolute;
   left: 50%;

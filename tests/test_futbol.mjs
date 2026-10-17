@@ -185,6 +185,8 @@ try {
   const portada = await page.$$eval('#slide-portada .scorers', (els) => els.map((e) => [...e.children].map((d) => d.textContent).join(' · ')));
   check(portada[0] === "de Roon 20' · Malen 51', 57'" && /Mbappé 25'.*Rüdiger 90'/.test(portada[1]), `goleadores de cada equipo: ${portada.join(' / ')}`);
   check(/Champions League · Fase liga/.test(await page.textContent('#slide-portada .comp')), 'la competición y la fase en la portada');
+  const tease = await page.$$eval('#slide-portada .tease > span', (s) => s.map((x) => x.textContent));
+  check(tease[0] === 'El dato' && tease[1] === '14 partidos sin perder… hasta hoy', `y abajo, para deslizar, el dato a medias (${tease.join(' · ')})`);
 
   // El dato: del historial de ESPN de los dos equipos (la Roma venía de 14 sin perder)
   const dato = await page.evaluate(() => ({
@@ -197,19 +199,33 @@ try {
     `el dato: ${dato.big} · ${dato.unit} · ${dato.line}`);
   check(dato.more.includes('El Real Madrid gana sus últimos 5 partidos ante la Roma.'), `y los otros datos (${dato.more.join(' · ')})`);
 
-  // Minuto a minuto: 7 goles con su marcador y nada pisado (ni entre ellos ni con las marcas)
+  // Minuto a minuto: 7 goles con su marcador, las amarillas y los cambios en pequeño, nada
+  // pisado (ni entre ellos ni con las marcas) y cada uno en su parte (nada de la segunda antes
+  // del descanso)
   const crono = await page.$eval('#slide-crono', (slide) => {
     const box = (el) => ({ top: el.offsetTop, bottom: el.offsetTop + el.offsetHeight, left: el.offsetLeft, right: el.offsetLeft + el.offsetWidth });
-    const evs = [...slide.querySelectorAll('.ev')].map((e) => ({ ...box(e), side: e.classList.contains('l') ? 'l' : 'r', sc: e.querySelector('.sc')?.textContent }));
+    const evs = [...slide.querySelectorAll('.ev')].map((e) => ({
+      ...box(e), side: e.classList.contains('l') ? 'l' : 'r', tiny: e.classList.contains('tiny'), sc: e.querySelector('.sc')?.textContent,
+      second: !/^45\+/.test(e.querySelector('.min').textContent) && parseInt(e.querySelector('.min').textContent, 10) > 45,
+      yellow: !!e.querySelector('.card:not(.red)'), sub: !!e.querySelector('.arr.in'),
+    }));
     const marks = [...slide.querySelectorAll('.ht')].map((e) => ({ top: e.offsetTop - e.offsetHeight / 2, bottom: e.offsetTop + e.offsetHeight / 2, text: e.textContent }));
+    const ht = marks.find((k) => /Descanso/.test(k.text));
     let clash = 0;
     for (const a of evs) {
       for (const b of evs) if (a !== b && a.side === b.side && a.top < b.bottom && b.top < a.bottom) clash++;
       for (const k of marks) if (a.top < k.bottom && k.top < a.bottom) clash++;
     }
-    return { n: evs.length, last: evs.map((e) => e.sc).filter(Boolean).pop(), clash, marks: marks.map((k) => k.text) };
+    const goals = evs.filter((e) => !e.tiny);
+    return {
+      n: goals.length, tiny: evs.length - goals.length, yellows: evs.filter((e) => e.yellow).length, subs: evs.filter((e) => e.sub).length,
+      wrongHalf: evs.filter((e) => (e.second ? e.top < ht.top : e.bottom > ht.bottom)).length,
+      last: goals.map((e) => e.sc).filter(Boolean).pop(), clash, marks: marks.map((k) => k.text),
+    };
   });
   check(crono.n === 7 && crono.clash === 0, `minuto a minuto: ${crono.n} goles sin pisarse (${crono.clash} choques)`);
+  check(crono.yellows === 4 && crono.subs === 4 && crono.wrongHalf === 0,
+    `con las amarillas (${crono.yellows}) y los cambios (${crono.subs}), cada uno en su parte (${crono.wrongHalf} fuera de sitio)`);
   check(crono.marks.includes('Descanso · 1-1') && crono.marks.includes('Final · 3-4'), `marcas: ${crono.marks.join(' | ')}`);
   check(crono.last === '3-4', 'el último gol deja el 3-4');
 
@@ -579,6 +595,8 @@ try {
     await pickDate(p4, '2026-09-20');
     await generate(p4, '401882865');
     check((await slideNames(p4)).length === 8, 'abierto como archivo: genera las 8 slides');
+    const tease4 = await p4.$$eval('#slide-portada .tease > span', (s) => s.map((x) => x.textContent));
+    check(tease4[0] === 'Desliza' && tease4[1] === 'el mejor del partido y el mapa de tiros', `sin dato, la portada invita a deslizar con lo de dentro (${tease4.join(' · ')})`);
     const [png] = await Promise.all([p4.waitForEvent('download', { timeout: 60000 }), p4.click('[data-slide-id="portada"] .slide-dl-btn')]);
     check(png.suggestedFilename() === 'futbol-atm-rma-2026-09-20-01-portada.png', `y descarga la PNG (${png.suggestedFilename()})`);
     await p4.reload();
