@@ -10,7 +10,19 @@ Es solo para mí: no es una web publicada. Se abre en el navegador desde el prop
 2. Doble clic en `index.html`. Mejor con Chrome o Edge.
 3. Hace falta internet: los partidos vienen de ESPN y las fuentes, de Google Fonts.
 
-Para tener la última versión, vuelve a descargarlo o haz `git pull`. El borrador, la firma y la competición se guardan en ese navegador.
+Para tener la última versión, vuelve a descargarlo o haz `git pull`. Para el móvil, ver «En el móvil». El borrador, la firma y la competición se guardan en ese navegador.
+
+## En el móvil
+
+En el móvil hace falta abrirlo desde una web con HTTPS (sin ella, el navegador bloquea el micrófono, el vídeo, compartir y copiar). Se publica gratis en Netlify, que sí permite uso comercial, y el repo sigue privado:
+
+1. En [app.netlify.com](https://app.netlify.com), entra con GitHub.
+2. **Add new site → Import an existing project → GitHub** y elige `futbol-studio` (si no sale, «Configure the Netlify app on GitHub» y dale acceso a ese repo).
+3. Deja todo como viene (lo lee de `netlify.toml`) y pulsa **Deploy**.
+4. En **Site configuration → Change site name**, ponle un nombre: queda en `https://<nombre>.netlify.app`.
+5. En el móvil, abre esa dirección y **Compartir → Añadir a pantalla de inicio**: sale con su icono.
+
+Cada cambio que entra en `main` se publica solo. Solo se publica la página (`netlify.toml` copia sus archivos): ni las pruebas ni este README. La dirección no sale en buscadores (`noindex`), pero quien la tenga puede abrirla; dentro no hay nada privado (los datos son de ESPN y tus borradores se quedan en tu navegador). Lo que hagas en el móvil se guarda en el móvil, y lo del ordenador, en el ordenador.
 
 ## En directo
 
@@ -128,6 +140,8 @@ El partido en 30 a 40 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
 | `video.js` | El vídeo: las escenas, los subtítulos, la mezcla con tu voz y la codificación |
 | `audio.js` | La música y los efectos del vídeo |
 | `futbol.css` | La interfaz y las slides (`.fc`); el grano de las slides va dentro, en base64, para que la descarga funcione abriendo el archivo |
+| `manifest.webmanifest`, `apple-touch-icon.png`, `icon-*.png` | El nombre y el icono al añadirlo a la pantalla de inicio del móvil |
+| `netlify.toml` | Cómo se publica en Netlify (solo los archivos de la página) |
 | `tests/` | Las pruebas y los datos de ESPN que usan |
 
 ## Pruebas
