@@ -1,9 +1,10 @@
 // ============================================================
 // MÚSICA DEL VÍDEO SHORT · una base de 150 BPM y un efecto para cada animación,
 // sintetizados en el navegador con Web Audio (OfflineAudioContext). Dos estilos: «urbana»
-// (por defecto: trap a medio tiempo que va con los cortes de cámara: se para justo antes de
-// cada corte y entra con todo en el corte, y cada golpe de cámara lleva su 808) y «épica»
-// (taikos, cuerdas en semicorcheas, metales, coro y timbales, como un tráiler).
+// (por defecto: phonk brasileño, con un cencerro y su eco, 808 saturado y palmas; va con los
+// cortes de cámara: se para justo antes de cada corte y entra con todo en el corte, y cada
+// golpe de cámara lleva su 808) y «épica» (taikos, cuerdas en semicorcheas, metales, coro y
+// timbales, como un tráiler).
 // Es música propia, sin derechos de nadie, que dura lo mismo que el vídeo y cae a tiempo:
 // cada escena dura compases enteros (1 pulso = 0,4 s, lo mismo que la cortinilla) y
 // video.js pasa en qué segundo pasa cada cosa (los puntos que suben, cada tiro, la cinta…).
@@ -17,13 +18,6 @@
   const STEP = BEAT / 4;      // semicorchea, 0,1 s
   const BAR = 4 * BEAT;       // 1,6 s
 
-  // La urbana, en la menor: Am | F | Dm | E. El mi mayor deja la tensión que se resuelve en Am.
-  const CHORDS = [
-    { bass: 33, notes: [57, 60, 64] }, // Am (bajo A1)
-    { bass: 29, notes: [57, 60, 65] }, // F
-    { bass: 38, notes: [57, 62, 65] }, // Dm (bajo D2: en D1 no se oye en un móvil)
-    { bass: 40, notes: [56, 59, 64] }, // E
-  ];
   // La épica: Am | F | C | G (i–VI–III–VII), la de los tráileres. El sol mayor sube a la menor.
   const EPIC_CHORDS = [
     { bass: 33, notes: [57, 60, 64] }, // Am
@@ -110,21 +104,6 @@
         env(cg, t, 0.25 * vel, 0.001, 0.012);
         c.connect(filter(ctx, 'highpass', 2500)).connect(cg).connect(drums);
       },
-      // 808: seno saturado (armónicos) y una capa una octava arriba, porque el altavoz de
-      // un móvil casi no da graves y así la línea de bajo se sigue oyendo.
-      bass808(t, midi, dur, vel = 1) {
-        const f = hz(midi);
-        const o = osc(ctx, 'sine', f * 2, t, t + dur + 0.05);
-        o.frequency.exponentialRampToValueAtTime(f, t + 0.05);
-        const g = ctx.createGain();
-        const decay = Math.max(0.08, dur * 0.45);
-        env(g, t, 0.2 * vel, 0.006, decay, dur * 0.5);
-        o.connect(saturation(ctx, 3.5)).connect(g).connect(bass);
-        const up = osc(ctx, 'triangle', f * 2, t, t + dur + 0.05);
-        const ug = ctx.createGain();
-        env(ug, t, 0.14 * vel, 0.006, decay, dur * 0.5);
-        up.connect(ug).connect(bass);
-      },
       clap(t, vel = 1) {
         [0, 0.011, 0.022].forEach((d, i) => {
           const s = noiseSrc(t + d, 0.2);
@@ -144,22 +123,6 @@
         const g = ctx.createGain();
         env(g, t, 0.32 * vel, 0.001, open ? 0.24 : 0.035);
         s.connect(filter(ctx, 'highpass', 7500)).connect(g).connect(pan(ctx, side)).connect(drums);
-      },
-      // Campana FM para la melodía.
-      bell(t, midi, vel = 1, dur = 0.9, side = 0) {
-        const f = hz(midi);
-        const car = osc(ctx, 'sine', f, t, t + dur + 0.1);
-        const mod = osc(ctx, 'sine', f * 3.5, t, t + dur + 0.1);
-        const mg = ctx.createGain();
-        mg.gain.setValueAtTime(f * 2.4, t);
-        mg.gain.exponentialRampToValueAtTime(f * 0.1, t + dur * 0.6);
-        mod.connect(mg).connect(car.frequency);
-        const g = ctx.createGain();
-        env(g, t, 0.3 * vel, 0.004, dur);
-        const p = pan(ctx, side);
-        car.connect(g).connect(p);
-        p.connect(keys);
-        p.connect(verb);
       },
       // Colchón: dos sierras desafinadas por nota, muy filtradas.
       pad(t, notes, dur, vel = 1) {
@@ -192,22 +155,6 @@
         });
       },
 
-      // 808 que se desliza de una nota a otra: la que lleva de una escena a la siguiente.
-      glide808(t, from, to, dur, vel = 1) {
-        const o = osc(ctx, 'sine', hz(from), t, t + dur + 0.1);
-        o.frequency.setValueAtTime(hz(from), t + dur * 0.25);
-        o.frequency.exponentialRampToValueAtTime(hz(to), t + dur * 0.9);
-        const g = ctx.createGain();
-        env(g, t, 0.2 * vel, 0.006, dur * 0.4, dur * 0.55);
-        o.connect(saturation(ctx, 3.5)).connect(g).connect(bass);
-        const up = osc(ctx, 'triangle', hz(from) * 2, t, t + dur + 0.1);
-        up.frequency.setValueAtTime(hz(from) * 2, t + dur * 0.25);
-        up.frequency.exponentialRampToValueAtTime(hz(to) * 2, t + dur * 0.9);
-        const ug = ctx.createGain();
-        env(ug, t, 0.12 * vel, 0.006, dur * 0.4, dur * 0.55);
-        up.connect(ug).connect(bass);
-      },
-      // Caja seca (para los redobles de trap; la palmada pesa demasiado para 1/32).
       snare(t, vel = 1, side = 0) {
         const s = noiseSrc(t, 0.12);
         const g = ctx.createGain();
@@ -559,98 +506,181 @@
   // probabilidad: los efectos llevan el ritmo), 'build' (el compás que lleva al acorde final)
   // y 'tail' (solo suena lo que queda del acorde final).
 
-  // La urbana. Cada escena tiene su ritmo de bombo y 808 (semicorcheas del compás), para que
-  // cambie con cada corte; la clave es la escena (id) y, si no está, se reparten por orden.
-  const GROOVES = {
-    a: [0, 6, 10],      // el de siempre
-    b: [0, 3, 10, 11],  // saltarín
-    c: [0, 7, 9, 14],   // a contratiempo
+  // ============================================================
+  // LA URBANA · phonk brasileño (el de los edits de fútbol): un cencerro con la melodía y su eco,
+  // un 808 saturado que se desliza, palmas y platos rápidos, en fa menor (Fm | D♭ | E♭ | C).
+  // ============================================================
+  const PHONK_CHORDS = [
+    { bass: 41, notes: [65, 68, 72] }, // Fm (el 808 en fa2, 87 Hz: con la saturación se oye en un móvil)
+    { bass: 37, notes: [65, 68, 73] }, // D♭
+    { bass: 39, notes: [67, 70, 75] }, // E♭
+    { bass: 36, notes: [64, 67, 72] }, // C (el mi natural tira hacia fa menor)
+  ];
+  // El riff del cencerro, uno por acorde: [semicorchea, nota]. La segunda vuelta (respuesta)
+  // remata más arriba.
+  const COWBELL = [
+    [[0, 72], [2, 72], [3, 68], [6, 65], [8, 68], [10, 72], [11, 73], [12, 72], [14, 68]],
+    [[0, 73], [2, 73], [3, 70], [6, 65], [8, 70], [10, 73], [11, 75], [12, 73], [14, 70]],
+    [[0, 75], [2, 75], [3, 72], [6, 67], [8, 72], [10, 75], [11, 77], [12, 75], [14, 72]],
+    [[0, 72], [2, 72], [3, 67], [6, 64], [8, 67], [10, 70], [11, 72], [12, 70], [14, 67]],
+  ];
+  const ANSWER = [[12, 77], [13, 75], [14, 72], [15, 68]]; // el remate de la segunda vuelta
+  // Dos ritmos que se turnan por escena, para que cada corte se note: el funk (3 + 3 + 2, palmas
+  // en el 2 y el 4) y uno a medio tiempo (palma en el 3). [bombos, 808 (semicorchea, duración),
+  // palmas]
+  const PHONK_GROOVES = {
+    funk: { kicks: [0, 3, 6, 8, 11, 14], bass: [[0, 3], [3, 3], [6, 5], [11, 5]], claps: [4, 12] },
+    half: { kicks: [0, 7, 10], bass: [[0, 7], [7, 3], [10, 6]], claps: [8] },
   };
-  const GROOVE_OF = { score: 'a', dato: 'b', goals: 'a', jugador: 'c', stats: 'b', tabla: 'c', outro: 'a' };
-  // La campana, en frases de dos compases: pregunta (A) y respuesta (B). [semicorchea, nota del
-  // acorde, octavas por encima]
-  const BELL_A = [[0, 2, 1], [3, 1, 1], [6, 0, 1], [10, 1, 1], [12, 2, 1]];
-  const BELL_B = [[0, 2, 1], [3, 1, 1], [6, 2, 1], [8, 1, 1], [10, 0, 1], [14, 2, 2]];
+  const PHONK_OF = { score: 'funk', dato: 'half', goals: 'funk', jugador: 'half', stats: 'funk', tabla: 'half', outro: 'funk' };
 
-  function playUrbanBar(kit, bars, i, CH, dropAt) {
+  function makePhonk(ctx, buses, rand) {
+    const { bass, keys, verb } = buses;
+    // El cencerro va por su filtro (cerrado en la apertura, abierto con el golpe) y un eco de
+    // tres semicorcheas.
+    const bellIn = ctx.createGain();
+    const tone = filter(ctx, 'lowpass', 6000, 0.8);
+    const delay = ctx.createDelay(1);
+    delay.delayTime.value = 3 * STEP;
+    const fb = ctx.createGain();
+    fb.gain.value = 0.32;
+    const wet = ctx.createGain();
+    wet.gain.value = 0.38;
+    bellIn.connect(tone);
+    tone.connect(keys);
+    tone.connect(delay);
+    delay.connect(filter(ctx, 'lowpass', 3200)).connect(fb).connect(delay);
+    // El eco, a un lado y al otro (más ancho que el golpe, que va casi al centro)
+    const wetL = pan(ctx, -0.7), wetR = pan(ctx, 0.7);
+    const delay2 = ctx.createDelay(1);
+    delay2.delayTime.value = 1.5 * STEP;
+    delay.connect(wet).connect(wetL).connect(keys);
+    wet.connect(delay2).connect(wetR).connect(keys);
+    const vg = ctx.createGain();
+    vg.gain.value = 0.15;
+    tone.connect(vg).connect(verb);
+    // El 808 saturado: seno con su caída de tono, por una distorsión fuerte y un filtro; debajo,
+    // el seno limpio para el peso.
+    const dist = saturation(ctx, 6);
+    const dlp = filter(ctx, 'lowpass', 2400, 0.7);
+    const dg = ctx.createGain();
+    dg.gain.value = 0.25;
+    dist.connect(dlp).connect(dg).connect(bass);
+    return {
+      tone,
+      // El cencerro del 808: dos cuadradas (f y 1,48·f) por un paso banda, cortas y con pegada.
+      cowbell(t, midi, vel = 1, side = 0) {
+        const f = hz(midi);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.5 * vel, t + 0.002);
+        g.gain.exponentialRampToValueAtTime(0.17 * vel, t + 0.05);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.32);
+        const bp = filter(ctx, 'bandpass', f * 2.2, 0.9);
+        [1, 1.48].forEach(r => osc(ctx, 'square', f * r, t, t + 0.35).connect(bp));
+        bp.connect(g).connect(pan(ctx, side)).connect(bellIn);
+      },
+      // El 808 (to: nota a la que se desliza al final).
+      bass808(t, midi, dur, vel = 1, to = null) {
+        const f = hz(midi);
+        const o = osc(ctx, 'sine', f * 2, t, t + dur + 0.08);
+        o.frequency.exponentialRampToValueAtTime(f, t + 0.04);
+        if (to != null) {
+          o.frequency.setValueAtTime(f, t + dur * 0.45);
+          o.frequency.exponentialRampToValueAtTime(hz(to), t + dur);
+        }
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.5 * vel, t + 0.005);
+        g.gain.setValueAtTime(0.5 * vel, t + dur * 0.6);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.06);
+        o.connect(g);
+        g.connect(dist);
+        const sg = ctx.createGain();
+        sg.gain.value = 0.12;
+        g.connect(sg).connect(bass);
+      },
+    };
+  }
+
+  function playPhonkBar(kit, p, bars, i, CH, dropAt) {
     const b = bars[i], prev = bars[i - 1], next = bars[i + 1];
     const { t, energy } = b;
     const chord = CH[b.k];
     const s = (n) => t + n * STEP;
     const rel = i - dropAt;
-    // El final: un 808 largo en la menor bajo el acorde.
+    const riff = (vel, until = 16, answer = false) => {
+      COWBELL[b.k].filter(([n]) => n < until && !(answer && n >= 12))
+        .forEach(([n, m], j) => p.cowbell(s(n), m, (n % 4 === 0 ? 1 : 0.8) * vel, j % 2 ? 0.25 : -0.25));
+      if (answer) ANSWER.filter(([n]) => n < until).forEach(([n, m]) => p.cowbell(s(n), m, 0.85 * vel, 0.3));
+    };
+    // El final: el 808 largo en fa, el cencerro con su eco y el platillo.
     if (energy === 'tail') {
       if (prev?.energy !== 'tail') {
         let dur = 0;
         for (let j = i; bars[j]?.energy === 'tail'; j++) dur += BAR;
-        kit.pad(t, CH[0].notes, dur, 0.8);
         kit.kick(t, 1);
-        kit.bass808(t, CH[0].bass, Math.min(dur, 3) - 0.1, 1);
+        p.bass808(t, CH[0].bass, Math.min(dur, 2.6) - 0.1, 1);
+        kit.pad(t, CH[0].notes.map(n => n - 12), dur, 0.7);
+        p.cowbell(t, 77, 1);
+        p.cowbell(s(3), 72, 0.7);
         kit.crash(t, 0.9);
       }
       return;
     }
-    kit.pad(t, chord.notes, BAR, energy === 'full' ? 1 : 0.8);
-    // Antes del golpe y el compás que lleva al final: platos y caja que se aceleran (1/8, 1/16,
-    // 1/32) y, en el que lleva al final, el 808 que sube.
+    // El filtro del cencerro: cerrado antes del golpe, se abre en el compás que lleva a él.
+    const rising = (energy === 'intro' && next?.energy !== 'intro') || energy === 'build';
+    if (energy === 'intro') {
+      p.tone.frequency.setValueAtTime(rising ? 900 : 700, t);
+      if (rising) p.tone.frequency.exponentialRampToValueAtTime(5000, t + BAR);
+    } else p.tone.frequency.setValueAtTime(energy === 'light' ? 2600 : 6000, t);
+    kit.pad(t, chord.notes.map(n => n - 12), BAR, energy === 'full' ? 0.55 : 0.45);
     if (energy === 'intro' || energy === 'build') {
-      const rising = energy === 'build' || next?.energy !== 'intro';
+      riff(rising ? 0.9 : 0.7);
       if (!rising) {
-        for (let n = 0; n < 16; n += 2) kit.hat(s(n), 0.3 + 0.15 * (n % 4 === 0), false, n % 4 ? 0.3 : -0.3);
+        for (let n = 0; n < 16; n += 4) kit.hat(s(n), 0.25, false, -0.2);
         return;
       }
       for (let n = 0; n < 16; n += n < 8 ? 2 : n < 12 ? 1 : 0.5) kit.hat(s(n), 0.3 + 0.5 * (n / 16), false, n % 2 ? 0.3 : -0.3);
-      for (let n = 8; n < 16; n += n < 12 ? 1 : 0.5) kit.snare(s(n), 0.15 + 0.55 * ((n - 8) / 8), (n % 2) * 0.4 - 0.2);
-      kit.swell(s(8), 8 * STEP, 0.9);
-      if (energy === 'build') {
-        kit.glide808(t, chord.bass - 12 > 24 ? chord.bass - 12 : chord.bass, chord.bass + 12, BAR, 0.9);
-        kit.bell(s(0), chord.notes[2] + 12, 0.8, 1.2, 0);
-      }
+      for (let n = 8; n < 16; n += n < 12 ? 1 : 0.5) kit.snare(s(n), 0.15 + 0.6 * ((n - 8) / 8), (n % 2) * 0.4 - 0.2);
+      kit.swell(s(6), 10 * STEP, 0.9);
+      if (energy === 'build') p.bass808(t, chord.bass, BAR - 0.05, 0.9, chord.bass + 12);
       return;
     }
     const full = energy === 'full';
-    const cut = b.scene && prev && prev.energy !== 'intro'; // el primer tiempo después de un corte
+    const cut = b.scene && prev && prev.energy !== 'intro';
     const drop = b.scene || prev?.energy === 'intro';
-    // Antes de cada corte (el último compás de la escena, si viene otra con base): la batería
-    // se para en las dos últimas semicorcheas, sube un redoble y el 808 se desliza a la nota
-    // de la escena siguiente.
+    // Antes de cada corte: todo se para en las dos últimas semicorcheas, sube un redoble y el
+    // 808 se desliza a la nota de la escena siguiente.
     const stop = b.last && next && next.energy !== 'tail';
     const end = stop ? 14 : 16;
     if (!full) {
-      // 'light' (los tiros): poco bombo, que los efectos de cada tiro llevan el ritmo.
-      kit.kick(s(0), drop ? 1 : 0.7);
-      kit.bass808(s(0), chord.bass, (stop ? 12 : 16) * STEP * 0.95, 0.75);
-      if (!stop) kit.kick(s(10), 0.5);
-      for (let n = 0; n < end; n += 4) kit.hat(s(n), 0.35, false, n % 8 ? 0.3 : -0.3);
+      // 'light' (los tiros): el cencerro, bombo en el 1 y el 3 y platos a negras.
+      riff(0.75, end);
+      kit.kick(s(0), drop ? 1 : 0.75);
+      p.bass808(s(0), chord.bass, 7 * STEP, 0.7);
+      if (!stop) kit.kick(s(8), 0.6);
+      for (let n = 0; n < end; n += 4) kit.hat(s(n), 0.3, false, n % 8 ? 0.3 : -0.3);
     } else {
-      const groove = GROOVES[GROOVE_OF[b.id] || 'abc'[(b.sceneIndex || 0) % 3]];
-      const hits = groove.filter(n => n < end);
-      hits.forEach((n, j) => {
-        kit.kick(s(n), j === 0 ? 1 : 0.8);
-        const nextHit = hits[j + 1] ?? (stop ? 12 : 16);
-        kit.bass808(s(n), chord.bass, (nextHit - n) * STEP * 0.95, j === 0 ? 1 : 0.85);
-      });
-      kit.clap(s(8));
-      // Platos: corcheas; en el minuto a minuto, semicorcheas (van con la línea que baja) y un
-      // redoble a 1/32 al final de cada compás.
+      const gr = PHONK_GROOVES[PHONK_OF[b.id] || (b.sceneIndex % 2 ? 'half' : 'funk')];
+      gr.kicks.filter(n => n < end).forEach((n, j) => kit.kick(s(n), j === 0 ? 1 : 0.85));
+      gr.bass.filter(([n]) => n < end).forEach(([n, d], j) => p.bass808(s(n), chord.bass, Math.min(d, end - n) * STEP * 0.95, j === 0 ? 1 : 0.85));
+      gr.claps.filter(n => n < end).forEach(n => { kit.clap(s(n), 0.9); kit.snare(s(n), 0.5, 0); });
+      // Platos: corcheas con el contratiempo marcado; en el minuto a minuto, semicorcheas, y un
+      // tresillo rápido al final de cada dos compases.
       const step = b.id === 'goals' ? 1 : 2;
-      for (let n = 0; n < end; n += step) kit.hat(s(n), n % 4 ? 0.42 : 0.72, false, n % 4 ? 0.3 : -0.2);
-      if (!stop && (b.id === 'goals' || rel % 2 === 1)) {
-        [13, 13.5, 14, 14.5, 15, 15.5].forEach((n, j) => kit.hat(s(n), 0.35 + j * 0.07, false, 0.35));
-      }
-      if (!stop && rel % 4 === 2) kit.hat(s(14), 0.6, true, -0.35);
-      // La campana: pregunta y respuesta cada dos compases.
-      (rel % 2 ? BELL_B : BELL_A).filter(([n]) => n < end).forEach(([n, k, oct], j) =>
-        kit.bell(s(n), chord.notes[k] + 12 * oct, j === 0 ? 1 : 0.75, 0.7, (k - 1) * 0.35));
+      for (let n = 0; n < end; n += step) kit.hat(s(n), n % 4 === 2 ? 0.7 : 0.4, false, n % 4 ? 0.3 : -0.2);
+      if (!stop && rel % 2 === 1) [12, 12.67, 13.33, 14, 14.67, 15.33].forEach((n, j) => kit.hat(s(n), 0.35 + j * 0.07, false, 0.35));
+      if (!stop) kit.hat(s(6), 0.55, true, -0.3);
+      riff(1, end, rel % 2 === 1);
     }
-    if (!full) BELL_A.slice(0, 2).forEach(([n, k], j) => kit.bell(s(n), chord.notes[k] + 12, (j ? 0.75 : 1) * 0.7, 0.7, (k - 1) * 0.35));
-    // El corte: bombo, 808 y platillo justo en el primer tiempo.
-    if (cut || drop) kit.crash(t, cut ? 0.8 : 1);
+    // El corte: bombo, 808 y platillo en el primer tiempo.
+    if (cut || drop) kit.crash(t, cut ? 0.75 : 1);
     if (stop) {
       const to = CH[next.k] || chord;
       for (let n = 12; n < 16; n += 0.5) kit.snare(s(n), 0.2 + 0.5 * ((n - 12) / 4), (n * 2) % 2 ? 0.3 : -0.3);
       kit.swell(s(10), 6 * STEP, 0.8);
-      kit.glide808(s(12), chord.bass, to.bass, 4 * STEP, 0.9);
+      p.bass808(s(12), chord.bass, 4 * STEP, 0.9, to.bass);
     }
   }
 
@@ -734,7 +764,7 @@
     const ctx = new OfflineAudioContext(2, length, RATE);
     const rand = rng(timeline.seed || 1);
     const epic = timeline.style === 'epica';
-    const CH = epic ? EPIC_CHORDS : CHORDS;
+    const CH = epic ? EPIC_CHORDS : PHONK_CHORDS;
 
     // Buses: batería, bajo, teclas y efectos, con algo de reverberación, a un compresor.
     const comp = ctx.createDynamicsCompressor();
@@ -774,9 +804,9 @@
     if (epic) {
       const orch = makeOrchestra(ctx, buses, rand);
       bars.forEach((b, i) => playEpicBar(orch, bars, i, CH, dropAt));
-    } else {
-      bars.forEach((b, i) => playUrbanBar(kit, bars, i, CH, dropAt));
     }
+    const phonk = epic ? null : makePhonk(ctx, buses, rand);
+    if (phonk) bars.forEach((b, i) => playPhonkBar(kit, phonk, bars, i, CH, dropAt));
 
     // Los efectos de las animaciones.
     const chordForPops = (t) => {
@@ -790,14 +820,17 @@
         case 'hit': kit.hit(c.t, c.vel || 1); break;
         case 'slam':
           kit.slam(c.t, c.vel || 1);
-          // En la urbana, cada golpe de cámara lleva su 808 en la nota del acorde.
-          if (!epic) kit.bass808(c.t, chordForPops(c.t).bass, 0.45, 0.9);
+          // En la urbana, cada golpe de cámara lleva su 808 y un cencerro en la nota del acorde.
+          if (phonk) {
+            phonk.bass808(c.t, chordForPops(c.t).bass, 0.45, 0.9);
+            phonk.cowbell(c.t, chordForPops(c.t).notes[2] + 12, 0.8);
+          }
           break;
         case 'impact': kit.impact(c.t, c.vel || 1); break;
         case 'whoosh': kit.whoosh(c.t, c.dur || 0.55, c.vel || 1); break;
         case 'riser': kit.riser(c.t, c.dur || 1, c.vel || 1); break;
         // En la épica, el acorde final ya lo dan todos (finale).
-        case 'stab': if (!epic) { kit.stab(c.t, CHORDS[0].notes.map(n => n + 12)); kit.stab(c.t, [CHORDS[0].bass + 24]); } break;
+        case 'stab': if (!epic) { kit.stab(c.t, CH[0].notes); kit.stab(c.t, [CH[0].bass + 24]); } break;
         case 'pop': {
           const ch = chordForPops(c.t);
           const note = ch.notes[popIndex % 3] + (popIndex % 2 ? 24 : 12);
