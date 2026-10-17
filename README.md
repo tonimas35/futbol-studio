@@ -35,9 +35,9 @@ En la web de Netlify, el Studio añade la nota de cada jugador y su cara, de [AP
 - A quien no tiene foto, API-Football le da una silueta gris: el Studio la detecta y pone el dorsal con los colores del equipo.
 - En el pie de foto, la nota del jugador del partido; en «Para tu IA», las 5 mejores de cada equipo.
 
-Cómo se conecta: la clave de API-Football va en Netlify (**Project configuration → Environment variables**, `APIFOOTBALL_KEY`), nunca en la página. El Studio pide los datos a una función de Netlify (`netlify/functions/apifootball.mjs`) que añade la clave, solo deja pasar lo que usa el Studio y guarda las respuestas un rato para no gastar peticiones. Cada partido gasta 2 (los partidos del día y los jugadores de ese partido); el plan gratis da 100 al día y solo deja los partidos de ayer, hoy y mañana (para uno más antiguo, el carrusel sale sin notas y el aviso lo dice).
+Cómo se conecta: pega tu clave en **«Tu clave de API-Football»** (Paso 2; está en dashboard.api-football.com → Profile → API-KEY). Se guarda solo en ese navegador, así que en cada móvil u ordenador se pone una vez, y el Studio pide los datos desde ahí, directamente a API-Football. **No pasa por Netlify a propósito:** las funciones de Netlify son AWS Lambda, con IPs compartidas, y API-Football suspende las cuentas que piden desde ellas (le pasó a la tuya el primer día). Cada partido gasta 2 peticiones (los partidos del día y los jugadores de ese partido; si lo rehaces, se reutilizan); el plan gratis da 100 al día y solo deja los partidos de ayer, hoy y mañana (para uno más antiguo, el carrusel sale sin notas y el aviso lo dice).
 
-El partido se busca por la hora (±30 minutos), el resultado y los nombres de los equipos; los jugadores se emparejan por el dorsal (o, si no, por el apellido). Si API-Football no deja (el plan no incluye esa temporada, se acabaron las peticiones del día…), el carrusel sale igual, sin notas, y el aviso dice lo que ha contestado. Abierto como archivo en el ordenador no hay función: todo igual, sin notas.
+El partido se busca por la hora (±30 minutos), el resultado y los nombres de los equipos; los jugadores se emparejan por el dorsal (o, si no, por el apellido). Si API-Football no deja (el plan no incluye esa temporada, se acabaron las peticiones del día…), el carrusel sale igual, sin notas, y el aviso dice lo que ha contestado. Sin clave, todo igual, sin notas.
 
 ## En directo
 
@@ -178,7 +178,6 @@ El partido en 30 a 40 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
 | `futbol.css` | La interfaz y las slides (`.fc`); el grano de las slides va dentro, en base64, para que la descarga funcione abriendo el archivo |
 | `manifest.webmanifest`, `apple-touch-icon.png`, `icon-*.png` | El nombre y el icono al añadirlo a la pantalla de inicio del móvil |
 | `netlify.toml` | Cómo se publica en Netlify (solo los archivos de la página) y dónde está la función |
-| `netlify/functions/apifootball.mjs` | La función de Netlify que pide a API-Football con tu clave |
 | `netlify/functions/pitido-final.mjs` | La función de Netlify que avisa al móvil (ntfy) cuando acaba un partido |
 | `tests/` | Las pruebas y los datos de ESPN que usan |
 

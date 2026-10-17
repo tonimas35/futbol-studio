@@ -728,19 +728,20 @@ try {
     await c9.close();
   }
 
-  // ── API-Football (en la web): las notas y las caras, con la función de Netlify ──
+  // ── API-Football: las notas y las caras, pedidas desde el navegador con tu clave ──
   // Las notas de este partido son de ejemplo, con el formato de API-Football (dos decimales y «0»
   // para los que no han jugado, como el portero suplente).
   {
     const asked = [];
-    const afFile = (q) => (q.get('path') === 'fixtures' ? `af-fixtures-${q.get('date')}.json`
-      : q.get('path') === 'fixtures/players' ? `af-players-${q.get('fixture')}.json` : '');
+    const afFile = (path, q) => (path === 'fixtures' ? `af-fixtures-${q.get('date')}.json`
+      : path === 'fixtures/players' ? `af-players-${q.get('fixture')}.json` : '');
     const { ctx: ca, page: pa } = await open({
       before: async (c) => {
-        await c.route('**/.netlify/functions/apifootball**', (r) => {
-          const q = new URL(r.request().url()).searchParams;
-          asked.push(q.get('path'));
-          const f = afFile(q);
+        await c.route('https://v3.football.api-sports.io/**', (r) => {
+          const u = new URL(r.request().url());
+          const path = u.pathname.slice(1);
+          asked.push(`${path}:${r.request().headers()['x-apisports-key']}`);
+          const f = afFile(path, u.searchParams);
           return r.fulfill(json(f && existsSync(join(FIX, f)) ? readFileSync(join(FIX, f)) : '{"errors":[],"response":[]}'));
         });
         // Gollini no tiene foto: API-Football da su silueta gris. Mbappé, una cara de 150 px.
@@ -749,6 +750,16 @@ try {
             : r.request().url().endsWith('/91008.png') ? readFileSync(join(FIX, 'af-cara.png')) : PIXEL }));
       },
     });
+    await pickLeague(pa, 'uefa.champions');
+    await pickDate(pa, '2026-10-14');
+    // Sin clave, ni se pide: sale sin notas
+    await generate(pa, '401915414');
+    check(asked.length === 0 && !(await slideNames(pa)).includes('Las notas'), `sin tu clave de API-Football, sin notas y sin pedir nada (${asked.length} peticiones)`);
+    check(await pa.$eval('#afKeyInput', (i) => i.type) === 'password', 'la clave se escribe oculta');
+    await pa.fill('#afKeyInput', ' clave-de-prueba ');
+    await pa.reload();
+    await pa.waitForSelector('.game-card', { timeout: 30000 }).catch(() => {});
+    check(await pa.inputValue('#afKeyInput') === 'clave-de-prueba', 'y se recuerda en este navegador');
     await pickLeague(pa, 'uefa.champions');
     await pickDate(pa, '2026-10-14');
     await generate(pa, '401915414');
@@ -791,12 +802,24 @@ try {
     }));
     check(face.on && face.badge && face.img === 'https://media.api-sports.io/football/players/91008.png', `sin foto grande, su cara en un retrato con el escudo (${face.img})`);
     check(face.crisp && face.size === 450, `y ampliada con enfoque a 450 px para que no salga borrosa (${face.size} px)`);
-    check(asked.join(',') === 'fixtures,fixtures/players', `con 2 peticiones (${asked.join(', ')})`);
-    // Si API-Football no deja (el plan, el límite del día…), lo dice y el carrusel sale igual
-    await ca.route('**/.netlify/functions/apifootball**', (r) => r.fulfill(json('{"errors":{"plan":"Free plans do not have access to this season, try from 2021 to 2023."},"response":[]}')));
+    check(asked.join(',') === 'fixtures:clave-de-prueba,fixtures/players:clave-de-prueba', `con 2 peticiones directas a API-Football y tu clave (${asked.join(', ')})`);
+    // Al rehacer el mismo partido, lo guardado: ninguna petición más
+    await generate(pa, '401915414');
+    check(asked.length === 2 && (await slideNames(pa)).includes('Las notas'), `y al rehacerlo, sin gastar más peticiones (${asked.length})`);
+    // Si API-Football no deja (el plan, el límite del día…), lo dice y el carrusel sale igual (con
+    // otra clave, que vuelve a pedirlo todo)
+    await pa.fill('#afKeyInput', 'otra-clave');
+    await ca.route('https://v3.football.api-sports.io/**', (r) => r.fulfill(json('{"errors":{"plan":"Free plans do not have access to this season, try from 2021 to 2023."},"response":[]}')));
     await generate(pa, '401915415');
     check(/sin las notas · API-Football: Free plans do not have access/.test(await pa.textContent('#toast')) && !(await slideNames(pa)).includes('Las notas'),
       `si el plan no deja, lo avisa y sale sin notas (${await pa.textContent('#toast')})`);
+    // Con la clave mal copiada, API-Football contesta 403 sin cabeceras CORS y el navegador solo ve un
+    // fallo de red (aquí, la petición cortada: la respuesta servida por la prueba se saltaría el CORS)
+    await pa.fill('#afKeyInput', 'clave-mal-copiada');
+    await ca.route('https://v3.football.api-sports.io/**', (r) => r.abort('failed'));
+    await generate(pa, '401915415');
+    check(/sin las notas · API-Football: no contesta \(¿la clave está bien copiada\?\)/.test(await pa.textContent('#toast')),
+      `y con la clave mal copiada, lo dice (${await pa.textContent('#toast')})`);
     await ca.close();
   }
 

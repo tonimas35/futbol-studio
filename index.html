@@ -186,6 +186,11 @@
         <button class="slide-reset-btn brand-del" id="brandDel" type="button" hidden>Quitar</button>
         <small>Sale junto a tu firma en cada slide, grande en el cierre y en una esquina del vídeo. Mejor un PNG con el fondo transparente.</small>
       </div>
+      <label class="sign-field">
+        <span>Tu clave de API-Football</span>
+        <input type="password" id="afKeyInput" maxlength="64" placeholder="Pega aquí tu API-KEY" autocomplete="off" spellcheck="false" />
+        <small>Para las notas y las caras de los jugadores. Está en dashboard.api-football.com → Profile. Se guarda solo en este navegador y las pide desde aquí, no desde Netlify (API-Football suspende las cuentas que piden desde servidores compartidos). Sin clave, sale todo sin notas.</small>
+      </label>
     </section>
 
     <!-- Paso 3: retocar -->
@@ -301,6 +306,6 @@
 
   <script src="audio.js?v=3"></script>
   <script src="video.js?v=14"></script>
-  <script src="futbol.js?v=24"></script>
+  <script src="futbol.js?v=25"></script>
 </body>
 </html>

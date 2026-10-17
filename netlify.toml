@@ -9,8 +9,8 @@
   # (no gastan). Las vistas previas de las PR son gratis y siguen saliendo siempre.
   ignore = "if [ \"$BRANCH\" = main ] && ! git log -1 --pretty=%B | grep -q '\\[publicar\\]'; then exit 0; else exit 1; fi"
 
-# Las funciones: apifootball.mjs habla con API-Football con tu clave (APIFOOTBALL_KEY, en las
-# variables de entorno de Netlify) y pitido-final.mjs (cada 5 minutos, de 11 a 23 h UTC) avisa al móvil con ntfy
-# cuando acaba un partido (NTFY_TOPIC y, si quieres, AVISOS_LIGAS).
+# La función pitido-final.mjs (cada 5 minutos, de 11 a 23 h UTC) avisa al móvil con ntfy cuando
+# acaba un partido (NTFY_TOPIC y, si quieres, AVISOS_LIGAS). API-Football no pasa por aquí: se
+# pide desde el navegador (las IPs compartidas de las funciones hacen que suspenda la cuenta).
 [functions]
   directory = "netlify/functions"

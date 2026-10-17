@@ -1214,19 +1214,40 @@
   }
 
   // ----------------------------------------------------------
-  // API-FOOTBALL · la nota y la cara de cada jugador. Se piden a la función de Netlify, que
-  // tiene la clave (netlify/functions/apifootball.mjs): en la página no está. Abierto como
-  // archivo no hay función y todo sigue igual, sin notas.
+  // API-FOOTBALL · la nota y la cara de cada jugador. Se piden desde este navegador con tu clave,
+  // que se guarda solo aquí (en «Tu clave de API-Football»): no va en la página ni pasa por
+  // Netlify, porque API-Football suspende las cuentas que llaman desde IPs compartidas (las
+  // funciones de Netlify son AWS Lambda). Sin clave, todo sigue igual, sin notas.
   // ----------------------------------------------------------
-  const AF_URL = '/.netlify/functions/apifootball';
-  const afOn = () => /^https?:$/.test(location.protocol);
+  const AF_API = 'https://v3.football.api-sports.io';
+  const AF_KEY = 'fc-af-key';
+  // Lo que se guarda en memoria, para no gastar peticiones del plan (el gratis da 100 al día) si
+  // se rehace el mismo partido: los partidos de un día, 10 minutos; los jugadores, 6 horas.
+  const AF_TTL = { fixtures: 600e3, 'fixtures/players': 6 * 3600e3 };
+  const afCache = new Map();
+  const afKey = () => {
+    try { return (localStorage.getItem(AF_KEY) || '').trim(); } catch (e) { return ''; }
+  };
+  const afOn = () => !!afKey();
   async function afGet(path, params) {
-    const res = await fetch(`${AF_URL}?${new URLSearchParams({ path, ...params })}`, { signal: timeoutSignal(DATO_FETCH) });
+    const url = `${AF_API}/${path}?${new URLSearchParams(params)}`;
+    const hit = afCache.get(url);
+    if (hit && Date.now() - hit.at < (AF_TTL[path] || 0)) return hit.data;
+    let res;
+    try {
+      res = await fetch(url, { headers: { 'x-apisports-key': afKey() }, signal: timeoutSignal(DATO_FETCH) });
+    } catch (e) {
+      // Con una clave que no vale, API-Football contesta sin dejar que la página lo lea: el navegador
+      // solo ve un fallo de red
+      if (e.name === 'TypeError') throw Object.assign(new Error('no contesta (¿la clave está bien copiada?)'), { api: true });
+      throw e;
+    }
     const data = await res.json().catch(() => ({}));
     const errors = data.errors && (Array.isArray(data.errors) ? data.errors : Object.values(data.errors));
     // Lo que dice API-Football (el plan no deja, se acabaron las peticiones…) se enseña tal cual
     if (errors?.length) throw Object.assign(new Error(errors.join(' · ')), { api: true });
     if (!res.ok) throw new Error(`API-Football ${res.status}`);
+    afCache.set(url, { at: Date.now(), data: data.response || [] });
     return data.response || [];
   }
 
@@ -2902,8 +2923,8 @@
     }
   }
 
-  // Las notas de API-Football (solo en la web y con el partido acabado). problem: lo que ha
-  // dicho API-Football si no ha dejado (el plan, el límite del día…), para enseñarlo.
+  // Las notas de API-Football (con tu clave y el partido acabado). problem: lo que ha dicho
+  // API-Football si no ha dejado (el plan, el límite del día…), para enseñarlo.
   async function findRatings(m) {
     if (!afOn() || m.status.state !== 'post') return { data: null };
     try {
@@ -5264,6 +5285,12 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
     });
     document.getElementById('brandInput').addEventListener('change', (e) => { onBrandFile(e.target.files[0]); e.target.value = ''; });
     document.getElementById('brandDel').addEventListener('click', () => setBrand(''));
+    const afInput = document.getElementById('afKeyInput');
+    afInput.value = afKey();
+    afInput.addEventListener('input', () => {
+      try { localStorage.setItem(AF_KEY, afInput.value.trim()); } catch (e) { /* sin almacenamiento: no se recuerda */ }
+      afCache.clear();
+    });
     document.getElementById('captionCopyBtn').addEventListener('click', copyCaption);
     document.getElementById('captionText').addEventListener('input', () => { captionEdited = true; });
 
