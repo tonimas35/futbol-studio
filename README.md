@@ -22,7 +22,7 @@ En el móvil hace falta abrirlo desde una web con HTTPS (sin ella, el navegador 
 4. En **Site configuration → Change site name**, ponle un nombre: queda en `https://<nombre>.netlify.app`.
 5. En el móvil, abre esa dirección y **Compartir → Añadir a pantalla de inicio**: sale con su icono.
 
-Cada cambio que entra en `main` se publica solo. Solo se publica la página (`netlify.toml` copia sus archivos): ni las pruebas ni este README. La dirección no sale en buscadores (`noindex`), pero quien la tenga puede abrirla; dentro no hay nada privado (los datos son de ESPN y tus borradores se quedan en tu navegador). Lo que hagas en el móvil se guarda en el móvil, y lo del ordenador, en el ordenador.
+**Cuándo se publica (y los créditos de Netlify):** el plan gratis de Netlify da 300 créditos al mes y cada publicación en la web gasta 15 (unas 20 al mes); al acabarlos, Netlify para **todas** las webs del equipo hasta el mes siguiente. Por eso un cambio que entra en `main` **no** se publica solo: solo cuando el mensaje del commit lleva `[publicar]` (la regla `ignore` de `netlify.toml`). Así se juntan varios cambios en una sola publicación. Las vistas previas de cada PR (`deploy-preview-N--<nombre>.netlify.app`) no gastan y salen siempre, para probar antes. Para publicar lo que ya está en `main` sin cambiar nada: en Netlify, **Deploys → Trigger deploy** (también gasta 15). Solo se publica la página (`netlify.toml` copia sus archivos): ni las pruebas ni este README. La dirección no sale en buscadores (`noindex`), pero quien la tenga puede abrirla; dentro no hay nada privado (los datos son de ESPN y tus borradores se quedan en tu navegador). Lo que hagas en el móvil se guarda en el móvil, y lo del ordenador, en el ordenador.
 
 ## Las notas de los jugadores (API-Football)
 
@@ -54,7 +54,7 @@ Arriba del todo, «Los partidos de hoy»: eliges qué competiciones vigilar (las
 
 ### Aviso al móvil al acabar un partido (sin tener el Studio abierto)
 
-La función de Netlify `pitido-final` mira ESPN cada 2 minutos y, cuando acaba un partido de tus competiciones, manda un aviso con [ntfy](https://ntfy.sh) («Final: Real Betis 1-2 Barcelona · LaLiga»). Al tocarlo se abre el enlace de arriba y el Studio lo genera todo. Para activarlo:
+La función de Netlify `pitido-final` mira ESPN cada 5 minutos, de 13:00 a 01:59 en España (las horas de los partidos de Europa: cada ejecución gasta un poco de créditos), y, cuando acaba un partido de tus competiciones, manda un aviso con [ntfy](https://ntfy.sh) («Final: Real Betis 1-2 Barcelona · LaLiga»). Al tocarlo se abre el enlace de arriba y el Studio lo genera todo. Para activarlo:
 
 1. Instala la app **ntfy** (Android o iPhone; gratis y sin cuenta) y suscríbete a un tema con un nombre largo y raro (que no adivine nadie: quien lo sepa puede leer y mandar avisos a ese tema).
 2. En Netlify, **Project configuration → Environment variables**, crea `NTFY_TOPIC` con ese mismo nombre.

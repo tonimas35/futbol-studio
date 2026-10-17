@@ -1,4 +1,5 @@
-// AL PITIDO FINAL · cada 2 minutos mira ESPN y, cuando acaba un partido de tus competiciones,
+// AL PITIDO FINAL · cada 5 minutos, de 13:00 a 01:59 en España (11 a 23 h UTC; los partidos de
+// Europa), mira ESPN y, cuando acaba un partido de tus competiciones,
 // manda un aviso al móvil con ntfy (https://ntfy.sh: la app es gratis y no pide cuenta). Al
 // tocarlo se abre el Studio con ?partido=…, que genera solo el carrusel, el vídeo y la
 // descripción para TikTok.
@@ -91,7 +92,7 @@ export default async () => {
   const days = [...new Set([madridIso(now), madridIso(now - 6 * 3600e3)])];
   const sent = await alreadySent(topic);
   // Si ntfy no responde, mejor no avisar que avisar dos veces.
-  if (!sent) return new Response('ntfy no responde: se reintenta en 2 minutos', { status: 502 });
+  if (!sent) return new Response('ntfy no responde: se reintenta en 5 minutos', { status: 502 });
   const boards = await Promise.all((leagues.length ? leagues : DEFAULT_LEAGUES).flatMap(league => days.map(async day => ({
     league, day, data: await getJson(`${ESPN}/${league}/scoreboard?dates=${day.replaceAll('-', '')}`),
   }))));
@@ -106,4 +107,6 @@ export default async () => {
   return new Response(`${finals.length} aviso(s): ${finals.map(f => f.title).join(' · ') || 'ninguno'}`);
 };
 
-export const config = { schedule: '*/2 * * * *' };
+// Cada ejecución gasta créditos de Netlify (cómputo): solo en las horas de partidos y cada 5
+// minutos, unos 160 avisos posibles al día en vez de 720.
+export const config = { schedule: '*/5 11-23 * * *' };
