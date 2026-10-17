@@ -3424,8 +3424,8 @@
   let videoFile = null;
   let videoBusy = false;
   function updateVideoBtn() {
-    document.getElementById('videoBtn').disabled = videoBusy || recording || !state.rendered;
-    document.getElementById('mixPreviewBtn').disabled = videoBusy || recording || mixBusy || !state.rendered;
+    document.getElementById('videoBtn').disabled = videoBusy || !state.rendered;
+    document.getElementById('mixPreviewBtn').disabled = videoBusy || mixBusy || !state.rendered;
     syncScript();
   }
   function resetVideo() {
@@ -3437,14 +3437,12 @@
     videoUrl = null;
     audioUrl = null;
   }
-  const videoOptions = () => {
-    const withVoice = !!voice && document.getElementById('videoVoice').checked;
-    return {
-      music: document.getElementById('videoMusic').checked,
-      script: state.script, ...mixLevels(), intro: document.getElementById('videoIntro').checked,
-      voice: withVoice ? voice.blob : null, voiceLead: withVoice ? voice.lead || 0 : null, voiceShift: withVoice ? voice.shift || 0 : 0,
-    };
-  };
+  // video.js sabe mezclar una voz (voice, voiceLead, voiceShift): queda para cuando llegue la
+  // de ElevenLabs.
+  const videoOptions = () => ({
+    music: document.getElementById('videoMusic').checked,
+    script: state.script, ...mixLevels(), intro: document.getElementById('videoIntro').checked,
+  });
 
   async function makeVideo() {
     const m = state.rendered;
@@ -3660,8 +3658,6 @@
 
   let scriptData = null;   // los datos del vídeo del partido del guion (para saber sus escenas)
   let scriptSaveTimer = null;
-  let voice = null;        // { blob, url, gameId, script, lead, shift, autoShift }
-  let recording = false;
 
   // Cada vez que cambia el partido generado, guion nuevo (y la voz de otro partido, fuera).
   function syncScript() {
@@ -3675,7 +3671,6 @@
       state.script = autoScript(scriptData);
       state.scriptGame = m.id;
     }
-    if (voice && voice.gameId !== m.id) dropVoice();
     renderScript();
   }
 
@@ -3704,7 +3699,6 @@
       list.append(li);
     });
     updateScriptFit();
-    updateVoiceUi();
   }
 
   function updateScriptFit() {
@@ -3726,7 +3720,6 @@
     if (!area) return;
     state.script = { ...state.script, [area.dataset.scene]: area.value.replace(/\s*\n\s*/g, ' ') };
     updateScriptFit();
-    updateVoiceUi();
     clearTimeout(scriptSaveTimer);
     scriptSaveTimer = setTimeout(saveDraft, 500);
   }
@@ -3739,88 +3732,22 @@
     saveDraft();
   }
 
-  // ─── Tu voz ───
-  const PROMPT_LEAD = 0.2;  // el teleprompter va 0,2 s por delante de los subtítulos
-  const SYNC_STEP = 0.05;
-  const syncText = (shift) => (Math.abs(shift) < SYNC_STEP / 2 ? 'sin mover'
-    : `${Math.abs(shift).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} s ${shift < 0 ? 'antes' : 'después'}`);
-  function saveVoice() {
-    if (!voice) return;
-    const { blob, gameId, script, lead, shift, autoShift } = voice;
-    dbPut('drafts', 'voice', { blob, gameId, script, lead, shift, autoShift, savedAt: Date.now() });
-  }
-  let syncSaveTimer = null;
-  function onSyncInput() {
-    if (!voice) return;
-    voice.shift = Number(document.getElementById('voiceSync').value);
-    document.getElementById('voiceSyncOut').textContent = syncText(voice.shift);
-    mixChanged();
-    clearTimeout(syncSaveTimer);
-    syncSaveTimer = setTimeout(saveVoice, 400);
-  }
-  function autoSync() {
-    if (!voice) return;
-    voice.shift = voice.autoShift || 0;
-    updateVoiceUi();
-    mixChanged();
-    saveVoice();
-  }
-  const sameScript = (a, b) => JSON.stringify(a || {}) === JSON.stringify(b || {});
-  function setVoice(v) {
-    if (voice?.url) URL.revokeObjectURL(voice.url);
-    voice = v ? { ...v, url: URL.createObjectURL(v.blob) } : null;
-    updateVoiceUi();
-  }
-  function dropVoice() {
-    setVoice(null);
-    dbDel('drafts', 'voice');
-  }
-  function updateVoiceUi() {
-    const player = document.getElementById('voicePlayer');
-    const has = !!voice;
-    if (has && player.getAttribute('src') !== voice.url) player.src = voice.url;
-    if (!has) player.removeAttribute('src');
-    player.hidden = !has;
-    document.getElementById('voiceDelBtn').hidden = !has;
-    document.getElementById('videoVoiceLabel').hidden = !has;
-    document.getElementById('voiceSyncRow').hidden = !has;
-    if (has) {
-      document.getElementById('voiceSync').value = voice.shift || 0;
-      document.getElementById('voiceSyncOut').textContent = syncText(voice.shift || 0);
-    }
-    showMix();
-    document.getElementById('voiceRecBtn').querySelector('.label').textContent = has ? 'Repetir grabación' : 'Grabar mi voz';
-    const status = document.getElementById('voiceStatus');
-    status.classList.toggle('warn', has && !sameScript(voice.script, state.script));
-    status.textContent = !has
-      ? 'Lee el guion mientras corre el vídeo: la palabra que toca se resalta, como en los subtítulos. Antes, una cuenta atrás de 3 segundos.'
-      : !sameScript(voice.script, state.script)
-        ? 'Has cambiado el guion después de grabar: vuelve a grabar para que tu voz y los subtítulos digan lo mismo.'
-        : 'Tu voz está lista: va en el vídeo con la música más baja mientras hablas.';
-  }
-
-  // ─── Volumen · por defecto, la música y la voz como suenan siempre (100 %). Las barras se
-  // recuerdan en este navegador y «Escuchar la mezcla» crea solo el sonido para ajustarlas. ───
+  // ─── Volumen · por defecto, la música como suena siempre (100 %). La barra se recuerda en
+  // este navegador y «Escuchar la mezcla» crea solo el sonido para ajustarla. ───
   const MIX_KEY = 'fc-mix';
   let mixBusy = false;
   let mixUrl = null;
-  const mixLevels = () => ({
-    musicVolume: Number(document.getElementById('musicVol').value) / 100,
-    voiceVolume: Number(document.getElementById('voiceVol').value) / 100,
-  });
+  const mixLevels = () => ({ musicVolume: Number(document.getElementById('musicVol').value) / 100 });
   function showMix() {
-    const music = document.getElementById('musicVol'), voiceVol = document.getElementById('voiceVol');
+    const music = document.getElementById('musicVol');
     document.getElementById('musicVolOut').textContent = `${music.value}%`;
-    document.getElementById('voiceVolOut').textContent = `${voiceVol.value}%`;
     music.disabled = !document.getElementById('videoMusic').checked;
-    document.getElementById('voiceVolLabel').hidden = !voice;
-    document.getElementById('mixResetBtn').hidden = music.value === '100' && voiceVol.value === '100';
+    document.getElementById('mixResetBtn').hidden = music.value === '100';
   }
   function loadMix() {
     try {
       const saved = JSON.parse(localStorage.getItem(MIX_KEY) || '{}');
       if (Number.isFinite(saved.music)) document.getElementById('musicVol').value = saved.music;
-      if (Number.isFinite(saved.voice)) document.getElementById('voiceVol').value = saved.voice;
     } catch (e) { /* sin localStorage: por defecto */ }
     showMix();
   }
@@ -3830,22 +3757,19 @@
     player.pause();
     player.hidden = true;
     try {
-      localStorage.setItem(MIX_KEY, JSON.stringify({
-        music: Number(document.getElementById('musicVol').value), voice: Number(document.getElementById('voiceVol').value),
-      }));
+      localStorage.setItem(MIX_KEY, JSON.stringify({ music: Number(document.getElementById('musicVol').value) }));
     } catch (e) { /* sin localStorage: vale para esta vez */ }
   }
   function resetMix() {
     document.getElementById('musicVol').value = 100;
-    document.getElementById('voiceVol').value = 100;
     mixChanged();
   }
   async function previewMix() {
     const m = state.rendered;
-    if (!m || mixBusy || videoBusy || recording || !window.StudioVideo?.audio) return;
+    if (!m || mixBusy || videoBusy || !window.StudioVideo?.audio) return;
     const opts = videoOptions();
-    if (!opts.music && !opts.voice) {
-      showToast('No hay nada que escuchar: activa la música o graba tu voz');
+    if (!opts.music) {
+      showToast('No hay nada que escuchar: activa la música');
       return;
     }
     const btn = document.getElementById('mixPreviewBtn');
@@ -3866,131 +3790,6 @@
     } finally {
       mixBusy = false;
       btn.classList.remove('btn-loading');
-      updateVideoBtn();
-    }
-  }
-
-  // El teleprompter: la frase de la escena con lo ya dicho, la palabra que toca y lo que falta,
-  // y debajo la siguiente.
-  let prompterKey = '';
-  function updatePrompterText(words, t) {
-    const i = words.findIndex(w => w.end > t);
-    const scene = i >= 0 ? words[i].scene : -1;
-    const line = words.filter(w => w.scene === scene);
-    const now = line.findIndex(w => t >= w.start && t < w.end);
-    const key = `${scene}:${now}:${line.filter(w => t >= w.end).length}`;
-    if (key === prompterKey) return;
-    prompterKey = key;
-    const lineEl = document.getElementById('prompterLine');
-    lineEl.replaceChildren(...line.flatMap((w, j) => {
-      const span = document.createElement('span');
-      span.textContent = w.text;
-      span.className = j === now ? 'now' : t >= w.end ? 'said' : '';
-      return j ? [' ', span] : [span];
-    }));
-    const nextScene = words.find(w => w.scene > scene)?.scene;
-    document.getElementById('prompterNext').textContent = nextScene == null ? ''
-      : words.filter(w => w.scene === nextScene).map(w => w.text).join(' ');
-  }
-
-  async function recordVoice() {
-    const m = state.rendered;
-    if (!m || videoBusy || recording || !window.StudioVideo?.prepare) return;
-    document.activeElement?.blur();
-    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
-      showToast('Este navegador no puede grabar audio: prueba con Chrome', 'error');
-      return;
-    }
-    let stream;
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
-    } catch (e) {
-      showToast('Sin acceso al micrófono: dale permiso en el navegador', 'error');
-      return;
-    }
-    recording = true;
-    updateVideoBtn();
-    const overlay = document.getElementById('prompter');
-    const count = document.getElementById('prompterCount');
-    const clock = document.getElementById('prompterTime');
-    overlay.classList.remove('live');
-    clock.textContent = 'Preparando…';
-    document.getElementById('prompterLine').textContent = '';
-    document.getElementById('prompterNext').textContent = '';
-    prompterKey = '';
-    overlay.hidden = false;
-    document.body.classList.add('zoom-open');
-    let cancelled = false;
-    const cancel = () => { cancelled = true; };
-    const onKey = (e) => { if (e.key === 'Escape') cancel(); };
-    document.getElementById('prompterStop').onclick = cancel;
-    document.addEventListener('keydown', onKey);
-    try {
-      const script = { ...state.script };
-      // Con la apertura o sin ella, como esté marcado: se apunta para colocar la voz.
-      const prep = await window.StudioVideo.prepare(videoData(m), script, { intro: document.getElementById('videoIntro').checked });
-      const canvas = document.getElementById('prompterCanvas');
-      const ctx = canvas.getContext('2d');
-      ctx.setTransform(canvas.width / prep.W, 0, 0, canvas.height / prep.H, 0, 0);
-      prep.draw(ctx, 0);
-      updatePrompterText(prep.words, PROMPT_LEAD);
-      for (const n of [3, 2, 1]) {
-        if (cancelled) break;
-        count.textContent = n;
-        clock.textContent = 'Empieza en…';
-        await new Promise(r => setTimeout(r, 1000));
-      }
-      count.textContent = '';
-      if (cancelled) return;
-      const mime = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/webm', 'audio/ogg;codecs=opus']
-        .find(x => MediaRecorder.isTypeSupported(x));
-      const rec = new MediaRecorder(stream, mime ? { mimeType: mime, audioBitsPerSecond: 128000 } : {});
-      const chunks = [];
-      rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
-      const started = new Promise(r => { rec.onstart = r; });
-      const stopped = new Promise(r => { rec.onstop = r; });
-      rec.start(250);
-      await started;
-      const t0 = performance.now();
-      overlay.classList.add('live');
-      await new Promise((resolve) => {
-        const tick = () => {
-          const t = (performance.now() - t0) / 1000;
-          // Lo que ves va un poco adelantado: lees la palabra cuando se ilumina y la dices un
-          // instante después, justo con su subtítulo.
-          prep.draw(ctx, Math.min(t + PROMPT_LEAD, prep.duration));
-          updatePrompterText(prep.words, t + PROMPT_LEAD);
-          clock.textContent = `Grabando · ${Math.floor(Math.min(t, prep.duration))} / ${Math.round(prep.duration)} s`;
-          if (cancelled || t >= prep.duration) resolve();
-          else requestAnimationFrame(tick);
-        };
-        requestAnimationFrame(tick);
-      });
-      rec.stop();
-      await stopped;
-      if (cancelled) {
-        showToast('Grabación cancelada');
-        return;
-      }
-      const blob = new Blob(chunks, { type: rec.mimeType || mime || 'audio/webm' });
-      // Lo que aún llegue tarde (la reacción, el arranque del micro), se adelanta solo.
-      let lag = 0;
-      try { lag = await window.StudioVideo.measureVoiceLag(blob, prep.words); } catch (e) { console.warn('Sincronía:', e); }
-      const shift = -Math.round(lag / SYNC_STEP) * SYNC_STEP;
-      setVoice({ blob, gameId: m.id, script, lead: prep.lead, shift, autoShift: shift });
-      document.getElementById('videoVoice').checked = true;
-      saveVoice();
-      showToast(shift ? `Voz grabada · la he movido ${syncText(shift)} para que vaya con los subtítulos` : 'Voz grabada · escúchala y crea el vídeo', 'success');
-    } catch (e) {
-      console.error('Grabar voz:', e);
-      showToast(`No se pudo grabar: ${e.message}`, 'error');
-    } finally {
-      stream.getTracks().forEach(tr => tr.stop());
-      document.removeEventListener('keydown', onKey);
-      overlay.hidden = true;
-      overlay.classList.remove('live');
-      document.body.classList.remove('zoom-open');
-      recording = false;
       updateVideoBtn();
     }
   }
@@ -4309,8 +4108,7 @@
         saveDraft();
       }
       afterRender(d.match);
-      const savedVoice = await dbGet('drafts', 'voice');
-      if (savedVoice?.blob && savedVoice.gameId === d.match.id) setVoice(savedVoice);
+      dbDel('drafts', 'voice'); // la grabación de las versiones con «Grabar mi voz»: ya no se usa
       const status = document.getElementById('draftStatus');
       status.textContent = `Recuperado del borrador · ${new Date(d.savedAt).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`;
       status.hidden = false;
@@ -5386,11 +5184,7 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
     document.getElementById('videoShareBtn').addEventListener('click', shareVideo);
     document.getElementById('scriptLines').addEventListener('input', onScriptInput);
     document.getElementById('scriptResetBtn').addEventListener('click', resetScript);
-    document.getElementById('voiceRecBtn').addEventListener('click', recordVoice);
-    document.getElementById('voiceDelBtn').addEventListener('click', dropVoice);
-    document.getElementById('voiceSync').addEventListener('input', onSyncInput);
-    document.getElementById('voiceSyncAuto').addEventListener('click', autoSync);
-    ['musicVol', 'voiceVol', 'videoMusic', 'videoVoice', 'videoIntro'].forEach(id => document.getElementById(id).addEventListener('input', mixChanged));
+    ['musicVol', 'videoMusic', 'videoIntro'].forEach(id => document.getElementById(id).addEventListener('input', mixChanged));
     document.getElementById('mixResetBtn').addEventListener('click', resetMix);
     document.getElementById('mixPreviewBtn').addEventListener('click', previewMix);
     loadMix();

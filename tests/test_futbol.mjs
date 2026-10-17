@@ -16,7 +16,7 @@
 // Comprueba: las competiciones, la lista de partidos y su estado, generar el carrusel (las 8
 // slides, el titular, el minuto a minuto sin tarjetas pisadas, los onces, la clasificación),
 // la firma, el jugador del partido, retocar textos, el borrador al recargar, el ZIP 4:5 y 9:16,
-// compartir, el vídeo (guion, grabar la voz con el micrófono de prueba, la mezcla y el MP4),
+// compartir, el vídeo (guion, la mezcla y el MP4),
 // «Para tu IA» (copiar y pegar), un partido en juego, uno sin alineaciones ni clasificación,
 // las eliminatorias (campeón, global, quién pasa), saltar a un día con partidos, el modo en
 // directo (vigilar, avisar y generar a un clic), el resumen de la jornada, «El dato», la versión en inglés,
@@ -66,8 +66,6 @@ for (let i = 0; i < 50; i++) {
 const chromium = await loadChromium();
 const browser = await chromium.launch({
   ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}),
-  // Micrófono de mentira (un pitido) y sin preguntar: para probar la grabación de la voz.
-  args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'],
 });
 const failures = [];
 const errors = [];
@@ -309,7 +307,7 @@ try {
   await page.click('#shareCarouselBtn');
   check((await page.evaluate(() => window.__shared))[0] === 9, 'compartir manda las 9 imágenes');
 
-  // ── El vídeo: guion automático, grabar la voz, la mezcla y el MP4 ──
+  // ── El vídeo: guion automático, la mezcla y el MP4 ──
   const script = await page.$$eval('#scriptLines .script-line', (ls) => ls.map((l) => [l.dataset.scene, l.querySelector('textarea').value, l.querySelector('.script-fit').className]));
   check(script.map(([id]) => id).join(',') === 'score,dato,goals,tiros,jugador,stats,tabla,outro', `guion: una frase por escena (${script.map(([id]) => id).join(', ')})`);
   check(script[0][1] === 'Remontada del Real Madrid: 4-3 a la Roma.' && script[1][1] === 'Se acaba la racha de la Roma: 14 partidos sin perder.' && /Malen marca dos/.test(script[2][1]),
@@ -318,14 +316,7 @@ try {
   await page.fill('#scriptLines textarea[data-scene="outro"]', '¿Mbappé o Malen?');
   await page.waitForTimeout(700);
 
-  await page.click('#voiceRecBtn');
-  await page.waitForFunction(() => document.getElementById('prompter').classList.contains('live'), null, { timeout: 20000 });
-  await page.waitForTimeout(2500);
-  const prompter = await page.evaluate(() => ({ now: document.querySelector('#prompterLine .now')?.textContent || '', time: document.getElementById('prompterTime').textContent }));
-  check(/Grabando/.test(prompter.time) && prompter.now !== '', `teleprompter: resalta la palabra que toca («${prompter.now}» · ${prompter.time})`);
-  await page.waitForFunction(() => document.getElementById('prompter').hidden, null, { timeout: 60000 });
-  check(!(await page.$eval('#voicePlayer', (a) => a.hidden)) && await page.$eval('#videoVoice', (c) => c.checked)
-    && !(await page.$eval('#voiceSyncRow', (r) => r.hidden)), 'al acabar, la voz se escucha, va en el vídeo y sale la barra de sincronía');
+  check(!(await page.$('#voiceRecBtn')) && !(await page.$('#prompter')), 'sin «Grabar mi voz» ni teleprompter (la voz llegará de ElevenLabs)');
 
   await page.click('#mixPreviewBtn');
   await page.waitForFunction(() => !document.getElementById('mixPlayer').hidden, null, { timeout: 60000 });
@@ -341,12 +332,11 @@ try {
   });
   check(/^futbol-roma-rma-2026-10-14-short\.(mp4|webm)$/.test(video.name || ''), `vídeo: ${video.name} (${video.toast})`);
   check(video.duration > 39.4 && video.duration < 40.6, `dura unos 40 s: apertura, 7 escenas, el cierre y la de tu logo (${video.duration?.toFixed(1)} s)`);
-  check(video.meta === 'Lleva tu voz, música, subtítulos y la apertura con los escudos.', `lleva todo (${video.meta})`);
+  check(video.meta === 'Lleva música, subtítulos y la apertura con los escudos.', `lleva todo (${video.meta})`);
   await page.reload();
   await page.waitForSelector('#slide-portada');
   await page.waitForTimeout(500);
-  check(!(await page.$eval('#voicePlayer', (a) => a.hidden)) && await page.inputValue('#scriptLines textarea[data-scene="outro"]') === '¿Mbappé o Malen?',
-    'al recargar siguen la voz y el guion retocado');
+  check(await page.inputValue('#scriptLines textarea[data-scene="outro"]') === '¿Mbappé o Malen?', 'al recargar sigue el guion retocado');
 
   // ── Para tu IA: copiar el contexto y pegar la respuesta ──
   await page.click('#aiBriefBtn');
