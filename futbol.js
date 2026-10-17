@@ -5055,9 +5055,43 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
     markLeague(g.league);
     await goToDate(g.day);
     if (!state.games.some(x => x.id === id)) return showToast('ESPN ya no da ese partido en la lista de su día', 'error');
+    await generateAll(id);
+  }
+
+  // Todo de una vez: el carrusel y, en cuanto está, el vídeo (con la descripción para TikTok
+  // ya escrita). Lo usan «Generar →» del directo y el enlace del pitido final.
+  async function generateAll(id) {
     selectGame(id);
     await generateCarousel();
-    if (state.rendered?.id === id) document.getElementById('slidesPreview').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (state.rendered?.id !== id) return;
+    document.getElementById('slidesPreview').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    await makeVideo();
+    if (state.rendered?.id === id && !document.getElementById('videoOut').hidden) {
+      document.getElementById('videoOut').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  // ─── Al pitido final: un enlace que lo hace todo solo ───
+  // ?partido=esp.1/401882846 (y &dia=2026-10-17 si no es de hoy ni de ayer): elige la
+  // competición, busca el partido, genera el carrusel y crea el vídeo. Es el enlace del aviso
+  // al móvil cuando acaba un partido.
+  async function openFromLink(params) {
+    const [league, id] = (params.get('partido') || '').split('/');
+    if (!COMP[league] || !/^\d+$/.test(id || '')) return false;
+    // Que al recargar (o volver a abrir la pestaña) no lo repita.
+    history.replaceState(null, '', location.pathname);
+    const day = /^\d{4}-\d{2}-\d{2}$/.test(params.get('dia') || '') ? params.get('dia') : null;
+    markLeague(league);
+    for (const iso of day ? [day] : [localIso(), localIso(-1)]) {
+      await goToDate(iso);
+      if (state.games.some(g => g.id === id)) break;
+    }
+    if (!state.games.some(g => g.id === id)) {
+      showToast('ESPN no da ese partido ni hoy ni ayer', 'error');
+      return true;
+    }
+    await generateAll(id);
+    return true;
   }
 
   function renderDirecto() {
@@ -5278,8 +5312,13 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
     setupPhotoSwap(preview);
     setupZoom();
 
-    loadGames(today);
-    restoreDraft();
+    const params = new URLSearchParams(location.search);
+    if (params.has('partido')) {
+      openFromLink(params).then(done => { if (!done) { loadGames(today); restoreDraft(); } });
+    } else {
+      loadGames(today);
+      restoreDraft();
+    }
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

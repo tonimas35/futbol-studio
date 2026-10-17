@@ -45,8 +45,22 @@ Arriba del todo, «Los partidos de hoy»: eliges qué competiciones vigilar (las
 
 - Cada minuto mira ESPN y enseña los partidos de hoy: en juego (con el minuto), los que faltan y los acabados. De madrugada también enseña los de ayer, porque los de América acaban pasada la medianoche.
 - Cuando acaba un partido, avisa: la tarjeta se ilumina con «Nuevo», la pestaña dice «(1) Final · …», suena un aviso corto y, si el navegador lo permite, sale una notificación.
-- «Generar →» en la tarjeta elige la competición, el día y el partido, y genera el carrusel: en un clic lo tienes listo para revisar y publicar.
+- «Generar →» en la tarjeta elige la competición, el día y el partido, genera el carrusel y, en cuanto está, crea el vídeo: en un clic tienes el carrusel, el vídeo y la descripción para TikTok listos para revisar y publicar.
 - «↻ Actualizar» mira ESPN en ese momento; «×» deja de vigilar una competición y «+ Añadir competición» suma otra.
+
+### Al pitido final: un enlace que lo hace todo
+
+`https://studio-toni.netlify.app/?partido=esp.1/401882846` abre el Studio, elige la competición, busca el partido (hoy o ayer; si es de otro día, `&dia=2026-10-17`), genera el carrusel y crea el vídeo, con la descripción para TikTok escrita. El número es el del partido en ESPN (sale en la dirección de su ficha). Es el enlace que lleva el aviso al móvil. Al abrirlo se borra de la barra, para que recargar no lo repita.
+
+### Aviso al móvil al acabar un partido (sin tener el Studio abierto)
+
+La función de Netlify `pitido-final` mira ESPN cada 2 minutos y, cuando acaba un partido de tus competiciones, manda un aviso con [ntfy](https://ntfy.sh) («Final: Real Betis 1-2 Barcelona · LaLiga»). Al tocarlo se abre el enlace de arriba y el Studio lo genera todo. Para activarlo:
+
+1. Instala la app **ntfy** (Android o iPhone; gratis y sin cuenta) y suscríbete a un tema con un nombre largo y raro (que no adivine nadie: quien lo sepa puede leer y mandar avisos a ese tema).
+2. En Netlify, **Project configuration → Environment variables**, crea `NTFY_TOPIC` con ese mismo nombre.
+3. Opcional: `AVISOS_LIGAS` con las competiciones que quieres (códigos de ESPN separados por comas; por defecto `esp.1,uefa.champions,esp.copa_del_rey`).
+
+Sin `NTFY_TOPIC` no hace nada. No guarda nada: para no avisar dos veces mira los avisos que ya hay en el tema, y solo avisa de partidos que empezaron hace menos de 5 horas.
 
 ## En inglés
 
@@ -160,6 +174,7 @@ El partido en 30 a 40 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
 | `manifest.webmanifest`, `apple-touch-icon.png`, `icon-*.png` | El nombre y el icono al añadirlo a la pantalla de inicio del móvil |
 | `netlify.toml` | Cómo se publica en Netlify (solo los archivos de la página) y dónde está la función |
 | `netlify/functions/apifootball.mjs` | La función de Netlify que pide a API-Football con tu clave |
+| `netlify/functions/pitido-final.mjs` | La función de Netlify que avisa al móvil (ntfy) cuando acaba un partido |
 | `tests/` | Las pruebas y los datos de ESPN que usan |
 
 ## Pruebas
@@ -174,7 +189,7 @@ El partido en 30 a 40 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
   - el Lech-Leverkusen de la Europa League (la clasificación, pedida aparte);
   - el Osnabrück-Bayern de la Copa de Alemania (un apellido con «ß»).
 
-  Prueba las notas de API-Football (la slide, los líderes del partido, las caras en los onces, el jugador del partido por nota y el aviso si el plan no deja), «El dato» (la racha que se acaba, el cara a cara, el pie de foto, el guion y que el historial guardado no se vuelva a pedir), la versión en inglés (slides, guion, jornada y que se recuerde), el modo en directo (un partido que pasa de en juego a acabado: el aviso y generarlo a un clic), el resumen de la jornada, tu logo, las competiciones y sus logos, la lista, las 9 slides, el minuto a minuto sin solapes, la firma, el jugador del partido, el borrador, el ZIP, el 9:16, compartir, el vídeo (guion, la mezcla y el MP4), «Para tu IA» (copiar y pegar), un partido en juego, uno con pocos datos, las eliminatorias (campeón, global, quién pasa), saltar a un día con partidos, el móvil y el Studio abierto como archivo (generar, descargar y recuperar el borrador).
+  Prueba las notas de API-Football (la slide, los líderes del partido, las caras en los onces, el jugador del partido por nota y el aviso si el plan no deja), «El dato» (la racha que se acaba, el cara a cara, el pie de foto, el guion y que el historial guardado no se vuelva a pedir), la versión en inglés (slides, guion, jornada y que se recuerde), el modo en directo (un partido que pasa de en juego a acabado: el aviso y generarlo a un clic, con el vídeo), el enlace del pitido final (`?partido=`: lo genera todo solo, y si el partido no está, lo dice) y la función que avisa al móvil (uno por partido, sin repetir y no de los de hace horas), el resumen de la jornada, tu logo, las competiciones y sus logos, la lista, las 9 slides, el minuto a minuto sin solapes, la firma, el jugador del partido, el borrador, el ZIP, el 9:16, compartir, el vídeo (guion, la mezcla y el MP4), «Para tu IA» (copiar y pegar), un partido en juego, uno con pocos datos, las eliminatorias (campeón, global, quién pasa), saltar a un día con partidos, el móvil y el Studio abierto como archivo (generar, descargar y recuperar el borrador).
 
 Corre sola en cada push y PR (`.github/workflows/tests.yml`). En local:
 
