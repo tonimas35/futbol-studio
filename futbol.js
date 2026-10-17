@@ -151,6 +151,9 @@
   const DEFAULT_LEAGUE = 'esp.1';
   const LEAGUE_KEY = 'fc-league';
   const SIGN_KEY = 'fc-sign';
+  // Jornada90: la firma y el logo de la cuenta, mientras no se pongan otros (o se quiten)
+  const DEFAULT_SIGN = '@jornada90fc';
+  const DEFAULT_BRAND = 'jornada90-logo.png';
 
   // La fase, en las copas (en las ligas ESPN pone el nombre de la temporada y no se usa).
   const PHASES = {
@@ -3137,13 +3140,34 @@
   function setBrand(url) {
     state.brandLogo = url || '';
     try {
-      if (url) localStorage.setItem(BRAND_KEY, url);
-      else localStorage.removeItem(BRAND_KEY);
+      // Quitarlo se recuerda (vacío): si no, al volver saldría el de Jornada90
+      localStorage.setItem(BRAND_KEY, url || '');
     } catch (e) { showToast('No se pudo guardar el logo en este navegador: sale ahora, pero no se recordará', 'error'); }
     applyBrand();
     refreshOriginals(applyBrand);
     updateBrandUi();
     if (state.rendered) contentChanged();
+  }
+  // El logo de Jornada90 (en la web; abierto como archivo no se puede leer y no sale). Va como
+  // data: URL, igual que uno subido, para que el canvas no se «manche» al descargar.
+  async function loadDefaultBrand() {
+    if (location.protocol === 'file:') return;
+    try {
+      const res = await fetch(DEFAULT_BRAND);
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result);
+        r.onerror = () => reject(r.error);
+        r.readAsDataURL(blob);
+      });
+      if (state.brandLogo) return; // mientras tanto se ha subido otro
+      state.brandLogo = url;
+      applyBrand();
+      refreshOriginals(applyBrand);
+      updateBrandUi();
+    } catch (e) { /* sin red o abierto como archivo: sin logo */ }
   }
   function updateBrandUi() {
     const prev = document.getElementById('brandPreview');
@@ -3309,6 +3333,8 @@
       };
     };
     const evs = cronoEvents(m);
+    // El minuto a minuto del vídeo, como el de la slide: también las amarillas y los cambios
+    const timeline = cronoEvents(m, true);
     const p = bestPlayer(m);
     const keys = p ? keyNumbers(m, p) : [];
     const rows = statRows(m);
@@ -3327,10 +3353,13 @@
       agg: m.agg,
       date: asDate(m.date).toLocaleDateString(outLocale(), { day: 'numeric', month: 'long', year: 'numeric' }),
       headline: writtenText('#slide-portada .head h1') || headline(m),
-      goals: evs.map(e => ({ side: e.side, min: e.min.label, t: e.min.t, kind: e.kind, name: e.name, how: e.how, score: e.score || null, style: videoStyle(m[e.side]) })),
-      goalsTitle: evs.every(e => e.kind === 'goal') ? L('LOS GOLES', 'THE GOALS') : L('MINUTO A MINUTO', 'MINUTE BY MINUTE'),
+      goals: timeline.map(e => ({
+        side: e.side, min: e.min.label, t: e.min.t, kind: e.kind, name: e.name, how: e.how, score: e.score || null,
+        tiny: !!e.tiny, out: e.out || '', style: videoStyle(m[e.side]),
+      })),
+      goalsTitle: timeline.every(e => e.kind === 'goal') ? L('LOS GOLES', 'THE GOALS') : L('MINUTO A MINUTO', 'MINUTE BY MINUTE'),
       halftime: m.halftime,
-      extraTime: extraTime(m, evs),
+      extraTime: extraTime(m, timeline),
       shots: m.shots.length >= 4 ? {
         home: shotTotals(m, 'home'), away: shotTotals(m, 'away'),
         list: m.shots.map(s => ({ side: s.side, kind: s.kind, x: s.x, y: s.y, x2: s.x2, y2: s.y2 })),
@@ -5300,8 +5329,10 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
     try {
       const saved = localStorage.getItem(LEAGUE_KEY);
       if (COMP[saved]) state.league = saved;
-      state.sign = localStorage.getItem(SIGN_KEY) || '';
-      state.brandLogo = localStorage.getItem(BRAND_KEY) || '';
+      state.sign = localStorage.getItem(SIGN_KEY) ?? DEFAULT_SIGN;
+      const brand = localStorage.getItem(BRAND_KEY);
+      state.brandLogo = brand || '';
+      if (brand === null) loadDefaultBrand();
       if (localStorage.getItem(LANG_KEY) === 'en') state.lang = 'en';
       if (localStorage.getItem(THEME_KEY) === 'oscuro') state.theme = 'oscuro';
     } catch (e) { /* sin almacenamiento: los valores por defecto */ }
