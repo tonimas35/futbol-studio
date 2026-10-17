@@ -338,8 +338,21 @@ try {
   check(trapLen > 39.4 && trapLen < 40.6, `«Escuchar la mezcla» prepara la urbana (${trapLen.toFixed(1)} s)`);
 
   await page.check('#videoSubs');
+  // Cuántos canvas se crean mientras se hace el vídeo: con uno nuevo por fotograma (los fondos
+  // cacheados por el tamaño de la pantalla, que cambia con la cámara) el iPhone se quedaba sin
+  // memoria y Safari cerraba la página.
+  await page.evaluate(() => {
+    window.__canvases = 0;
+    const orig = document.createElement.bind(document);
+    document.createElement = (tag, ...rest) => {
+      if (String(tag).toLowerCase() === 'canvas') window.__canvases++;
+      return orig(tag, ...rest);
+    };
+  });
   await page.click('#videoBtn');
   await page.waitForFunction(() => !document.getElementById('videoOut').hidden || /No se pudo/.test(document.getElementById('toast').textContent), null, { timeout: 400000 });
+  const canvases = await page.evaluate(() => ({ made: window.__canvases, cached: window.StudioVideo.layerCount() }));
+  check(canvases.made < 40 && canvases.cached <= 16, `sin comerse la memoria: ${canvases.made} canvas para todo el vídeo, ${canvases.cached} capas guardadas`);
   const video = await page.evaluate(async () => {
     const v = document.getElementById('videoPreview');
     if (!v.src) return { toast: document.getElementById('toast').textContent };
