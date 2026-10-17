@@ -3,9 +3,14 @@
 [build]
   command = "rm -rf _site && mkdir _site && cp index.html futbol.js futbol.css video.js audio.js favicon.svg manifest.webmanifest apple-touch-icon.png icon-192.png icon-512.png jornada90-logo.png _site/"
   publish = "_site"
+  # Cada publicación en la web (producción) gasta 15 de los 300 créditos al mes del plan gratis
+  # de Netlify, y al acabarlos se paran TODAS las webs del equipo hasta el mes siguiente. Así que
+  # un cambio en main solo se publica si su mensaje lleva «[publicar]»; los demás se saltan
+  # (no gastan). Las vistas previas de las PR son gratis y siguen saliendo siempre.
+  ignore = "if [ \"$BRANCH\" = main ] && ! git log -1 --pretty=%B | grep -q '\\[publicar\\]'; then exit 0; else exit 1; fi"
 
 # Las funciones: apifootball.mjs habla con API-Football con tu clave (APIFOOTBALL_KEY, en las
-# variables de entorno de Netlify) y pitido-final.mjs (cada 2 minutos) avisa al móvil con ntfy
+# variables de entorno de Netlify) y pitido-final.mjs (cada 5 minutos, de 11 a 23 h UTC) avisa al móvil con ntfy
 # cuando acaba un partido (NTFY_TOPIC y, si quieres, AVISOS_LIGAS).
 [functions]
   directory = "netlify/functions"

@@ -568,8 +568,8 @@ try {
       const first = await (await pf.default()).text();
       const again = await (await pf.default()).text();
       const sent = JSON.parse(posts[0] || '{}');
-      check(/Sin NTFY_TOPIC/.test(off) && posts.length === 1 && /^0 aviso/.test(again) && pf.config.schedule === '*/2 * * * *',
-        `aviso al móvil: cada 2 minutos, uno por partido y sin repetir (${first})`);
+      check(/Sin NTFY_TOPIC/.test(off) && posts.length === 1 && /^0 aviso/.test(again) && pf.config.schedule === '*/5 11-23 * * *',
+        `aviso al móvil: cada 5 minutos en horas de partido, uno por partido y sin repetir (${first})`);
       check(sent.topic === 'tema-de-prueba' && sent.title === 'Final: Deportivo 1-0 Levante' && sent.click === 'https://studio-toni.netlify.app/?partido=esp.1/401882844&dia=2026-10-16',
         `con el resultado y el enlace que lo genera todo (${sent.click})`);
       Date.now = () => Date.parse('2026-10-17T03:30:00+02:00'); // mira también el 16, pero empezó hace 6 h y media
