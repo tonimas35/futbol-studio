@@ -18,8 +18,8 @@
 // compartir, el vídeo (guion, grabar la voz con el micrófono de prueba, la mezcla y el MP4),
 // «Para tu IA» (copiar y pegar), un partido en juego, uno sin alineaciones ni clasificación,
 // las eliminatorias (campeón, global, quién pasa), saltar a un día con partidos, el modo en
-// directo (vigilar, avisar y generar a un clic), el resumen de la jornada, tu logo, el móvil y
-// abierto como archivo (con doble clic en index.html, que es como se usa).
+// directo (vigilar, avisar y generar a un clic), el resumen de la jornada, la versión en inglés,
+// tu logo, el móvil y abierto como archivo (con doble clic en index.html, que es como se usa).
 import { spawn, execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -469,6 +469,56 @@ try {
     check(jz.suggestedFilename() === 'futbol-jornada-esp-1-2026-09-20.zip', `y se descarga en ZIP (${jz.suggestedFilename()})`);
     check(await p8.$$eval('#slidesPreview .slide', (x) => x.length) === 0, 'sin tocar el carrusel del partido');
     await c8.close();
+  }
+
+  // ── En inglés: slides, guion y jornada (la interfaz sigue en español) ──
+  {
+    const { ctx: c9, page: p9 } = await open();
+    await pickLeague(p9, 'uefa.champions');
+    await pickDate(p9, '2026-10-14');
+    await generate(p9, '401915414');
+    await p9.click('.lang-opt[data-lang="en"]');
+    await p9.waitForFunction(() => document.querySelector('#slide-portada h1')?.textContent === 'Real Madrid complete the comeback', null, { timeout: 30000 }).catch(() => {});
+    const en = () => p9.evaluate(() => ({
+      h1: document.querySelector('#slide-portada h1')?.textContent,
+      comp: document.querySelector('#slide-portada .comp')?.textContent,
+      marks: [...document.querySelectorAll('#slide-crono .ht')].map((e) => e.textContent),
+      labels: [...document.querySelectorAll('#slide-stats .labels span')].map((e) => e.textContent),
+      q: document.querySelector('#slide-cierre .q')?.textContent,
+      sub: document.querySelector('#slide-cierre .sub')?.textContent,
+      script: document.querySelector('#scriptLines textarea[data-scene="score"]')?.value,
+      on: document.querySelector('.lang-opt[aria-checked="true"]')?.dataset.lang,
+    }));
+    const e1 = await en();
+    check(e1.h1 === 'Real Madrid complete the comeback' && /Champions League · League phase/.test(e1.comp), `en inglés: titular y fase (${e1.h1} · ${e1.comp})`);
+    check(e1.marks.includes('Half-time · 1-1') && e1.marks.includes('Full time · 3-4') && e1.labels.includes('Possession'),
+      `minuto a minuto y estadísticas en inglés (${e1.marks.join(' | ')} · ${e1.labels.slice(0, 3).join(', ')})`);
+    check(e1.q === 'Who was your player of the match?' && e1.sub === 'Let me know in the comments', `el cierre en inglés (${e1.q})`);
+    check(e1.script === 'Real Madrid complete the comeback: 4-3 against Roma.', `y el guion del vídeo (${e1.script})`);
+    check((await slideNames(p9))[0] === 'Portada' && /Generar/.test(await p9.textContent('#generateBtn')), 'la interfaz sigue en español');
+    await p9.reload();
+    await p9.waitForSelector('#slide-portada', { timeout: 10000 }).catch(() => {});
+    const e2 = await en();
+    check(e2.on === 'en' && e2.h1 === 'Real Madrid complete the comeback', `al volver a abrir el Studio sigue en inglés (${e2.on} · ${e2.h1})`);
+
+    // La jornada en inglés
+    await pickLeague(p9, 'esp.1');
+    await pickDate(p9, '2026-09-20');
+    await p9.click('#jornadaBtn');
+    await p9.waitForSelector('#jornadaSection:not([hidden])', { timeout: 20000 });
+    const ej = await p9.evaluate(() => ({
+      title: document.querySelector('#slide-j-portada .jt-title')?.innerText.replace(/\s+/g, ' '),
+      goals: document.querySelector('#slide-j-portada .jt-big .l')?.textContent,
+      q: document.querySelector('#slide-j-cierre .q')?.textContent,
+    }));
+    check(/^Matchday round-up$/i.test(ej.title) && /goals in 5 games/i.test(ej.goals) && ej.q === 'What was your game of the round?',
+      `la jornada en inglés (${ej.title} · ${ej.goals} · ${ej.q})`);
+
+    // Y de vuelta al español
+    await p9.click('.lang-opt[data-lang="es"]');
+    await p9.waitForFunction(() => /^Así fue/.test(document.querySelector('#slide-j-portada .jt-title')?.textContent || ''), null, { timeout: 30000 }).catch(() => {});
+    check(/^Así fue/.test(await p9.textContent('#slide-j-portada .jt-title')), 'y al volver al español, la jornada se rehace en español');
+    await c9.close();
   }
 
   // ── Tu logo: junto a la firma en cada slide, grande en el cierre y se recuerda ──
