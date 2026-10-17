@@ -1550,6 +1550,15 @@
       if (corner[3] < 16 && grey) img.onerror?.();
     } catch (e) { /* sin permiso para leerla: se queda */ }
   };
+  // La cara del retrato: API-Football la da de 150 px y en la slide mide 450. Se amplía con
+  // enfoque (lo mismo que en el vídeo) para que no salga borrosa; la original queda en data-src.
+  window.fsCrisp = (img) => {
+    if (!img.isConnected || img.dataset.src || !window.StudioVideo?.crisp) return;
+    const c = window.StudioVideo.crisp(img, 450);
+    if (!(c instanceof HTMLCanvasElement)) return;
+    img.dataset.src = img.src;
+    img.src = c.toDataURL('image/png');
+  };
   const fmtRating = (r) => L(r.toFixed(1).replace('.', ','), r.toFixed(1));
   // Con las notas de API-Football manda la nota; sin ellas, la cuenta del Studio
   const rankedPlayers = (m) => playedList(m).map(p => ({ p, a: afRating(m, p) ?? -1, r: rating(m, p) }))
@@ -2313,7 +2322,7 @@
         ${p.jersey ? `<div class="dorsal">${esc(p.jersey)}</div>` : ''}
         ${face ? `
         <div class="portrait">
-          <img src="${esc(face)}" alt="" crossorigin="anonymous" onload="fsNoFace(this)" onerror="this.closest('.fc-in').classList.remove('has-face');this.parentNode.remove()"/>
+          <img src="${esc(face)}" alt="" crossorigin="anonymous" onload="fsNoFace(this);fsCrisp(this)" onerror="this.closest('.fc-in').classList.remove('has-face');this.parentNode.remove()"/>
           ${team.logo ? `<span class="badge">${logoTag(team, '')}</span>` : ''}
         </div>
         ${extra.length ? `<div class="extra">${extra.map(x => `<div><b>${x.v}</b><span>${esc(x.label)}</span></div>`).join('')}</div>` : ''}` : ''}
@@ -3282,24 +3291,6 @@
   // ----------------------------------------------------------
   // VÍDEO SHORT · los datos de las slides para video.js, que dibuja y codifica
   // ----------------------------------------------------------
-  // El grano de las slides va en el CSS en base64 (para que la descarga funcione abriendo el
-  // archivo); el vídeo usa el mismo.
-  let grainCache = null;
-  function grainUrl() {
-    if (grainCache) return grainCache;
-    const box = document.createElement('div');
-    box.className = 'fc';
-    box.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden';
-    const g = document.createElement('div');
-    g.className = 'fc-grain';
-    box.appendChild(g);
-    document.body.appendChild(box);
-    const bg = getComputedStyle(g).backgroundImage;
-    box.remove();
-    grainCache = bg.match(/^url\("?([\s\S]*?)"?\)$/)?.[1] || null;
-    return grainCache;
-  }
-
   // El texto de la slide tal como está escrito (el CSS lo pone en mayúsculas y los saltos son <br>).
   function writtenText(sel) {
     const el = document.querySelector(sel);
@@ -3403,7 +3394,6 @@
       },
       sign: state.sign,
       brand: state.brandLogo || null,
-      grain: grainUrl(),
       // Los textos fijos del vídeo, en el idioma de lo que se publica
       t: {
         shotMap: L('MAPA DE TIROS', 'SHOT MAP'),
