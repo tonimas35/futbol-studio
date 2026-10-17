@@ -152,7 +152,7 @@ El partido en 30 a 40 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
 - **Guion y subtítulos:** el Studio escribe una frase por escena con los datos del partido («Remontada del Real Madrid: 4-3 a la Roma.»). Se retoca en el paso 4 y cada frase avisa si no cabe a ritmo normal; «↺ Automático» la vuelve a escribir. Los subtítulos salen de dos en dos o de tres en tres palabras, con la que suena en verde lima. Se quitan con «Subtítulos».
 - **Voz:** ya no se graba en el Studio (se quitó «Grabar mi voz» y el teleprompter). `video.js` sigue sabiendo mezclar una voz con la música (la música baja a un tercio mientras se habla): queda preparado para una voz de ElevenLabs o clonada, que leería el guion escena a escena.
 - **Volumen:** la barra «Volumen» (se recuerda) y «Escuchar la mezcla», que crea solo el sonido en unos segundos. «↺ Por defecto» vuelve a la épica al 100 %.
-- **El archivo:** MP4 (H.264 + AAC) codificado en el navegador con WebCodecs y `mp4-muxer`. Si el navegador no tiene H.264, sale en VP9 y avisa; con Chrome sale en H.264. También se puede bajar la música sola en WAV.
+- **El archivo:** MP4 (H.264 + AAC) codificado en el navegador con WebCodecs y `mp4-muxer`. Si el navegador no tiene H.264, sale en VP9 y avisa; con Chrome sale en H.264. También se puede bajar la música sola en WAV. En el iPhone (Safari), el codificador de AAC da una configuración que no vale ([WebKit 302253](https://bugs.webkit.org/show_bug.cgi?id=302253)) y el vídeo salía mudo: el Studio escribe siempre la buena (AAC-LC, la frecuencia y estéreo).
 
 ## Datos y ajustes
 

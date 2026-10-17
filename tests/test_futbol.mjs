@@ -353,6 +353,40 @@ try {
   await page.waitForFunction(() => !document.getElementById('mixPlayer').hidden, null, { timeout: 120000 });
   const trapLen = await mixDuration();
   check(trapLen > 39.4 && trapLen < 40.6, `y la urbana dura lo mismo (${trapLen.toFixed(1)} s)`);
+  // En el iPhone salía mudo: el AudioEncoder de Safari da para el AAC una descripción que no es la
+  // AudioSpecificConfig (WebKit 302253). Con uno de mentira que hace lo mismo, el MP4 tiene que
+  // llevar la buena (AAC-LC, 48 kHz, estéreo: 11 90).
+  await page.evaluate(() => {
+    const bogus = new Uint8Array([3, 25, 0, 0, 0, 4, 17, 64, 21, 0, 0, 0, 0, 1, 244, 0, 0, 1, 244, 0, 5, 2, 17, 144, 6, 1, 2]);
+    window.AudioEncoder = class {
+      constructor({ output }) { this.output = output; this.first = true; }
+      static async isConfigSupported(c) { return { supported: c.codec === 'mp4a.40.2', config: c }; }
+      configure(c) { this.c = c; }
+      encode(data) {
+        const chunk = new EncodedAudioChunk({ type: 'key', timestamp: data.timestamp, duration: Math.round((data.numberOfFrames / data.sampleRate) * 1e6), data: new Uint8Array(8) });
+        this.output(chunk, this.first ? { decoderConfig: { codec: 'mp4a.40.2', sampleRate: this.c.sampleRate, numberOfChannels: 2, description: bogus } } : undefined);
+        this.first = false;
+      }
+      async flush() {}
+      close() {}
+    };
+  });
+  await page.click('#videoBtn');
+  await page.waitForFunction(() => !document.getElementById('videoBtn').classList.contains('btn-loading'), null, { timeout: 400000 });
+  const asc = await page.evaluate(async () => {
+    const b = new Uint8Array(await (await fetch(document.getElementById('videoDlBtn').href)).arrayBuffer());
+    // La caja esds y, dentro, la etiqueta 5 (DecoderSpecificInfo): su largo y sus bytes
+    let i = 0;
+    while (i < b.length - 4 && !(b[i] === 0x65 && b[i + 1] === 0x73 && b[i + 2] === 0x64 && b[i + 3] === 0x73)) i++;
+    if (i >= b.length - 4) return 'sin esds';
+    for (let j = i; j < i + 80; j++) {
+      if (b[j] === 0x05 && b[j + 1] === 0x80 && b[j + 2] === 0x80 && b[j + 3] === 0x80) {
+        return [...b.subarray(j + 5, j + 5 + b[j + 4])].map((x) => x.toString(16).padStart(2, '0')).join(' ');
+      }
+    }
+    return 'sin configuración';
+  });
+  check(asc === '11 90', `con el AAC de Safari, el MP4 lleva la configuración buena y suena (${asc})`);
   await page.reload();
   await page.waitForSelector('#slide-portada');
   await page.waitForTimeout(500);
