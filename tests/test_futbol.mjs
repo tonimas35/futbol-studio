@@ -185,6 +185,13 @@ try {
   const portada = await page.$$eval('#slide-portada .scorers', (els) => els.map((e) => [...e.children].map((d) => d.textContent).join(' · ')));
   check(portada[0] === "de Roon 20' · Malen 51', 57'" && /Mbappé 25'.*Rüdiger 90'/.test(portada[1]), `goleadores de cada equipo: ${portada.join(' / ')}`);
   check(/Champions League · Fase liga/.test(await page.textContent('#slide-portada .comp')), 'la competición y la fase en la portada');
+  const look = await page.evaluate(() => ({
+    seam: document.querySelector('#slide-portada .seam')?.textContent,
+    balls: document.querySelectorAll('#slide-portada .scorers i.ball').length,
+    art: [...document.querySelectorAll('#slidesPreview .slide')].map((s) => [...s.querySelectorAll('.fc-art')].filter((i) => i.src.startsWith('data:image/jpeg')).length),
+  }));
+  check(look.seam === 'Final' && look.balls === 6, `«Final» entre los marcadores y un balón por goleador (${look.seam} · ${look.balls})`);
+  check(look.art.every((n) => n > 0) && look.art[0] === 2, `cada slide con su fondo pintado; la portada, uno por mitad (${look.art.join(' ')})`);
   const tease = await page.$$eval('#slide-portada .tease > span', (s) => s.map((x) => x.textContent));
   check(tease[0] === 'El dato' && tease[1] === '14 partidos sin perder… hasta hoy', `y abajo, para deslizar, el dato a medias (${tease.join(' · ')})`);
 
@@ -580,7 +587,9 @@ try {
           const f = afFile(q);
           return r.fulfill(json(f && existsSync(join(FIX, f)) ? readFileSync(join(FIX, f)) : '{"errors":[],"response":[]}'));
         });
-        await c.route('https://media.api-sports.io/**', (r) => r.fulfill({ status: 200, contentType: 'image/png', headers: { 'access-control-allow-origin': '*' }, body: PIXEL }));
+        // Gollini no tiene foto: API-Football da su silueta gris
+        await c.route('https://media.api-sports.io/**', (r) => r.fulfill({ status: 200, contentType: 'image/png', headers: { 'access-control-allow-origin': '*' },
+          body: r.request().url().endsWith('/90000.png') ? readFileSync(join(FIX, 'af-silueta.png')) : PIXEL }));
       },
     });
     await pickLeague(pa, 'uefa.champions');
@@ -594,9 +603,11 @@ try {
       first: [...document.querySelectorAll('#slide-notas .col')].map((c) => `${c.querySelector('.row .nm')?.textContent} ${c.querySelector('.row .rt')?.textContent}`),
       mvp: document.querySelector('#slide-notas .row.mvp .nm')?.textContent,
       faces: [...document.querySelectorAll('#slide-notas .face img')].filter((i) => i.src.startsWith('https://media.api-sports.io/')).length,
+      gollini: [...document.querySelectorAll('#slide-notas .row')].find((r) => r.querySelector('.nm').textContent === 'Gollini')?.querySelector('.face').innerHTML,
     }));
-    check(notas.rows.join('-') === '15-15' && notas.first.join(' · ') === 'Malen 8,9 · Mbappé 8,1' && notas.mvp === 'Malen' && notas.faces === 30,
+    check(notas.rows.join('-') === '15-15' && notas.first.join(' · ') === 'Malen 8,9 · Mbappé 8,1' && notas.mvp === 'Malen' && notas.faces === 29,
       `la nota y la cara de cada uno, de mejor a peor (${notas.first.join(' · ')} · ${notas.faces} caras)`);
+    check(notas.gollini === '<b>95</b>', `sin foto (la silueta de API-Football), el dorsal (${notas.gollini})`);
     const top = await pa.evaluate(() => ({
       name: document.querySelector('#slide-jugador .bar span')?.textContent,
       stat: document.querySelector('#slide-jugador .st')?.textContent.replace(/\s+/g, ' ').trim(),
@@ -605,10 +616,20 @@ try {
     const lid = await pa.evaluate(() => ({
       rows: [...document.querySelectorAll('#slide-lideres .row')].map((r) => `${r.querySelector('.lb').textContent} ${r.querySelector('.nm').textContent.trim()} ${r.querySelector('.v').textContent}`),
       onces: [...document.querySelectorAll('#slide-onces .dot.has-face .face')].filter((i) => i.src.startsWith('https://media.api-sports.io/')).length,
+      saves: [...document.querySelectorAll('#slide-lideres .row')].find((r) => /Paradas/.test(r.textContent))?.querySelector('.face img'),
     }));
     check(lid.rows.length === 8 && lid.rows[0] === 'Más pases Bellingham 78' && lid.rows.includes('Paradas Gollini 5'),
       `«Líderes del partido»: el mejor en cada cosa (${lid.rows.slice(0, 3).join(' · ')}…)`);
-    check(lid.onces === 22, `y en «Los onces», la cara de los 22 titulares (${lid.onces})`);
+    check(lid.onces === 21 && lid.saves === null, `y en «Los onces», la cara de los titulares que la tienen (${lid.onces})`);
+    // Sin foto grande (Mbappé no la tiene en ESPN): su cara en un retrato
+    const mbappe = await pa.$eval('[data-slide-id="jugador"] .slide-pick', (s) => [...s.options].find((o) => /Mbappé/.test(o.textContent))?.value);
+    await pa.selectOption('[data-slide-id="jugador"] .slide-pick', mbappe);
+    const face = await pa.evaluate(() => ({
+      img: document.querySelector('#slide-jugador .portrait img')?.src,
+      on: document.querySelector('#slide-jugador .fc-in').classList.contains('has-face'),
+      badge: !!document.querySelector('#slide-jugador .portrait .badge img'),
+    }));
+    check(face.on && face.badge && face.img === 'https://media.api-sports.io/football/players/91008.png', `sin foto grande, su cara en un retrato con el escudo (${face.img})`);
     check(asked.join(',') === 'fixtures,fixtures/players', `con 2 peticiones (${asked.join(', ')})`);
     // Si API-Football no deja (el plan, el límite del día…), lo dice y el carrusel sale igual
     await ca.route('**/.netlify/functions/apifootball**', (r) => r.fulfill(json('{"errors":{"plan":"Free plans do not have access to this season, try from 2021 to 2023."},"response":[]}')));
