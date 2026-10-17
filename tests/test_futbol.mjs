@@ -512,11 +512,22 @@ try {
 
   // ── Al pitido final: el enlace del aviso lo genera todo solo ──
   {
+    // El aviso llega al acabar: el Depor-Levante, ya acabado (sin la pregunta de «aún se está
+    // jugando»; y si saliera alguna, se acepta desde que existe la página, antes de cargar).
+    const sbEnded = JSON.parse(readFileSync(join(FIX, 'sb-esp.1-20261016.json')));
+    for (const e of sbEnded.events) {
+      if (e.id !== '401882844') continue;
+      e.status = { ...e.status, displayClock: "90'+4'", type: { ...e.status.type, name: 'STATUS_FULL_TIME', state: 'post', completed: true, description: 'Full Time' } };
+      e.competitions[0].status = e.status;
+    }
     const { ctx: c7, page: p7 } = await open({
       url: `${base}/?partido=esp.1/401882844&dia=2026-10-16`,
-      before: async (ctx) => { await ctx.clock.setFixedTime(new Date('2026-10-17T10:00:00+02:00')); },
+      before: async (ctx) => {
+        ctx.on('page', (pg) => pg.on('dialog', (d) => d.accept()));
+        await ctx.clock.setFixedTime(new Date('2026-10-17T10:00:00+02:00'));
+        await ctx.route('https://site.api.espn.com/apis/site/v2/sports/soccer/esp.1/scoreboard?dates=20261016', (r) => r.fulfill(json(JSON.stringify(sbEnded))));
+      },
     });
-    p7.on('dialog', (d) => d.accept());
     await p7.waitForSelector('#slide-portada', { timeout: 30000 }).catch(() => {});
     const link = await p7.evaluate(() => ({
       league: document.querySelector('.comp-chip[aria-checked="true"]')?.dataset.league,
