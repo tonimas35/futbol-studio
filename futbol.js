@@ -1236,7 +1236,8 @@
   // El partido en API-Football: los del día a la misma hora (±30 min), con el mismo resultado y
   // al menos un equipo que coincida
   async function afFixture(m) {
-    const list = await afGet('fixtures', { date: new Date(m.date).toISOString().slice(0, 10), timezone: 'UTC' });
+    // La fecha en UTC (la de API-Football por defecto; con timezone=UTC da error)
+    const list = await afGet('fixtures', { date: new Date(m.date).toISOString().slice(0, 10) });
     const t = Date.parse(m.date);
     const scored = list.map(f => {
       if (Math.abs((f.fixture?.timestamp || 0) * 1000 - t) > 30 * 60000) return null;
@@ -1262,7 +1263,8 @@
         const last = plain(String(p.player?.name || '').split(' ').pop());
         const espn = m[side].players.find(x => x.jersey && String(x.jersey) === String(g.number))
           || (last.length >= 3 && m[side].players.find(x => plain(x.name).endsWith(last)));
-        if (espn) players[espn.id] = { rating: num(g.rating), photo: p.player?.photo || '' };
+        // Los que no han jugado vienen con nota «0»: sin nota
+        if (espn) players[espn.id] = { rating: num(g.rating) > 0 ? num(g.rating) : null, photo: p.player?.photo || '' };
       }
     }
     return Object.keys(players).length ? { fixture: fx.fixture.id, players } : null;

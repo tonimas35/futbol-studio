@@ -566,7 +566,8 @@ try {
   }
 
   // ── API-Football (en la web): las notas y las caras, con la función de Netlify ──
-  // Las notas de este partido son de ejemplo, con el formato de API-Football.
+  // Las notas de este partido son de ejemplo, con el formato de API-Football (dos decimales y «0»
+  // para los que no han jugado, como el portero suplente).
   {
     const asked = [];
     const afFile = (q) => (q.get('path') === 'fixtures' ? `af-fixtures-${q.get('date')}.json`
