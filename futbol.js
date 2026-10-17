@@ -866,6 +866,7 @@
     scriptGame: null,     // id del partido de ese guion
     photoOverrides: {},   // id del jugador → foto subida (ya sin fondo)
     sign: '',
+    brandLogo: '',        // tu logo (data URL), si lo has subido
     generating: false,
   };
 
@@ -1077,7 +1078,9 @@
     : '');
   const grain = '<div class="fc-grain"></div>';
   const footLeft = (m) => `${compOf(m.league).name} · ${fmtFooterDate(m.date)}`;
-  const foot = (m) => `<div class="fc-foot"><span>${esc(footLeft(m))}</span><span class="fc-sign" data-noedit>${esc(state.sign)}</span></div>`;
+  // Tu logo (si lo has subido): junto a la firma y, grande, en el cierre.
+  const brandTag = (cls) => `<img class="${cls}" data-brand data-noedit src="${state.brandLogo || BLANK}" alt=""${state.brandLogo ? '' : ' hidden'}/>`;
+  const foot = (m) => `<div class="fc-foot"><span>${esc(footLeft(m))}</span><span class="fc-mark">${brandTag('fc-brand')}<span class="fc-sign" data-noedit>${esc(state.sign)}</span></span></div>`;
   const fitSize = (text, base, steps) => {
     const len = String(text).length;
     for (const [max, size] of steps) if (len <= max) return size;
@@ -1684,6 +1687,7 @@
         <div class="fade"></div>
         <div class="qwrap"><h1 class="q">${closingQuestion(m)}</h1><div class="sub">Te leo en comentarios</div></div>
         <div class="handle">
+          ${brandTag('brand-big')}
           <span class="fc-chip">Sígueme para más fútbol</span>
           <div class="h fc-sign" data-noedit>${esc(state.sign)}</div>
         </div>
@@ -2061,19 +2065,75 @@
   function applySign(root = document) {
     root.querySelectorAll('.fc-sign').forEach(el => { el.textContent = state.sign; });
   }
-  function onSignInput(e) {
-    state.sign = e.target.value.trim();
-    try { localStorage.setItem(SIGN_KEY, state.sign); } catch (err) { /* sin almacenamiento */ }
-    applySign();
-    // También en lo que guarda «↺ original»: la firma no es un retoque de la slide.
+  function applyBrand(root = document) {
+    root.querySelectorAll('[data-brand]').forEach(img => {
+      img.src = state.brandLogo || BLANK;
+      img.hidden = !state.brandLogo;
+    });
+  }
+  // También en lo que guarda «↺ original»: la firma y el logo no son retoques de la slide.
+  function refreshOriginals(apply) {
     document.querySelectorAll('#slidesPreview .slide').forEach(slide => {
       if (!originalSlides.has(slide)) return;
       const tpl = document.createElement('template');
       tpl.innerHTML = originalSlides.get(slide);
-      applySign(tpl.content);
+      apply(tpl.content);
       originalSlides.set(slide, tpl.innerHTML);
     });
+  }
+  function onSignInput(e) {
+    state.sign = e.target.value.trim();
+    try { localStorage.setItem(SIGN_KEY, state.sign); } catch (err) { /* sin almacenamiento */ }
+    applySign();
+    refreshOriginals(applySign);
     if (state.rendered) contentChanged();
+  }
+
+  // Tu logo: se guarda en este navegador, reducido a 480 px como mucho (en PNG, con su
+  // transparencia), y sale en las slides y en el vídeo.
+  const BRAND_KEY = 'fc-logo';
+  function setBrand(url) {
+    state.brandLogo = url || '';
+    try {
+      if (url) localStorage.setItem(BRAND_KEY, url);
+      else localStorage.removeItem(BRAND_KEY);
+    } catch (e) { showToast('No se pudo guardar el logo en este navegador: sale ahora, pero no se recordará', 'error'); }
+    applyBrand();
+    refreshOriginals(applyBrand);
+    updateBrandUi();
+    if (state.rendered) contentChanged();
+  }
+  function updateBrandUi() {
+    const prev = document.getElementById('brandPreview');
+    prev.hidden = !state.brandLogo;
+    if (state.brandLogo) prev.src = state.brandLogo;
+    document.getElementById('brandDel').hidden = !state.brandLogo;
+    document.getElementById('brandBtnText').textContent = state.brandLogo ? 'Cambiar logo' : 'Subir logo';
+  }
+  async function onBrandFile(file) {
+    if (!file) return;
+    try {
+      const url = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result);
+        r.onerror = () => reject(r.error);
+        r.readAsDataURL(file);
+      });
+      const img = new Image();
+      img.src = url;
+      await img.decode();
+      const w0 = img.naturalWidth || 480, h0 = img.naturalHeight || 480; // un SVG sin tamaño
+      const k = Math.min(1, 480 / Math.max(w0, h0));
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(w0 * k));
+      c.height = Math.max(1, Math.round(h0 * k));
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      setBrand(c.toDataURL('image/png'));
+      showToast('Logo puesto: sale en las slides y en el vídeo', 'success');
+    } catch (e) {
+      console.error(e);
+      showToast('No se pudo leer esa imagen: prueba con un PNG o un SVG', 'error');
+    }
   }
 
   // ----------------------------------------------------------
@@ -2245,6 +2305,7 @@
         photo: p && hasPhoto(p) ? [photoSrc(p)] : null,
       },
       sign: state.sign,
+      brand: state.brandLogo || null,
       grain: grainUrl(),
     };
   }
@@ -3716,12 +3777,16 @@ ${inside.length ? `\nDesliza para ver ${listEs(inside)}.\n` : ''}
       const saved = localStorage.getItem(LEAGUE_KEY);
       if (COMP[saved]) state.league = saved;
       state.sign = localStorage.getItem(SIGN_KEY) || '';
+      state.brandLogo = localStorage.getItem(BRAND_KEY) || '';
     } catch (e) { /* sin almacenamiento: los valores por defecto */ }
     renderCompPicker();
     setupDirecto();
     const signInput = document.getElementById('signInput');
     signInput.value = state.sign;
     signInput.addEventListener('input', onSignInput);
+    updateBrandUi();
+    document.getElementById('brandInput').addEventListener('change', (e) => { onBrandFile(e.target.files[0]); e.target.value = ''; });
+    document.getElementById('brandDel').addEventListener('click', () => setBrand(''));
 
     // Por defecto, hoy (en fútbol se juega de tarde y de noche en España).
     const today = localIso();
