@@ -3731,9 +3731,10 @@
   const MIX_KEY = 'fc-mix';
   let mixBusy = false;
   let mixUrl = null;
-  // El estilo de la música: «épica» (por defecto) o «urbana» (el trap de antes).
+  // El estilo de la música: «urbana» (por defecto: el trap que va con los cortes) o «épica».
+  // Los subtítulos, apagados por defecto; las dos cosas se recuerdan en este navegador.
   const MUSIC_STYLES = { epica: 'épica', trap: 'urbana' };
-  const musicStyle = () => document.querySelector('.lang-opt[data-music][aria-checked="true"]')?.dataset.music || 'epica';
+  const musicStyle = () => document.querySelector('.lang-opt[data-music][aria-checked="true"]')?.dataset.music || 'trap';
   const setMusicStyle = (style) => document.querySelectorAll('.lang-opt[data-music]')
     .forEach(b => b.setAttribute('aria-checked', String(b.dataset.music === style)));
   const mixLevels = () => ({ musicVolume: Number(document.getElementById('musicVol').value) / 100 });
@@ -3743,13 +3744,15 @@
     document.getElementById('musicVolOut').textContent = `${music.value}%`;
     music.disabled = !on;
     document.querySelectorAll('.lang-opt[data-music]').forEach(b => { b.disabled = !on; });
-    document.getElementById('mixResetBtn').hidden = music.value === '100' && musicStyle() === 'epica';
+    document.getElementById('mixResetBtn').hidden = music.value === '100' && musicStyle() === 'trap';
   }
   function loadMix() {
     try {
       const saved = JSON.parse(localStorage.getItem(MIX_KEY) || '{}');
       if (Number.isFinite(saved.music)) document.getElementById('musicVol').value = saved.music;
-      if (MUSIC_STYLES[saved.style]) setMusicStyle(saved.style);
+      // El estilo guardado antes de la urbana nueva (v < 2) era la épica por defecto: no cuenta.
+      if (saved.v >= 2 && MUSIC_STYLES[saved.style]) setMusicStyle(saved.style);
+      if (typeof saved.subs === 'boolean') document.getElementById('videoSubs').checked = saved.subs;
     } catch (e) { /* sin localStorage: por defecto */ }
     showMix();
   }
@@ -3760,13 +3763,14 @@
     player.hidden = true;
     try {
       localStorage.setItem(MIX_KEY, JSON.stringify({
-        music: Number(document.getElementById('musicVol').value), style: musicStyle(),
+        v: 2, music: Number(document.getElementById('musicVol').value), style: musicStyle(),
+        subs: document.getElementById('videoSubs').checked,
       }));
     } catch (e) { /* sin localStorage: vale para esta vez */ }
   }
   function resetMix() {
     document.getElementById('musicVol').value = 100;
-    setMusicStyle('epica');
+    setMusicStyle('trap');
     mixChanged();
   }
   async function previewMix() {
@@ -5278,7 +5282,7 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
     document.getElementById('videoShareBtn').addEventListener('click', shareVideo);
     document.getElementById('scriptLines').addEventListener('input', onScriptInput);
     document.getElementById('scriptResetBtn').addEventListener('click', resetScript);
-    ['musicVol', 'videoMusic', 'videoIntro'].forEach(id => document.getElementById(id).addEventListener('input', mixChanged));
+    ['musicVol', 'videoMusic', 'videoIntro', 'videoSubs'].forEach(id => document.getElementById(id).addEventListener('input', mixChanged));
     document.getElementById('musicStyle').addEventListener('click', (e) => {
       const btn = e.target.closest('.lang-opt[data-music]');
       if (!btn || btn.disabled || btn.dataset.music === musicStyle()) return;

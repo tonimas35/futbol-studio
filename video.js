@@ -151,15 +151,27 @@
   // Como en el carrusel (futbol.js, «FONDOS CON PROFUNDIDAD»): haces de luz en diagonal, una
   // trama de puntos en una esquina y la viñeta. Se pintan una vez en un canvas aparte y cada
   // fotograma solo lo copia.
+  // Las capas pintadas (fondos, haces de luz…), guardadas para no repintarlas en cada fotograma.
+  // Como mucho MAX_LAYERS (cada una ocupa ~8 MB): en el iPhone, sin tope, Safari se queda sin
+  // memoria y cierra la página.
   const layers = new Map();
+  const MAX_LAYERS = 16;
   function layer(key, w, h, draw) {
-    if (!layers.has(key)) {
-      const c = document.createElement('canvas');
+    let c = layers.get(key);
+    if (c) {
+      layers.delete(key); // la más usada, al final
+    } else {
+      c = document.createElement('canvas');
       c.width = w; c.height = h;
       draw(c.getContext('2d'), w, h);
-      layers.set(key, c);
+      while (layers.size >= MAX_LAYERS) {
+        const old = layers.keys().next().value;
+        layers.get(old).width = 0; // que el navegador suelte la memoria ya
+        layers.delete(old);
+      }
     }
-    return layers.get(key);
+    layers.set(key, c);
+    return c;
   }
   function rays(ctx, w, h, fromRight, alpha) {
     const sx = fromRight ? w * 1.05 : -w * 0.05, sy = -h * 0.08, len = Math.hypot(w, h) * 1.2;
@@ -273,7 +285,10 @@
     g.addColorStop(1, st.lo);
     ctx.fillStyle = g;
     ctx.fillRect(x, y, w, h);
-    ctx.drawImage(lightLayer(Math.round(w), Math.round(h), fx >= 0.5, (st.fg || '#ffffff') !== '#ffffff'), x, y, w, h);
+    // La capa de luz se pinta al tamaño de la escena (fijo) y se estira hasta el borde: con el
+    // tamaño de la pantalla, que cambia en cada fotograma al moverse la cámara, salía una capa
+    // nueva por fotograma.
+    ctx.drawImage(lightLayer(Math.round(w0), Math.round(h0), fx >= 0.5, (st.fg || '#ffffff') !== '#ffffff'), x, y, w, h);
   }
 
   // Imagen a un ancho dado; bottom es el borde de abajo (las fotos van apoyadas abajo).
@@ -1837,7 +1852,7 @@
       seed,
       style,
       cues,
-      scenes: drawer.scenes.map((sc, i) => ({ start: drawer.starts[i], dur: sc.dur, energy: sc.music?.energy || 'full', drop: sc.music?.drop })),
+      scenes: drawer.scenes.map((sc, i) => ({ id: sc.id, start: drawer.starts[i], dur: sc.dur, energy: sc.music?.energy || 'full', drop: sc.music?.drop })),
     };
   }
 
@@ -2062,7 +2077,7 @@
   //     voiceShift, musicVolume, voiceVolume, musicStyle }) → { blob, ext, note, audio, mix }
   //     intro: con la apertura de los escudos. voiceLead: la apertura con la que se grabó la voz
   //     (prepare(…).lead). voiceShift: cuánto se mueve la voz (negativo = antes).
-  //     musicStyle: 'epica' (por defecto) o 'trap'.
+  //     musicStyle: 'trap' (la urbana, por defecto) o 'epica'.
   // · StudioVideo.prepare(datos, script, { intro }) → para grabarse: draw(ctx, t), la duración y
   //     cada palabra con su momento.
   // · StudioVideo.plan(datos, script) → las escenas con guion, lo que duran y a qué velocidad
@@ -2072,7 +2087,7 @@
   // ============================================================
   async function render(data, onProgress = () => {}, {
     music = true, script = null, captions = true, voice = null, musicVolume = 1, voiceVolume = 1,
-    intro = true, voiceLead = null, voiceShift = 0, musicStyle = 'epica',
+    intro = true, voiceLead = null, voiceShift = 0, musicStyle = 'trap',
   } = {}) {
     const live = ((music && window.StudioAudio) || voice) && typeof AudioContext !== 'undefined' ? new AudioContext() : null;
     try {
@@ -2125,7 +2140,7 @@
 
   async function audio(data, {
     music = true, script = null, voice = null, musicVolume = 1, voiceVolume = 1, intro = true, voiceLead = null, voiceShift = 0,
-    musicStyle = 'epica',
+    musicStyle = 'trap',
   } = {}) {
     const scenes = buildScenes(data, {}, intro);
     const drawer = makeDrawer(scenes);
@@ -2138,5 +2153,5 @@
     return buffer && window.StudioAudio ? window.StudioAudio.toWav(buffer, drawer.duration) : null;
   }
 
-  window.StudioVideo = { render, prepare, plan, audio, measureVoiceLag, crisp };
+  window.StudioVideo = { render, prepare, plan, audio, measureVoiceLag, crisp, layerCount: () => layers.size };
 })();

@@ -324,20 +324,35 @@ try {
 
   check(!(await page.$('#voiceRecBtn')) && !(await page.$('#prompter')), 'sin «Grabar mi voz» ni teleprompter (la voz llegará de ElevenLabs)');
 
-  // La música: épica por defecto; la urbana se elige y se recuerda.
+  // La música: urbana por defecto (y sin subtítulos); la épica se elige y se recuerda.
   const mixDuration = () => page.evaluate(async () => {
     const a = document.getElementById('mixPlayer');
     await new Promise((r) => (a.readyState >= 1 ? r() : a.addEventListener('loadedmetadata', r, { once: true })));
     return a.duration;
   });
-  check(await page.getAttribute('.lang-opt[data-music="epica"]', 'aria-checked') === 'true' && await page.isHidden('#mixResetBtn'), 'la música, épica por defecto');
+  check(await page.getAttribute('.lang-opt[data-music="trap"]', 'aria-checked') === 'true' && await page.isHidden('#mixResetBtn'), 'la música, urbana por defecto');
+  check(!(await page.isChecked('#videoSubs')), 'y los subtítulos, apagados por defecto');
   await page.click('#mixPreviewBtn');
   await page.waitForFunction(() => !document.getElementById('mixPlayer').hidden, null, { timeout: 120000 });
-  const epicLen = await mixDuration();
-  check(epicLen > 39.4 && epicLen < 40.6, `«Escuchar la mezcla» prepara la épica (${epicLen.toFixed(1)} s)`);
+  const trapLen = await mixDuration();
+  check(trapLen > 39.4 && trapLen < 40.6, `«Escuchar la mezcla» prepara la urbana (${trapLen.toFixed(1)} s)`);
 
+  await page.check('#videoSubs');
+  // Cuántos canvas se crean mientras se hace el vídeo: con uno nuevo por fotograma (los fondos
+  // cacheados por el tamaño de la pantalla, que cambia con la cámara) el iPhone se quedaba sin
+  // memoria y Safari cerraba la página.
+  await page.evaluate(() => {
+    window.__canvases = 0;
+    const orig = document.createElement.bind(document);
+    document.createElement = (tag, ...rest) => {
+      if (String(tag).toLowerCase() === 'canvas') window.__canvases++;
+      return orig(tag, ...rest);
+    };
+  });
   await page.click('#videoBtn');
   await page.waitForFunction(() => !document.getElementById('videoOut').hidden || /No se pudo/.test(document.getElementById('toast').textContent), null, { timeout: 400000 });
+  const canvases = await page.evaluate(() => ({ made: window.__canvases, cached: window.StudioVideo.layerCount() }));
+  check(canvases.made < 40 && canvases.cached <= 16, `sin comerse la memoria: ${canvases.made} canvas para todo el vídeo, ${canvases.cached} capas guardadas`);
   const video = await page.evaluate(async () => {
     const v = document.getElementById('videoPreview');
     if (!v.src) return { toast: document.getElementById('toast').textContent };
@@ -346,13 +361,14 @@ try {
   });
   check(/^futbol-roma-rma-2026-10-14-short\.(mp4|webm)$/.test(video.name || ''), `vídeo: ${video.name} (${video.toast})`);
   check(video.duration > 39.4 && video.duration < 40.6, `dura unos 40 s: apertura, 7 escenas, el cierre y la de tu logo (${video.duration?.toFixed(1)} s)`);
-  check(video.meta === 'Lleva música épica, subtítulos y la apertura con los escudos.', `lleva todo (${video.meta})`);
-  await page.click('.lang-opt[data-music="trap"]');
-  check(await page.isHidden('#mixPlayer') && await page.isVisible('#mixResetBtn'), 'al cambiar a la urbana, la mezcla se rehace y sale «↺ Por defecto»');
+  check(video.meta === 'Lleva música urbana, subtítulos y la apertura con los escudos.', `con los subtítulos encendidos, lleva todo (${video.meta})`);
+  await page.click('.lang-opt[data-music="epica"]');
+  check(await page.isHidden('#mixPlayer') && await page.isVisible('#mixResetBtn'), 'al cambiar a la épica, la mezcla se rehace y sale «↺ Por defecto»');
   await page.click('#mixPreviewBtn');
   await page.waitForFunction(() => !document.getElementById('mixPlayer').hidden, null, { timeout: 120000 });
-  const trapLen = await mixDuration();
-  check(trapLen > 39.4 && trapLen < 40.6, `y la urbana dura lo mismo (${trapLen.toFixed(1)} s)`);
+  const epicLen = await mixDuration();
+  check(epicLen > 39.4 && epicLen < 40.6, `y la épica dura lo mismo (${epicLen.toFixed(1)} s)`);
+  await page.uncheck('#videoSubs');
   // En el iPhone salía mudo: el AudioEncoder de Safari da para el AAC una descripción que no es la
   // AudioSpecificConfig (WebKit 302253). Con uno de mentira que hace lo mismo, el MP4 tiene que
   // llevar la buena (AAC-LC, 48 kHz, estéreo: 11 90).
@@ -387,13 +403,15 @@ try {
     return 'sin configuración';
   });
   check(asc === '11 90', `con el AAC de Safari, el MP4 lleva la configuración buena y suena (${asc})`);
+  check(await page.textContent('#videoMeta') === 'Lleva música épica y la apertura con los escudos.', `sin subtítulos, el vídeo lo dice (${await page.textContent('#videoMeta')})`);
+  await page.check('#videoSubs');
   await page.reload();
   await page.waitForSelector('#slide-portada');
   await page.waitForTimeout(500);
   check(await page.inputValue('#scriptLines textarea[data-scene="outro"]') === '¿Mbappé o Malen?', 'al recargar sigue el guion retocado');
-  check(await page.getAttribute('.lang-opt[data-music="trap"]', 'aria-checked') === 'true', 'y la música elegida');
+  check(await page.getAttribute('.lang-opt[data-music="epica"]', 'aria-checked') === 'true' && await page.isChecked('#videoSubs'), 'y la música elegida y los subtítulos encendidos');
   await page.click('#mixResetBtn');
-  check(await page.getAttribute('.lang-opt[data-music="epica"]', 'aria-checked') === 'true' && await page.isHidden('#mixResetBtn'), '«↺ Por defecto» vuelve a la épica');
+  check(await page.getAttribute('.lang-opt[data-music="trap"]', 'aria-checked') === 'true' && await page.isHidden('#mixResetBtn'), '«↺ Por defecto» vuelve a la urbana');
 
   // ── Para tu IA: copiar el contexto y pegar la respuesta ──
   await page.click('#aiBriefBtn');
