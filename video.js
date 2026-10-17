@@ -1612,7 +1612,7 @@
 
   // Lo que suena y cuándo, para audio.js: la energía de cada escena, sus efectos y un barrido
   // en cada cortinilla.
-  function soundTimeline(drawer, seed) {
+  function soundTimeline(drawer, seed, style) {
     const cues = [];
     drawer.scenes.forEach((sc, i) => {
       const start = drawer.starts[i];
@@ -1623,6 +1623,7 @@
     return {
       duration: drawer.duration,
       seed,
+      style,
       cues,
       scenes: drawer.scenes.map((sc, i) => ({ start: drawer.starts[i], dur: sc.dur, energy: sc.music?.energy || 'full', drop: sc.music?.drop })),
     };
@@ -1832,9 +1833,10 @@
   // ============================================================
   // API
   // · StudioVideo.render(datos, onProgress, { music, script, captions, voice, intro, voiceLead,
-  //     voiceShift, musicVolume, voiceVolume }) → { blob, ext, note, audio, mix }
+  //     voiceShift, musicVolume, voiceVolume, musicStyle }) → { blob, ext, note, audio, mix }
   //     intro: con la apertura de los escudos. voiceLead: la apertura con la que se grabó la voz
   //     (prepare(…).lead). voiceShift: cuánto se mueve la voz (negativo = antes).
+  //     musicStyle: 'epica' (por defecto) o 'trap'.
   // · StudioVideo.prepare(datos, script, { intro }) → para grabarse: draw(ctx, t), la duración y
   //     cada palabra con su momento.
   // · StudioVideo.plan(datos, script) → las escenas con guion, lo que duran y a qué velocidad
@@ -1844,7 +1846,7 @@
   // ============================================================
   async function render(data, onProgress = () => {}, {
     music = true, script = null, captions = true, voice = null, musicVolume = 1, voiceVolume = 1,
-    intro = true, voiceLead = null, voiceShift = 0,
+    intro = true, voiceLead = null, voiceShift = 0, musicStyle = 'epica',
   } = {}) {
     const live = ((music && window.StudioAudio) || voice) && typeof AudioContext !== 'undefined' ? new AudioContext() : null;
     try {
@@ -1857,7 +1859,7 @@
       let audioBuffer = null;
       if (music && window.StudioAudio) {
         onProgress(0, 'Componiendo la música…');
-        audioBuffer = await window.StudioAudio.render(soundTimeline(drawer, seedOf(data)));
+        audioBuffer = await window.StudioAudio.render(soundTimeline(drawer, seedOf(data), musicStyle));
       }
       const audioOut = audioBuffer ? window.StudioAudio.toWav(audioBuffer, drawer.duration) : null;
       if (voice || (audioBuffer && musicVolume !== 1)) {
@@ -1897,12 +1899,13 @@
 
   async function audio(data, {
     music = true, script = null, voice = null, musicVolume = 1, voiceVolume = 1, intro = true, voiceLead = null, voiceShift = 0,
+    musicStyle = 'epica',
   } = {}) {
     const scenes = buildScenes(data, {}, intro);
     const drawer = makeDrawer(scenes, null);
     const words = captionWords(scenes, drawer.starts, script);
     const delay = (voiceLead == null ? 0 : leadOf(scenes) - voiceLead) + (voiceShift || 0);
-    let buffer = music && window.StudioAudio ? await window.StudioAudio.render(soundTimeline(drawer, seedOf(data))) : null;
+    let buffer = music && window.StudioAudio ? await window.StudioAudio.render(soundTimeline(drawer, seedOf(data), musicStyle)) : null;
     if (voice || (buffer && musicVolume !== 1)) {
       buffer = mixAudio(buffer, voice && await decodeVoice(voice), drawer.duration, words, { musicVolume, voiceVolume, delay });
     }

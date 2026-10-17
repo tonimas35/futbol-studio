@@ -323,9 +323,17 @@ try {
 
   check(!(await page.$('#voiceRecBtn')) && !(await page.$('#prompter')), 'sin «Grabar mi voz» ni teleprompter (la voz llegará de ElevenLabs)');
 
+  // La música: épica por defecto; la urbana se elige y se recuerda.
+  const mixDuration = () => page.evaluate(async () => {
+    const a = document.getElementById('mixPlayer');
+    await new Promise((r) => (a.readyState >= 1 ? r() : a.addEventListener('loadedmetadata', r, { once: true })));
+    return a.duration;
+  });
+  check(await page.getAttribute('.lang-opt[data-music="epica"]', 'aria-checked') === 'true' && await page.isHidden('#mixResetBtn'), 'la música, épica por defecto');
   await page.click('#mixPreviewBtn');
-  await page.waitForFunction(() => !document.getElementById('mixPlayer').hidden, null, { timeout: 60000 });
-  check(true, '«Escuchar la mezcla» prepara el sonido');
+  await page.waitForFunction(() => !document.getElementById('mixPlayer').hidden, null, { timeout: 120000 });
+  const epicLen = await mixDuration();
+  check(epicLen > 39.4 && epicLen < 40.6, `«Escuchar la mezcla» prepara la épica (${epicLen.toFixed(1)} s)`);
 
   await page.click('#videoBtn');
   await page.waitForFunction(() => !document.getElementById('videoOut').hidden || /No se pudo/.test(document.getElementById('toast').textContent), null, { timeout: 400000 });
@@ -337,11 +345,20 @@ try {
   });
   check(/^futbol-roma-rma-2026-10-14-short\.(mp4|webm)$/.test(video.name || ''), `vídeo: ${video.name} (${video.toast})`);
   check(video.duration > 39.4 && video.duration < 40.6, `dura unos 40 s: apertura, 7 escenas, el cierre y la de tu logo (${video.duration?.toFixed(1)} s)`);
-  check(video.meta === 'Lleva música, subtítulos y la apertura con los escudos.', `lleva todo (${video.meta})`);
+  check(video.meta === 'Lleva música épica, subtítulos y la apertura con los escudos.', `lleva todo (${video.meta})`);
+  await page.click('.lang-opt[data-music="trap"]');
+  check(await page.isHidden('#mixPlayer') && await page.isVisible('#mixResetBtn'), 'al cambiar a la urbana, la mezcla se rehace y sale «↺ Por defecto»');
+  await page.click('#mixPreviewBtn');
+  await page.waitForFunction(() => !document.getElementById('mixPlayer').hidden, null, { timeout: 120000 });
+  const trapLen = await mixDuration();
+  check(trapLen > 39.4 && trapLen < 40.6, `y la urbana dura lo mismo (${trapLen.toFixed(1)} s)`);
   await page.reload();
   await page.waitForSelector('#slide-portada');
   await page.waitForTimeout(500);
   check(await page.inputValue('#scriptLines textarea[data-scene="outro"]') === '¿Mbappé o Malen?', 'al recargar sigue el guion retocado');
+  check(await page.getAttribute('.lang-opt[data-music="trap"]', 'aria-checked') === 'true', 'y la música elegida');
+  await page.click('#mixResetBtn');
+  check(await page.getAttribute('.lang-opt[data-music="epica"]', 'aria-checked') === 'true' && await page.isHidden('#mixResetBtn'), '«↺ Por defecto» vuelve a la épica');
 
   // ── Para tu IA: copiar el contexto y pegar la respuesta ──
   await page.click('#aiBriefBtn');

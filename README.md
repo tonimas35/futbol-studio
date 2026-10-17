@@ -128,10 +128,12 @@ El partido en 30 a 40 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
   - **Tu marca (1,6 s, con logo):** tu logo entra de golpe en el centro sobre un círculo verde lima, con un destello y dos ondas, y debajo «Sígueme para más fútbol» y tu firma. Sin guion.
   - Las escenas sin datos no salen.
   - **El aspecto:** los fondos de equipo llevan la misma luz que el carrusel (haces en diagonal, trama y viñeta), y los goles y la clasificación siguen el **Estilo** elegido: claro (papel con la franja de los dos equipos) u oscuro.
-- **Música (`audio.js`):** propia, sintetizada en el navegador y sin derechos de autor. Es una base de 150 BPM con un efecto por animación (el golpe del marcador, cada gol, cada tiro…) y va a tiempo: cada escena dura compases enteros.
+- **Música (`audio.js`):** propia, sintetizada en el navegador y sin derechos de autor. Es una base de 150 BPM con un efecto por animación (el golpe del marcador, cada gol, cada tiro…) y va a tiempo: cada escena dura compases enteros. Dos estilos, a elegir junto al volumen (se recuerda):
+  - **Épica** (por defecto): como un tráiler. Taikos, cuerdas en semicorchea, metales, coro, timbales y una melodía de trompas sobre la menor, fa, do y sol. Antes del golpe del marcador, un redoble de timbal que crece hasta un «braaam»; en los tiros baja para que se oiga cada uno; al final, el acorde en la menor con toda la orquesta.
+  - **Urbana:** la de antes, trap a medio tiempo con 808 y una campana.
 - **Guion y subtítulos:** el Studio escribe una frase por escena con los datos del partido («Remontada del Real Madrid: 4-3 a la Roma.»). Se retoca en el paso 4 y cada frase avisa si no cabe a ritmo normal; «↺ Automático» la vuelve a escribir. Los subtítulos salen de dos en dos o de tres en tres palabras, con la que suena en verde lima. Se quitan con «Subtítulos».
 - **Voz:** ya no se graba en el Studio (se quitó «Grabar mi voz» y el teleprompter). `video.js` sigue sabiendo mezclar una voz con la música (la música baja a un tercio mientras se habla): queda preparado para una voz de ElevenLabs o clonada, que leería el guion escena a escena.
-- **Volumen:** la barra «Música» (se recuerda) y «Escuchar la mezcla», que crea solo el sonido en un par de segundos.
+- **Volumen:** la barra «Volumen» (se recuerda) y «Escuchar la mezcla», que crea solo el sonido en unos segundos. «↺ Por defecto» vuelve a la épica al 100 %.
 - **El archivo:** MP4 (H.264 + AAC) codificado en el navegador con WebCodecs y `mp4-muxer`. Si el navegador no tiene H.264, sale en VP9 y avisa; con Chrome sale en H.264. También se puede bajar la música sola en WAV.
 
 ## Datos y ajustes

@@ -1,6 +1,8 @@
 // ============================================================
-// MÚSICA DEL VÍDEO SHORT · una base de 150 BPM (trap a medio tiempo) y un efecto para
-// cada animación, sintetizados en el navegador con Web Audio (OfflineAudioContext).
+// MÚSICA DEL VÍDEO SHORT · una base de 150 BPM y un efecto para cada animación,
+// sintetizados en el navegador con Web Audio (OfflineAudioContext). Dos estilos: «épica»
+// (por defecto: taikos, cuerdas en semicorcheas, metales, coro y timbales, como un tráiler)
+// y «urbana» (trap a medio tiempo).
 // Es música propia, sin derechos de nadie, que dura lo mismo que el vídeo y cae a tiempo:
 // cada escena dura compases enteros (1 pulso = 0,4 s, lo mismo que la cortinilla) y
 // video.js pasa en qué segundo pasa cada cosa (los puntos que suben, cada tiro, la cinta…).
@@ -20,6 +22,13 @@
     { bass: 29, notes: [57, 60, 65] }, // F
     { bass: 38, notes: [57, 62, 65] }, // Dm (bajo D2: en D1 no se oye en un móvil)
     { bass: 40, notes: [56, 59, 64] }, // E
+  ];
+  // La épica: Am | F | C | G (i–VI–III–VII), la de los tráileres. El sol mayor sube a la menor.
+  const EPIC_CHORDS = [
+    { bass: 33, notes: [57, 60, 64] }, // Am
+    { bass: 29, notes: [57, 60, 65] }, // F
+    { bass: 36, notes: [55, 60, 64] }, // C
+    { bass: 31, notes: [55, 59, 62] }, // G
   ];
   const hz = (m) => 440 * 2 ** ((m - 69) / 12);
 
@@ -285,9 +294,9 @@
     };
   }
 
-  // Reverberación: una respuesta de ruido que se apaga (2 s).
-  function reverb(ctx, rand) {
-    const len = Math.round(RATE * 2);
+  // Reverberación: una respuesta de ruido que se apaga (2 s; en la épica, una sala de 3).
+  function reverb(ctx, rand, seconds = 2) {
+    const len = Math.round(RATE * seconds);
     const ir = ctx.createBuffer(2, len, RATE);
     for (let c = 0; c < 2; c++) {
       const d = ir.getChannelData(c);
@@ -296,6 +305,207 @@
     const conv = ctx.createConvolver();
     conv.buffer = ir;
     return conv;
+  }
+
+  // ============================================================
+  // LA ORQUESTA DE LA ÉPICA · cada instrumento pinta una nota en el momento t
+  // ============================================================
+  function makeOrchestra(ctx, buses, rand) {
+    const noise = ctx.createBuffer(1, RATE * 3, RATE);
+    const nd = noise.getChannelData(0);
+    for (let i = 0; i < nd.length; i++) nd[i] = rand() * 2 - 1;
+    const noiseSrc = (t, dur) => {
+      const s = ctx.createBufferSource();
+      s.buffer = noise;
+      s.start(t, rand() * 0.8, dur + 0.05);
+      return s;
+    };
+    const { drums, bass, keys, verb } = buses;
+    // Cada sección pasa por sus propios filtros, compartidos por todas sus notas: un filtro por
+    // nota (y más si se mueve) multiplica lo que tarda en componerse.
+    const section = (dest, chain, wet = 0) => {
+      const input = ctx.createGain();
+      let node = input;
+      for (const n of chain) { node.connect(n); node = n; }
+      node.connect(dest);
+      if (wet) { const w = ctx.createGain(); w.gain.value = wet; node.connect(w).connect(verb); }
+      return input;
+    };
+    const strings = [-0.3, 0.3].map(side => section(keys, [filter(ctx, 'lowpass', 2600, 0.7), pan(ctx, side)], 0.12));
+    const choir = [-0.45, 0, 0.45].map(side => {
+      const input = ctx.createGain();
+      const out = section(keys, [pan(ctx, side)], 0.6);
+      [[750, 3, 1], [1180, 4, 0.6], [2700, 6, 0.2]].forEach(([fq, q, v]) => {
+        const fg = ctx.createGain();
+        fg.gain.value = v * 2.2;
+        input.connect(filter(ctx, 'bandpass', fq, q)).connect(fg).connect(out);
+      });
+      return input;
+    });
+    const low = section(bass, [filter(ctx, 'lowpass', 520, 0.9)], 0.1);
+    const horn = section(keys, [filter(ctx, 'lowpass', 1700, 0.9), pan(ctx, 0.1)], 0.4);
+    const taikoBody = section(drums, [saturation(ctx, 1.4)], 0.35);
+    const taikoSkin = section(drums, [filter(ctx, 'bandpass', 230, 1.1)], 0.3);
+    const click = section(drums, [filter(ctx, 'highpass', 1800)]);
+    const thump = section(drums, [filter(ctx, 'lowpass', 500)]);
+    const timpBus = section(bass, [], 0.25);
+    const snareBus = section(drums, [filter(ctx, 'bandpass', 1900, 0.7)], 0.55);
+    const crashes = [-0.5, 0.5].map(side => section(drums, [filter(ctx, 'highpass', 5000), pan(ctx, side)], 0.4));
+    const swellBus = section(drums, [filter(ctx, 'highpass', 3500)], 0.3);
+
+    const voice = (type, midi, t, stop, detune, dest) => {
+      const o = osc(ctx, type, hz(midi), t, stop);
+      if (detune) o.detune.value = detune;
+      o.connect(dest);
+      return o;
+    };
+    const hit = (src, t, peak, decay, dest, attack = 0.001) => {
+      const g = ctx.createGain();
+      env(g, t, peak, attack, decay);
+      src.connect(g).connect(dest);
+    };
+    // Una envolvente que entra, aguanta y se va (lineal: para las notas largas).
+    const swellEnv = (t, peak, attack, dur, release) => {
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(peak, t + attack);
+      g.gain.setValueAtTime(peak, t + Math.max(attack, dur));
+      g.gain.linearRampToValueAtTime(0.0001, t + Math.max(attack, dur) + release);
+      return g;
+    };
+
+    return {
+      // Taiko: el golpe grave, el parche y un chasquido arriba (lo que se oye en un móvil).
+      taiko(t, vel = 1, pitch = 1) {
+        const o = osc(ctx, 'sine', 120 * pitch, t, t + 0.8);
+        o.frequency.exponentialRampToValueAtTime(48 * pitch, t + 0.2);
+        hit(o, t, 0.55 * vel, 0.6, taikoBody, 0.002);
+        hit(noiseSrc(t, 0.3), t, 0.3 * vel, 0.22, taikoSkin);
+        hit(noiseSrc(t, 0.05), t, 0.12 * vel, 0.035, click);
+      },
+      // Timbal afinado en la nota del acorde (en el redoble, sin el golpe de la maza).
+      timp(t, midi, vel = 1, decay = 0.9, roll = false) {
+        const f = hz(midi);
+        const o = osc(ctx, 'sine', f * 1.04, t, t + decay + 0.2);
+        o.frequency.exponentialRampToValueAtTime(f, t + 0.08);
+        hit(o, t, 0.32 * vel, decay, timpBus, 0.003);
+        if (roll) return;
+        hit(osc(ctx, 'triangle', f * 2, t, t + decay), t, 0.1 * vel, decay * 0.5, timpBus, 0.003);
+        hit(noiseSrc(t, 0.08), t, 0.2 * vel, 0.06, thump);
+      },
+      // Redoble de timbal que crece: de «from» a «to».
+      timpRoll(t, dur, midi, from, to) {
+        const n = Math.round(dur / 0.06);
+        for (let i = 0; i < n; i++) this.timp(t + i * 0.06, midi, from + (to - from) * (i / (n - 1)), 0.2, true);
+      },
+      // Caja de orquesta, con mucha sala.
+      snare(t, vel = 1) {
+        hit(noiseSrc(t, 0.3), t, 0.42 * vel, 0.2, snareBus);
+        hit(osc(ctx, 'triangle', 210, t, t + 0.12), t, 0.16 * vel, 0.08, drums, 0.002);
+      },
+      snareRoll(t, dur, from, to) {
+        const n = Math.round(dur / (STEP / 2));
+        for (let i = 0; i < n; i++) this.snare(t + i * STEP / 2, from + (to - from) * (i / Math.max(1, n - 1)));
+      },
+      // Platillo de choque, abierto a los dos lados.
+      crash(t, vel = 1) {
+        crashes.forEach(bus => hit(noiseSrc(t, 2), t, 0.12 * vel, 1.8, bus, 0.002));
+      },
+      // Platillo al revés: sube hasta el golpe.
+      swell(t, dur, vel = 1) {
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.2 * vel, t + dur);
+        g.gain.linearRampToValueAtTime(0.0001, t + dur + 0.03);
+        noiseSrc(t, dur).connect(g).connect(swellBus);
+      },
+      // Cuerdas en «spiccato»: una semicorchea corta y con ataque.
+      strings(t, midi, vel = 1, side = 0) {
+        const g = ctx.createGain();
+        env(g, t, 0.055 * vel, 0.004, 0.11);
+        g.connect(strings[side < 0 ? 0 : 1]);
+        [-9, 9].forEach(d => voice('sawtooth', midi, t, t + 0.2, d, g));
+      },
+      // Contrabajos y chelos: la nota del bajo, larga, con su octava.
+      lowStrings(t, midi, dur, vel = 1) {
+        const g = swellEnv(t, 0.09 * vel, 0.08, dur - 0.05, 0.2);
+        g.connect(low);
+        [-6, 6].forEach(d => voice('sawtooth', midi + 12, t, t + dur + 0.25, d, g));
+        const sg = ctx.createGain();
+        sg.gain.value = 1.3;
+        sg.connect(g);
+        voice('sine', midi, t, t + dur + 0.25, 0, sg);
+      },
+      // Metales: el acorde que se abre (de apagado a brillante) y aguanta el compás.
+      brass(t, notes, dur, vel = 1, grow = false) {
+        const lp = filter(ctx, 'lowpass', 300, 1.2);
+        lp.frequency.setValueAtTime(300, t);
+        lp.frequency.exponentialRampToValueAtTime(grow ? 900 : 2200, t + 0.22);
+        lp.frequency.exponentialRampToValueAtTime(grow ? 2600 : 1300, t + dur);
+        const peak = 0.03 * vel;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.linearRampToValueAtTime(grow ? peak * 0.3 : peak, t + 0.08);
+        g.gain.linearRampToValueAtTime(grow ? peak * 1.2 : peak * 0.75, t + dur);
+        g.gain.linearRampToValueAtTime(0.0001, t + dur + 0.25);
+        lp.connect(saturation(ctx, 1.3)).connect(g).connect(keys);
+        const w = ctx.createGain();
+        w.gain.value = 0.3;
+        g.connect(w).connect(verb);
+        notes.forEach(m => [-10, 0, 10].forEach(d => voice('sawtooth', m, t, t + dur + 0.3, d, lp)));
+      },
+      // Trompas: la melodía, con vibrato cuando la nota se alarga.
+      horn(t, midi, dur, vel = 1) {
+        const g = swellEnv(t, 0.085 * vel, 0.05, dur, 0.3);
+        g.connect(horn);
+        const o = voice('sawtooth', midi, t, t + dur + 0.35, 0, g);
+        const qg = ctx.createGain();
+        qg.gain.value = 0.35;
+        qg.connect(g);
+        const q = voice('square', midi - 12, t, t + dur + 0.35, 0, qg);
+        if (dur > 0.4) {
+          const lfo = osc(ctx, 'sine', 5.3, t, t + dur + 0.35);
+          const depth = ctx.createGain();
+          depth.gain.setValueAtTime(0, t);
+          depth.gain.linearRampToValueAtTime(9, t + 0.35);
+          lfo.connect(depth);
+          depth.connect(o.detune);
+          depth.connect(q.detune);
+        }
+      },
+      // Coro: «aaah» (sierras por tres formantes), que entra despacio.
+      choir(t, notes, dur, vel = 1) {
+        notes.forEach((m, i) => {
+          const g = swellEnv(t, 0.085 * vel, 0.45, dur, 0.5);
+          g.connect(choir[i % 3]);
+          [-7, 7].forEach(d => voice('sawtooth', m, t, t + dur + 0.6, d, g));
+        });
+      },
+      // «Braaam»: el golpe de metales graves de los tráileres.
+      braam(t, midi, vel = 1, dur = 1.6) {
+        const lp = filter(ctx, 'lowpass', 120, 2);
+        lp.frequency.setValueAtTime(120, t);
+        lp.frequency.exponentialRampToValueAtTime(1900, t + 0.3);
+        lp.frequency.exponentialRampToValueAtTime(500, t + dur);
+        const g = ctx.createGain();
+        env(g, t, 0.06 * vel, 0.02, dur * 0.6, dur * 0.4);
+        lp.connect(saturation(ctx, 2.2)).connect(g).connect(bass);
+        const w = ctx.createGain();
+        w.gain.value = 0.35;
+        g.connect(w).connect(verb);
+        [0, 7, 12].forEach(iv => [-14, 14].forEach(d => voice('sawtooth', midi + iv, t, t + dur + 0.2, d, lp)));
+      },
+      // El acorde final: todos a la vez y aguantan hasta el final.
+      finale(t, chord, dur) {
+        this.braam(t, chord.bass + 12, 0.9, Math.min(dur, 2.2));
+        this.brass(t, [chord.bass + 24, ...chord.notes], dur - 0.3, 1);
+        this.choir(t, chord.notes.map(n => n + 12), dur - 0.4, 0.9);
+        this.lowStrings(t, chord.bass, dur - 0.3, 1);
+        this.timp(t, chord.bass + 12, 1, 1.4);
+        this.taiko(t, 1);
+        this.crash(t, 1);
+      },
+    };
   }
 
   // ============================================================
@@ -341,11 +551,87 @@
     if (last && full) kit.hat(s(15), 0.8, true, 0);
   }
 
-  // timeline: { duration, scenes: [{ start, dur, energy, drop? }], cues: [{ t, kind, ... }], seed }
+  // La épica, compás a compás. Los acordes se cuentan desde el golpe del marcador, que cae
+  // siempre en la menor (antes, do y sol: C | G | Am).
+  const OSTINATO = [0, 0, 12, 0, 0, 7, 12, 0, 0, 0, 12, 0, 7, 0, 12, 7]; // sobre el bajo +2 octavas
+  const ACCENTS = new Set([0, 3, 6, 8, 11, 14]);                      // 3 + 3 + 2
+  const TAIKO = [[0, 1, 1], [3, 0.55, 1.15], [6, 0.75, 1], [8, 0.9, 0.85], [11, 0.55, 1.15], [14, 0.7, 1]];
+  const TAIKO_FILL = [[12, 0.5, 1.3], [13, 0.6, 1.25], [14, 0.75, 1.15], [15, 0.9, 1.05]];
+  // La melodía de las trompas, una frase por acorde: [semicorchea, nota, duración en semicorcheas].
+  const MELODY = [
+    [[0, 69, 6], [6, 72, 2], [8, 76, 8]],             // Am: la – do – mi
+    [[0, 77, 6], [6, 76, 2], [8, 72, 8]],             // F: fa – mi – do
+    [[0, 79, 6], [6, 76, 2], [8, 72, 6], [14, 74, 2]], // C: sol – mi – do – re
+    [[0, 74, 6], [6, 71, 2], [8, 67, 8]],             // G: re – si – sol
+  ];
+
+  function playEpicBar(o, bars, i, CH, dropAt) {
+    const { t, energy, k } = bars[i];
+    const chord = CH[k];
+    const prev = bars[i - 1]?.energy, next = bars[i + 1]?.energy;
+    const s = (n) => t + n * STEP;
+    const root = chord.bass + 24;
+    const rel = i - dropAt;
+    if (energy === 'tail') {
+      if (prev !== 'tail') {
+        let dur = 0;
+        for (let j = i; bars[j]?.energy === 'tail'; j++) dur += BAR;
+        o.finale(t, CH[0], dur);
+      }
+      return;
+    }
+    // Antes del golpe y el compás que lleva al final: el redoble y las cuerdas que crecen.
+    if (energy === 'intro' || energy === 'build') {
+      const rising = energy === 'build' || next !== 'intro';
+      o.lowStrings(t, chord.bass, BAR, rising ? 0.6 : 0.35);
+      o.choir(t, chord.notes, BAR, rising ? 0.55 : 0.3);
+      if (!rising) {
+        o.timp(s(0), chord.bass + 12, 0.7);
+        o.timp(s(8), chord.bass + 12, 0.4);
+        return;
+      }
+      o.timpRoll(t, BAR, chord.bass + 12, 0.12, 0.85);
+      o.swell(t + BAR * 0.3, BAR * 0.7, 0.8);
+      OSTINATO.forEach((iv, n) => o.strings(s(n), root + iv, 0.25 + 0.6 * (n / 15), n % 2 ? 0.3 : -0.3));
+      if (energy === 'build') {
+        o.brass(t, [chord.bass + 12, ...chord.notes], BAR, 0.8, true);
+        o.snareRoll(t + BAR / 2, BAR / 2, 0.15, 0.7);
+      }
+      return;
+    }
+    const full = energy === 'full';
+    o.lowStrings(t, chord.bass, BAR, full ? 1 : 0.5);
+    o.choir(t, chord.notes, BAR, full ? 0.6 : 0.35);
+    OSTINATO.forEach((iv, n) => o.strings(s(n), root + iv, (ACCENTS.has(n) ? 0.95 : 0.55) * (full ? 1 : 0.45), n % 2 ? 0.3 : -0.3));
+    // 'light' (los tiros): solo cuerdas y dos taikos, que los efectos llevan el ritmo.
+    if (!full) {
+      o.taiko(s(0), 0.6);
+      o.taiko(s(8), 0.4, 1.1);
+      return;
+    }
+    if (prev === 'intro' || prev == null) {
+      o.braam(t, chord.bass + 12, 1);
+      o.crash(t, 1);
+    } else if (bars[i].scene) o.crash(t, 0.4);
+    o.brass(t, [chord.bass + 12, ...chord.notes], BAR, 0.7);
+    o.timp(s(0), chord.bass + 12, 0.9);
+    const fill = rel % 2 === 1;
+    TAIKO.forEach(([n, v, p]) => { if (!(fill && n >= 12)) o.taiko(s(n), v, p); });
+    if (fill) TAIKO_FILL.forEach(([n, v, p]) => o.taiko(s(n), v, p));
+    o.snare(s(8), 0.8);
+    if (rel % 4 === 3) o.snareRoll(s(12), 4 * STEP, 0.3, 0.75);
+    // La melodía, una frase de cuatro compases sí y otra no (empieza con el golpe).
+    if (Math.floor(rel / 4) % 2 === 0) MELODY[k].forEach(([n, m, d]) => o.horn(s(n), m, d * STEP, 0.85));
+  }
+
+  // timeline: { duration, scenes: [{ start, dur, energy, drop? }], cues: [{ t, kind, ... }], seed,
+  //   style: 'epica' (por defecto) | 'trap' }
   async function render(timeline) {
     const length = Math.ceil((timeline.duration + 0.6) * RATE);
     const ctx = new OfflineAudioContext(2, length, RATE);
     const rand = rng(timeline.seed || 1);
+    const epic = timeline.style !== 'trap';
+    const CH = epic ? EPIC_CHORDS : CHORDS;
 
     // Buses: batería, bajo, teclas y efectos, con algo de reverberación, a un compresor.
     const comp = ctx.createDynamicsCompressor();
@@ -359,40 +645,46 @@
     comp.connect(filter(ctx, 'highpass', 30)).connect(master).connect(ctx.destination);
     const bus = (v) => { const g = ctx.createGain(); g.gain.value = v; g.connect(comp); return g; };
     const buses = { drums: bus(0.8), bass: bus(0.75), keys: bus(0.7), sfx: bus(0.9) };
-    const conv = reverb(ctx, rand);
+    const conv = reverb(ctx, rand, epic ? 3 : 2);
     const verbIn = ctx.createGain();
-    verbIn.gain.value = 0.22;
+    verbIn.gain.value = epic ? 0.3 : 0.22;
     verbIn.connect(conv).connect(bus(0.7));
     buses.verb = verbIn;
     const kit = makeKit(ctx, buses, rand);
 
-    // La base, escena a escena (todas duran compases enteros).
-    let globalBar = 0;
+    // La base, escena a escena (todas duran compases enteros). En el marcador, la base de
+    // verdad entra con el golpe (sc.drop). El cierre: un compás en el último acorde (mi mayor
+    // o sol) que sube y el acorde final en la menor.
+    const bars = [];
     for (const sc of timeline.scenes) {
-      const bars = Math.round(sc.dur / BAR);
-      for (let b = 0; b < bars; b++) {
-        const t = sc.start + b * BAR;
+      const n = Math.round(sc.dur / BAR);
+      for (let b = 0; b < n; b++) {
         const local = b * BAR;
-        // En el marcador, la base de verdad entra con el golpe (sc.drop). El cierre: un
-        // compás en mi mayor que sube y el acorde final en la menor (lo pone video.js).
         const energy = sc.energy === 'outro' ? (b === 0 ? 'build' : 'tail')
           : sc.drop != null && local < sc.drop ? 'intro' : sc.energy;
-        const chord = sc.energy === 'outro' ? CHORDS[3] : CHORDS[(globalBar + 3) % 4];
-        if (energy === 'tail') kit.pad(t, CHORDS[0].notes, BAR, 0.8);
-        else kit.pad(t, chord.notes, BAR, energy === 'intro' || energy === 'build' ? 0.8 : 1);
-        playBar(kit, t, globalBar, energy, chord, rand, b === bars - 1);
-        globalBar++;
+        bars.push({ t: sc.start + local, energy, outro: sc.energy === 'outro', scene: b === 0, last: b === n - 1 });
       }
+    }
+    // La urbana cuenta los acordes desde el primer compás (el golpe cae en el segundo); la
+    // épica, desde el golpe.
+    const dropAt = epic ? Math.max(0, bars.findIndex(b => b.energy !== 'intro')) : 1;
+    bars.forEach((b, i) => { b.k = b.outro ? 3 : (((i - dropAt) % 4) + 4) % 4; });
+    if (epic) {
+      const orch = makeOrchestra(ctx, buses, rand);
+      bars.forEach((b, i) => playEpicBar(orch, bars, i, CH, dropAt));
+    } else {
+      bars.forEach((b, i) => {
+        const chord = CH[b.k];
+        if (b.energy === 'tail') kit.pad(b.t, CH[0].notes, BAR, 0.8);
+        else kit.pad(b.t, chord.notes, BAR, b.energy === 'intro' || b.energy === 'build' ? 0.8 : 1);
+        playBar(kit, b.t, i, b.energy, chord, rand, b.last);
+      });
     }
 
     // Los efectos de las animaciones.
     const chordForPops = (t) => {
-      let acc = 0, bar = 0;
-      for (const sc of timeline.scenes) {
-        if (t < sc.start + sc.dur) { bar = acc + Math.floor((t - sc.start) / BAR); break; }
-        acc += Math.round(sc.dur / BAR);
-      }
-      return CHORDS[(bar + 3) % 4];
+      const b = bars.findLast(x => x.t <= t + 1e-6) || bars[0];
+      return CH[b?.k ?? 0];
     };
     let popIndex = 0;
     for (const c of timeline.cues) {
@@ -403,7 +695,8 @@
         case 'impact': kit.impact(c.t, c.vel || 1); break;
         case 'whoosh': kit.whoosh(c.t, c.dur || 0.55, c.vel || 1); break;
         case 'riser': kit.riser(c.t, c.dur || 1, c.vel || 1); break;
-        case 'stab': kit.stab(c.t, CHORDS[0].notes.map(n => n + 12)); kit.stab(c.t, [CHORDS[0].bass + 24]); break;
+        // En la épica, el acorde final ya lo dan todos (finale).
+        case 'stab': if (!epic) { kit.stab(c.t, CHORDS[0].notes.map(n => n + 12)); kit.stab(c.t, [CHORDS[0].bass + 24]); } break;
         case 'pop': {
           const ch = chordForPops(c.t);
           const note = ch.notes[popIndex % 3] + (popIndex % 2 ? 24 : 12);
