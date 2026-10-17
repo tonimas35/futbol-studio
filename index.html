@@ -24,7 +24,7 @@
     rel="stylesheet"
   />
 
-  <link rel="stylesheet" href="futbol.css?v=14" />
+  <link rel="stylesheet" href="futbol.css?v=15" />
 </head>
 
 <body>
@@ -144,6 +144,17 @@
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>
           </svg>
         </button>
+      </div>
+
+      <!-- La descripción para TikTok: el gancho, el mejor del partido, la pregunta y los hashtags.
+           Se copia sola al compartir el vídeo o el carrusel. -->
+      <div class="caption-box" id="captionBox" hidden>
+        <div class="caption-head">
+          <span>Descripción para TikTok</span>
+          <button class="btn btn-ghost" id="captionCopyBtn" type="button">Copiar</button>
+        </div>
+        <textarea id="captionText" rows="5" spellcheck="false" aria-label="Descripción para TikTok"></textarea>
+        <small>Se copia sola al compartir el vídeo o el carrusel: en TikTok, mantén pulsado el texto y pega. Puedes retocarla aquí.</small>
       </div>
 
       <!-- Tu firma: sale abajo a la derecha de cada slide y en el cierre. Se recuerda en este navegador. -->
@@ -284,6 +295,6 @@
 
   <script src="audio.js?v=1"></script>
   <script src="video.js?v=8"></script>
-  <script src="futbol.js?v=18"></script>
+  <script src="futbol.js?v=19"></script>
 </body>
 </html>
