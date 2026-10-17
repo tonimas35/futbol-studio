@@ -565,6 +565,50 @@ try {
     await c9.close();
   }
 
+  // ── API-Football (en la web): las notas y las caras, con la función de Netlify ──
+  // Las notas de este partido son de ejemplo, con el formato de API-Football.
+  {
+    const asked = [];
+    const afFile = (q) => (q.get('path') === 'fixtures' ? `af-fixtures-${q.get('date')}.json`
+      : q.get('path') === 'fixtures/players' ? `af-players-${q.get('fixture')}.json` : '');
+    const { ctx: ca, page: pa } = await open({
+      before: async (c) => {
+        await c.route('**/.netlify/functions/apifootball**', (r) => {
+          const q = new URL(r.request().url()).searchParams;
+          asked.push(q.get('path'));
+          const f = afFile(q);
+          return r.fulfill(json(f && existsSync(join(FIX, f)) ? readFileSync(join(FIX, f)) : '{"errors":[],"response":[]}'));
+        });
+        await c.route('https://media.api-sports.io/**', (r) => r.fulfill({ status: 200, contentType: 'image/png', headers: { 'access-control-allow-origin': '*' }, body: PIXEL }));
+      },
+    });
+    await pickLeague(pa, 'uefa.champions');
+    await pickDate(pa, '2026-10-14');
+    await generate(pa, '401915414');
+    const an = await slideNames(pa);
+    check(an.indexOf('Las notas') === an.indexOf('Jugador del partido') + 1, `API-Football: «Las notas» tras el jugador del partido (${an.join(', ')})`);
+    const notas = await pa.evaluate(() => ({
+      rows: [...document.querySelectorAll('#slide-notas .col')].map((c) => c.querySelectorAll('.row').length),
+      first: [...document.querySelectorAll('#slide-notas .col')].map((c) => `${c.querySelector('.row .nm')?.textContent} ${c.querySelector('.row .rt')?.textContent}`),
+      mvp: document.querySelector('#slide-notas .row.mvp .nm')?.textContent,
+      faces: [...document.querySelectorAll('#slide-notas .face img')].filter((i) => i.src.startsWith('https://media.api-sports.io/')).length,
+    }));
+    check(notas.rows.join('-') === '15-15' && notas.first.join(' · ') === 'Malen 8,9 · Mbappé 8,1' && notas.mvp === 'Malen' && notas.faces === 30,
+      `la nota y la cara de cada uno, de mejor a peor (${notas.first.join(' · ')} · ${notas.faces} caras)`);
+    const top = await pa.evaluate(() => ({
+      name: document.querySelector('#slide-jugador .bar span')?.textContent,
+      stat: document.querySelector('#slide-jugador .st')?.textContent.replace(/\s+/g, ' ').trim(),
+    }));
+    check(top.name === 'Donyell Malen' && top.stat === '8,9 Nota', `el jugador del partido, el de la nota más alta (${top.name} · ${top.stat})`);
+    check(asked.join(',') === 'fixtures,fixtures/players', `con 2 peticiones (${asked.join(', ')})`);
+    // Si API-Football no deja (el plan, el límite del día…), lo dice y el carrusel sale igual
+    await ca.route('**/.netlify/functions/apifootball**', (r) => r.fulfill(json('{"errors":{"plan":"Free plans do not have access to this season, try from 2021 to 2023."},"response":[]}')));
+    await generate(pa, '401915415');
+    check(/sin las notas · API-Football: Free plans do not have access/.test(await pa.textContent('#toast')) && !(await slideNames(pa)).includes('Las notas'),
+      `si el plan no deja, lo avisa y sale sin notas (${await pa.textContent('#toast')})`);
+    await ca.close();
+  }
+
   // ── Tu logo: junto a la firma en cada slide, grande en el cierre y se recuerda ──
   {
     const { ctx: c7, page: p7 } = await open();

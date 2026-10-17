@@ -3,3 +3,8 @@
 [build]
   command = "rm -rf _site && mkdir _site && cp index.html futbol.js futbol.css video.js audio.js favicon.svg manifest.webmanifest apple-touch-icon.png icon-192.png icon-512.png _site/"
   publish = "_site"
+
+# La función que habla con API-Football con tu clave (APIFOOTBALL_KEY, en las variables de
+# entorno de Netlify): netlify/functions/apifootball.mjs
+[functions]
+  directory = "netlify/functions"

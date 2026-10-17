@@ -24,6 +24,18 @@ En el móvil hace falta abrirlo desde una web con HTTPS (sin ella, el navegador 
 
 Cada cambio que entra en `main` se publica solo. Solo se publica la página (`netlify.toml` copia sus archivos): ni las pruebas ni este README. La dirección no sale en buscadores (`noindex`), pero quien la tenga puede abrirla; dentro no hay nada privado (los datos son de ESPN y tus borradores se quedan en tu navegador). Lo que hagas en el móvil se guarda en el móvil, y lo del ordenador, en el ordenador.
 
+## Las notas de los jugadores (API-Football)
+
+En la web de Netlify, el Studio añade la nota de cada jugador y su cara, de [API-Football](https://www.api-football.com):
+
+- **«Las notas»:** una slide nueva, tras el jugador del partido, con los que han jugado de cada equipo, de mejor a peor nota, con su cara y la nota en color (verde, amarillo, naranja o rojo). El de la nota más alta, marcado.
+- **Jugador del partido:** el de la nota más alta, con «Nota 8,9» como primer número (también en el vídeo y el guion: «un 8,9 de nota»).
+- En el pie de foto, la nota del jugador del partido; en «Para tu IA», las 5 mejores de cada equipo.
+
+Cómo se conecta: la clave de API-Football va en Netlify (**Project configuration → Environment variables**, `APIFOOTBALL_KEY`), nunca en la página. El Studio pide los datos a una función de Netlify (`netlify/functions/apifootball.mjs`) que añade la clave, solo deja pasar lo que usa el Studio y guarda las respuestas un rato para no gastar peticiones. Cada partido gasta 2 (los partidos del día y los jugadores de ese partido); el plan gratis da 100 al día.
+
+El partido se busca por la hora (±30 minutos), el resultado y los nombres de los equipos; los jugadores se emparejan por el dorsal (o, si no, por el apellido). Si API-Football no deja (el plan no incluye esa temporada, se acabaron las peticiones del día…), el carrusel sale igual, sin notas, y el aviso dice lo que ha contestado. Abierto como archivo en el ordenador no hay función: todo igual, sin notas.
+
 ## En directo
 
 Arriba del todo, «Los partidos de hoy»: eliges qué competiciones vigilar (las de siempre se recuerdan) y activas **Vigilar**. Con la pestaña abierta:
@@ -141,7 +153,8 @@ El partido en 30 a 40 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
 | `audio.js` | La música y los efectos del vídeo |
 | `futbol.css` | La interfaz y las slides (`.fc`); el grano de las slides va dentro, en base64, para que la descarga funcione abriendo el archivo |
 | `manifest.webmanifest`, `apple-touch-icon.png`, `icon-*.png` | El nombre y el icono al añadirlo a la pantalla de inicio del móvil |
-| `netlify.toml` | Cómo se publica en Netlify (solo los archivos de la página) |
+| `netlify.toml` | Cómo se publica en Netlify (solo los archivos de la página) y dónde está la función |
+| `netlify/functions/apifootball.mjs` | La función de Netlify que pide a API-Football con tu clave |
 | `tests/` | Las pruebas y los datos de ESPN que usan |
 
 ## Pruebas
@@ -156,7 +169,7 @@ El partido en 30 a 40 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
   - el Lech-Leverkusen de la Europa League (la clasificación, pedida aparte);
   - el Osnabrück-Bayern de la Copa de Alemania (un apellido con «ß»).
 
-  Prueba «El dato» (la racha que se acaba, el cara a cara, el pie de foto, el guion y que el historial guardado no se vuelva a pedir), la versión en inglés (slides, guion, jornada y que se recuerde), el modo en directo (un partido que pasa de en juego a acabado: el aviso y generarlo a un clic), el resumen de la jornada, tu logo, las competiciones y sus logos, la lista, las 9 slides, el minuto a minuto sin solapes, la firma, el jugador del partido, el borrador, el ZIP, el 9:16, compartir, el vídeo (guion, grabar la voz con un micrófono de prueba, la mezcla y el MP4), «Para tu IA» (copiar y pegar), un partido en juego, uno con pocos datos, las eliminatorias (campeón, global, quién pasa), saltar a un día con partidos, el móvil y el Studio abierto como archivo (generar, descargar y recuperar el borrador).
+  Prueba las notas de API-Football (la slide, las caras, el jugador del partido por nota y el aviso si el plan no deja), «El dato» (la racha que se acaba, el cara a cara, el pie de foto, el guion y que el historial guardado no se vuelva a pedir), la versión en inglés (slides, guion, jornada y que se recuerde), el modo en directo (un partido que pasa de en juego a acabado: el aviso y generarlo a un clic), el resumen de la jornada, tu logo, las competiciones y sus logos, la lista, las 9 slides, el minuto a minuto sin solapes, la firma, el jugador del partido, el borrador, el ZIP, el 9:16, compartir, el vídeo (guion, grabar la voz con un micrófono de prueba, la mezcla y el MP4), «Para tu IA» (copiar y pegar), un partido en juego, uno con pocos datos, las eliminatorias (campeón, global, quién pasa), saltar a un día con partidos, el móvil y el Studio abierto como archivo (generar, descargar y recuperar el borrador).
 
 Corre sola en cada push y PR (`.github/workflows/tests.yml`). En local:
 
