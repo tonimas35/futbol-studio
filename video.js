@@ -212,8 +212,8 @@
   }
   // Los colores de encima de cada fondo
   const SHEET = {
-    claro: { ink: '#111111', mute: 'rgba(17,17,17,.65)', faint: 'rgba(17,17,17,.4)', track: 'rgba(17,17,17,.18)', line: '#111111', pill: '#111111', pillInk: '#ffffff', ring: '#ece9e2', zebra: 'rgba(0,0,0,.035)', team: (st) => st.ink },
-    oscuro: { ink: '#ffffff', mute: 'rgba(255,255,255,.62)', faint: 'rgba(255,255,255,.4)', track: 'rgba(255,255,255,.18)', line: 'rgba(255,255,255,.9)', pill: '#ffffff', pillInk: '#111111', ring: NIGHT, zebra: 'rgba(255,255,255,.035)', team: (st) => st.night || st.ink },
+    claro: { ink: '#111111', mute: 'rgba(17,17,17,.65)', faint: 'rgba(17,17,17,.4)', track: 'rgba(17,17,17,.18)', line: '#111111', pill: '#111111', pillInk: '#ffffff', ring: '#ece9e2', zebra: 'rgba(0,0,0,.035)', small: '#333333', sub: '#8a8a8a', up: '#1f9d55', team: (st) => st.ink },
+    oscuro: { ink: '#ffffff', mute: 'rgba(255,255,255,.62)', faint: 'rgba(255,255,255,.4)', track: 'rgba(255,255,255,.18)', line: 'rgba(255,255,255,.9)', pill: '#ffffff', pillInk: '#111111', ring: NIGHT, zebra: 'rgba(255,255,255,.035)', small: 'rgba(255,255,255,.8)', sub: '#7d8594', up: '#34c46e', team: (st) => st.night || st.ink },
   };
   const sheet = (d) => SHEET[d.dark ? 'oscuro' : 'claro'];
   // El fondo oscuro: la luz de cada equipo en su esquina de arriba (glow: { c, a }).
@@ -478,19 +478,98 @@
   // 2 · Los goles: la línea del partido baja de arriba abajo, minuto a minuto, y cada gol
   // (o roja, o penalti fallado) salta cuando la línea llega a él. Arriba, el marcador va
   // cambiando con cada gol.
+  // Una amarilla o un cambio en el minuto a minuto: en pequeño y en gris, como en la slide.
+  // El punto en su minuto, el minuto en un recuadro y la tarjeta o «▲ entra ▼ sale».
+  function smallEvent(ctx, e, p, P, ink, dir, ty, cy) {
+    const AX = W / 2;
+    ctx.strokeStyle = rgba(ink, 0.35);
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(AX, ty); ctx.lineTo(AX + dir * 24, cy); ctx.lineTo(AX + dir * 40, cy); ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(AX, ty, 8 * easeBack(p), 0, Math.PI * 2);
+    ctx.fillStyle = e.kind === 'yellow' ? '#f5c400' : P.sub;
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = P.ring;
+    ctx.stroke();
+    const a = easeOut(p);
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.translate((1 - a) * 60 * dir, 0);
+    const minFont = BARLOW(28);
+    ctx.font = minFont;
+    const minW = ctx.measureText(e.min).width + 20, minH = 36;
+    const x1 = AX + dir * 40;
+    const mx = dir < 0 ? x1 - minW : x1;
+    ctx.strokeStyle = P.faint;
+    ctx.lineWidth = 2;
+    roundRect(ctx, mx, cy - minH / 2, minW, minH, 6);
+    ctx.stroke();
+    text(ctx, e.min, mx + minW / 2, cy + capHeight(ctx, minFont) / 2, minFont, P.mute, 'center');
+    // Lo de dentro: [tarjeta] Nombre o [▲] Entra [▼] Sale, que quepa en su mitad
+    const parts = e.kind === 'yellow' ? [['card', up(e.name)]] : [['in', up(e.name)], ...(e.out ? [['out', up(e.out)]] : [])];
+    const ICON = 26, GAP = 10;
+    const room = W / 2 - 40 - M - minW - 14;
+    let size = 34, widths;
+    do {
+      ctx.font = BARLOW(size);
+      widths = parts.map(([, t]) => ICON + 8 + ctx.measureText(t).width);
+    } while (size-- > 24 && widths.reduce((s2, w) => s2 + w, 0) + GAP * (parts.length - 1) > room);
+    const font = BARLOW(size + 1);
+    const totalW = widths.reduce((s2, w) => s2 + w, 0) + GAP * (parts.length - 1);
+    let x = dir < 0 ? mx - 14 - totalW : mx + minW + 14;
+    parts.forEach(([icon, label], i) => {
+      if (icon === 'card') {
+        ctx.fillStyle = '#f5c400';
+        roundRect(ctx, x + 4, cy - 15, 18, 26, 3);
+        ctx.fill();
+      } else {
+        const up_ = icon === 'in';
+        ctx.fillStyle = up_ ? P.up : '#d8263a';
+        ctx.beginPath();
+        if (up_) { ctx.moveTo(x + 2, cy + 8); ctx.lineTo(x + 22, cy + 8); ctx.lineTo(x + 12, cy - 10); }
+        else { ctx.moveTo(x + 2, cy - 8); ctx.lineTo(x + 22, cy - 8); ctx.lineTo(x + 12, cy + 10); }
+        ctx.closePath();
+        ctx.fill();
+      }
+      text(ctx, label, x + ICON + 8, cy + capHeight(ctx, font) / 2, font, P.small);
+      x += widths[i] + GAP;
+    });
+    ctx.restore();
+  }
+
   function sceneGoals(d, A) {
     const evs = d.goals;
     const total = d.extraTime ? 120 : 90;
     const TOP = 520, BOTTOM = 1500, AX = W / 2;
     const yOf = (t) => TOP + (Math.min(Math.max(t, 0), total + 1) / (total + 1)) * (BOTTOM - TOP);
-    const bars = evs.length <= 3 ? 2 : evs.length <= 6 ? 3 : 4;
+    // La duración, por lo que importa (goles, rojas, penaltis); las amarillas y los cambios
+    // (tiny) van en pequeño y no la alargan.
+    const main = evs.filter(e => !e.tiny).length;
+    const bars = main <= 3 ? 2 : main <= 6 ? 3 : 4;
     const dur = bars * BAR;
     const drawStart = BEAT, drawEnd = dur - BAR / 2;
     const at = (t) => drawStart + ((yOf(t) - TOP) / (BOTTOM - TOP)) * (drawEnd - drawStart);
     // Las tarjetas de cada lado, cerca de su minuto, sin pisarse ni tapar las marcas de la línea
     // (el descanso y la prórroga).
-    const placed = evs.map(e => ({ ...e, h: e.kind === 'goal' ? 112 : 84, appear: snap(at(e.t)) }));
-    const bands = [yOf(45.5), ...(d.extraTime ? [yOf(90.5)] : [])].map(y => ({ y0: y - 30, y1: y + 30 }));
+    let placed = evs.map(e => ({ ...e, h: e.kind === 'goal' ? 112 : e.tiny ? 46 : 84, appear: snap(at(e.t)) }));
+    // Como en la slide: cada tramo de la línea (hasta el descanso, la segunda parte, la
+    // prórroga) tiene su sitio y, si en un lado no cabe todo, fuera primero los cambios y luego
+    // las amarillas de ese tramo (los últimos primero). Nunca los goles.
+    const cuts = [yOf(45.5), ...(d.extraTime ? [yOf(90.5)] : [])];
+    const edges = [TOP - 30, ...cuts, BOTTOM + 10];
+    const need = (list) => list.reduce((sum, e) => sum + e.h + 10, 0) - 10;
+    for (const side of ['home', 'away']) {
+      for (let i = 0; i < edges.length - 1; i++) {
+        const top = edges[i] + (i ? 30 : 0), bottom = edges[i + 1] - (i < cuts.length ? 30 : 0);
+        const inSeg = () => placed.filter(e => e.side === side && yOf(e.t) >= edges[i] && yOf(e.t) < edges[i + 1]);
+        for (const drop of ['sub', 'yellow']) {
+          let extra;
+          while (need(inSeg()) > bottom - top && (extra = inSeg().filter(e => e.kind === drop).pop())) placed = placed.filter(e => e !== extra);
+        }
+      }
+    }
+    const bands = cuts.map(y => ({ y0: y - 30, y1: y + 30 }));
     const clear = (y, h, down) => {
       for (const b of bands) if (y < b.y1 && y + h > b.y0) y = down ? b.y1 + 8 : b.y0 - 8 - h;
       return y;
@@ -503,7 +582,8 @@
         e.y = clear(y, e.h, true);
       });
       for (let i = list.length - 1; i >= 0; i--) {
-        const limit = i === list.length - 1 ? BOTTOM + 40 - list[i].h : list[i + 1].y - 10 - list[i].h;
+        // Lo último, por encima del rótulo de «Final» (centrado en BOTTOM + 40)
+        const limit = i === list.length - 1 ? BOTTOM + 10 - list[i].h : list[i + 1].y - 10 - list[i].h;
         if (list[i].y > limit) list[i].y = clear(limit, list[i].h, false);
       }
     }
@@ -520,7 +600,7 @@
       dur,
       accent: (d.home.won ? d.home : d.away).style.acc,
       music: { energy: 'full' },
-      cues: placed.map(e => (e.kind === 'goal' ? { t: e.appear, kind: 'slam' } : { t: e.appear, kind: 'hit', vel: 0.8 })),
+      cues: placed.filter(e => !e.tiny).map(e => (e.kind === 'goal' ? { t: e.appear, kind: 'slam' } : { t: e.appear, kind: 'hit', vel: 0.8 })),
       draw(ctx, t) {
         const P = sheet(d);
         sheetBg(ctx, d);
@@ -577,6 +657,10 @@
           const dir = e.side === 'home' ? -1 : 1;
           const ty = yOf(e.t), cy = e.y + e.h / 2;
           const ink = P.team(st);
+          if (e.tiny) {
+            smallEvent(ctx, e, p, P, ink, dir, ty, cy);
+            continue;
+          }
           ctx.strokeStyle = rgba(ink, 0.7);
           ctx.lineWidth = 3;
           ctx.beginPath(); ctx.moveTo(AX, ty); ctx.lineTo(AX + dir * 24, cy); ctx.lineTo(AX + dir * 40, cy); ctx.stroke();
@@ -1051,7 +1135,7 @@
       dur: 2 * BAR,
       accent: st.acc,
       music: { energy: 'outro' },
-      cues: [{ t: 0.2, kind: 'riser', dur: BAR - 0.2, vel: 0.6 }, { t: BAR, kind: 'stab' }, { t: BAR, kind: 'impact', vel: 0.8 }],
+      cues: [{ t: 0.2, kind: 'riser', dur: BAR - 0.2, vel: 0.6 }, ...(d.brand || !d.sign ? [] : [{ t: BAR, kind: 'stab' }, { t: BAR, kind: 'impact', vel: 0.8 }])],
       draw(ctx, t) {
         teamBg(ctx, st);
         if (A.closingPhoto) {
@@ -1077,23 +1161,81 @@
         ctx.globalAlpha = e1;
         text(ctx, d.t?.comments || 'TE LEO EN COMENTARIOS', M, after + 30, BARLOW(48), st.hl);
         ctx.restore();
-        if (!d.sign && !A.brandImg) return;
+        // Con logo, la firma y el logo van en la escena siguiente, la de tu marca
+        if (d.brand || !d.sign) return;
         const e2 = easeOut(prog(t, BAR, 0.45));
         ctx.save();
         ctx.globalAlpha = e2;
         ctx.translate((1 - e2) * -80, 0);
-        // Tu logo, grande, entre «Te leo en comentarios» y la firma (en el hueco que quede)
-        if (A.brandImg) {
-          const img = A.brandImg;
-          const top = after + 80, room = (d.sign ? 1110 : 1400) - top;
-          const k = Math.min(560 / img.naturalWidth, Math.min(170, room) / img.naturalHeight);
-          if (room >= 60) ctx.drawImage(img, M, top + (Math.min(170, room) - img.naturalHeight * k) / 2, img.naturalWidth * k, img.naturalHeight * k);
+        chip(ctx, d.t?.follow || 'Sígueme para más fútbol', M, 1170, st, 40);
+        text(ctx, d.sign, M, 1330, ANTON(fit(ctx, d.sign, ANTON, 130, W - 2 * M)), st.fg);
+        ctx.restore();
+      },
+    };
+  }
+
+  // 8 · Tu marca (un compás, sin guion, solo si has puesto logo): tu logo entra de golpe en el
+  // centro sobre un círculo verde lima que se abre, con un destello, un temblor y dos ondas, y
+  // debajo «Sígueme para más fútbol» y tu firma.
+  function sceneMarca(d, A) {
+    const HIT = 2 * STEP;
+    return {
+      id: 'marca',
+      dur: BAR,
+      accent: ACCENT,
+      noScript: true,
+      music: { energy: 'tail' },
+      cues: [{ t: HIT, kind: 'slam' }, { t: HIT, kind: 'impact', vel: 0.9 }],
+      draw(ctx, t) {
+        ctx.fillStyle = INK_BG;
+        ctx.fillRect(0, 0, W, H);
+        ctx.drawImage(lightLayer(W, H, true, false), 0, 0);
+        const cx = W / 2, cy = 820, R = 290;
+        const img = A.brandImg;
+        const round = img && Math.abs(img.naturalWidth / img.naturalHeight - 1) < 0.25;
+        ctx.save();
+        // El golpe: un temblor corto
+        const shake = t >= HIT ? 16 * (1 - prog(t, HIT, 0.18)) : 0;
+        if (shake > 0) ctx.translate(Math.sin(t * 90) * shake, Math.cos(t * 70) * shake);
+        // El círculo lima que se abre hasta el golpe y se queda detrás del logo (con un logo
+        // alargado, solo las ondas)
+        if (round) {
+          const r = (R + 34) * easeOut(prog(t, 0, HIT));
+          if (r > 0) {
+            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.fillStyle = ACCENT; ctx.fill();
+          }
         }
-        if (d.sign) {
-          chip(ctx, d.t?.follow || 'Sígueme para más fútbol', M, 1170, st, 40);
-          text(ctx, d.sign, M, 1330, ANTON(fit(ctx, d.sign, ANTON, 130, W - 2 * M)), st.fg);
+        // Dos ondas que salen del logo
+        [0, 0.14].forEach((delay) => {
+          const q = prog(t, HIT + delay, 0.75);
+          if (q <= 0 || q >= 1) return;
+          ctx.beginPath(); ctx.arc(cx, cy, R + 34 + q * 460, 0, Math.PI * 2);
+          ctx.lineWidth = 12 * (1 - q) + 2;
+          ctx.strokeStyle = rgba(ACCENT, 0.85 * (1 - q));
+          ctx.stroke();
+        });
+        // El logo, que entra con rebote
+        if (img && t >= HIT) {
+          const k = easeBack(prog(t, HIT, 0.35));
+          logo(ctx, img, cx, cy, 2 * R * (round ? 1 : 1.5) * k);
         }
         ctx.restore();
+        // El destello del golpe
+        if (t >= HIT) {
+          ctx.fillStyle = `rgba(255,255,255,${0.32 * (1 - prog(t, HIT, 0.2))})`;
+          ctx.fillRect(0, 0, W, H);
+        }
+        // Debajo, «Sígueme para más fútbol» y tu firma
+        const e = easeOut(prog(t, HIT + 0.25, 0.35));
+        if (e > 0) {
+          ctx.save();
+          ctx.globalAlpha = e;
+          ctx.translate(0, (1 - e) * 40);
+          text(ctx, up(d.t?.follow || 'Sígueme para más fútbol'), cx, cy + R + 150, BARLOW(46), ACCENT, 'center');
+          if (d.sign) text(ctx, d.sign, cx, cy + R + 290, ANTON(fit(ctx, d.sign, ANTON, 120, W - 2 * M)), '#ffffff', 'center');
+          ctx.restore();
+        }
       },
     };
   }
@@ -1175,6 +1317,7 @@
       d.stats?.length >= 3 && sceneStats(d, A),
       d.table?.rows.length && sceneTable(d, A),
       sceneOutro(d, A),
+      d.brand && sceneMarca(d, A),
     ].filter(Boolean);
   }
   // Lo que dura la apertura (para colocar la voz si se grabó con ella o sin ella).
@@ -1361,7 +1504,7 @@
           scenes[i].draw(ctx, t);
         }
         ctx.restore();
-        if (brandImg && !['intro', 'outro'].includes(scenes[i].id)) drawBrand(ctx, brandImg);
+        if (brandImg && !['intro', 'outro', 'marca'].includes(scenes[i].id)) drawBrand(ctx, brandImg);
         if (grainImg) {
           if (!patterns.has(ctx)) patterns.set(ctx, ctx.createPattern(grainImg, 'repeat'));
           ctx.fillStyle = patterns.get(ctx);

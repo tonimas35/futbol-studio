@@ -1,7 +1,7 @@
 # Netlify, para usar el Studio en el móvil (con HTTPS). Publica solo lo que usa la página: ni
 # las pruebas ni el README. Sin dependencias: el «build» es copiar los archivos.
 [build]
-  command = "rm -rf _site && mkdir _site && cp index.html futbol.js futbol.css video.js audio.js favicon.svg manifest.webmanifest apple-touch-icon.png icon-192.png icon-512.png _site/"
+  command = "rm -rf _site && mkdir _site && cp index.html futbol.js futbol.css video.js audio.js favicon.svg manifest.webmanifest apple-touch-icon.png icon-192.png icon-512.png jornada90-logo.png _site/"
   publish = "_site"
 
 # La función que habla con API-Football con tu clave (APIFOOTBALL_KEY, en las variables de

@@ -340,7 +340,7 @@ try {
     return { name: document.getElementById('videoDlBtn').download, duration: v.duration, meta: document.getElementById('videoMeta').textContent, toast: document.getElementById('toast').textContent };
   });
   check(/^futbol-roma-rma-2026-10-14-short\.(mp4|webm)$/.test(video.name || ''), `vídeo: ${video.name} (${video.toast})`);
-  check(video.duration > 37.8 && video.duration < 39, `dura unos 38,4 s: apertura, 7 escenas y el cierre (${video.duration?.toFixed(1)} s)`);
+  check(video.duration > 39.4 && video.duration < 40.6, `dura unos 40 s: apertura, 7 escenas, el cierre y la de tu logo (${video.duration?.toFixed(1)} s)`);
   check(video.meta === 'Lleva tu voz, música, subtítulos y la apertura con los escudos.', `lleva todo (${video.meta})`);
   await page.reload();
   await page.waitForSelector('#slide-portada');
@@ -655,6 +655,10 @@ try {
   // ── Tu logo: junto a la firma en cada slide, grande en el cierre y se recuerda ──
   {
     const { ctx: c7, page: p7 } = await open();
+    // Sin nada guardado, la firma y el logo de Jornada90
+    await p7.waitForSelector('#brandPreview:not([hidden])', { timeout: 10000 }).catch(() => {});
+    const def = await p7.evaluate(() => ({ sign: document.getElementById('signInput').value, logo: !document.getElementById('brandPreview').hidden && document.getElementById('brandPreview').src.startsWith('data:image/png') }));
+    check(def.sign === '@jornada90fc' && def.logo, `por defecto, la firma y el logo de Jornada90 (${def.sign} · logo: ${def.logo})`);
     await p7.setInputFiles('#brandInput', { name: 'logo.png', mimeType: 'image/png', buffer: PIXEL });
     await p7.waitForSelector('#brandPreview:not([hidden])', { timeout: 10000 }).catch(() => {});
     await pickDate(p7, '2026-09-20');
@@ -673,6 +677,10 @@ try {
     await p7.click('#brandDel');
     const b3 = await brand();
     check(b3.foot === 0 && !b3.big && b3.btn === 'Subir logo', '«Quitar» lo quita de las slides');
+    await p7.reload();
+    await p7.waitForSelector('#slide-portada', { timeout: 10000 }).catch(() => {});
+    await p7.waitForTimeout(800);
+    check((await brand()).foot === 0, 'y se recuerda: al volver no sale el de Jornada90');
     await c7.close();
   }
 
