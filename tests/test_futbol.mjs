@@ -587,7 +587,8 @@ try {
     await pickDate(pa, '2026-10-14');
     await generate(pa, '401915414');
     const an = await slideNames(pa);
-    check(an.indexOf('Las notas') === an.indexOf('Jugador del partido') + 1, `API-Football: «Las notas» tras el jugador del partido (${an.join(', ')})`);
+    check(an.indexOf('Las notas') === an.indexOf('Jugador del partido') + 1 && an.indexOf('Líderes del partido') === an.indexOf('Las notas') + 1,
+      `API-Football: «Las notas» y «Líderes del partido» tras el jugador del partido (${an.join(', ')})`);
     const notas = await pa.evaluate(() => ({
       rows: [...document.querySelectorAll('#slide-notas .col')].map((c) => c.querySelectorAll('.row').length),
       first: [...document.querySelectorAll('#slide-notas .col')].map((c) => `${c.querySelector('.row .nm')?.textContent} ${c.querySelector('.row .rt')?.textContent}`),
@@ -601,6 +602,13 @@ try {
       stat: document.querySelector('#slide-jugador .st')?.textContent.replace(/\s+/g, ' ').trim(),
     }));
     check(top.name === 'Donyell Malen' && top.stat === '8,9 Nota', `el jugador del partido, el de la nota más alta (${top.name} · ${top.stat})`);
+    const lid = await pa.evaluate(() => ({
+      rows: [...document.querySelectorAll('#slide-lideres .row')].map((r) => `${r.querySelector('.lb').textContent} ${r.querySelector('.nm').textContent.trim()} ${r.querySelector('.v').textContent}`),
+      onces: [...document.querySelectorAll('#slide-onces .dot.has-face .face')].filter((i) => i.src.startsWith('https://media.api-sports.io/')).length,
+    }));
+    check(lid.rows.length === 8 && lid.rows[0] === 'Más pases Bellingham 78' && lid.rows.includes('Paradas Gollini 5'),
+      `«Líderes del partido»: el mejor en cada cosa (${lid.rows.slice(0, 3).join(' · ')}…)`);
+    check(lid.onces === 22, `y en «Los onces», la cara de los 22 titulares (${lid.onces})`);
     check(asked.join(',') === 'fixtures,fixtures/players', `con 2 peticiones (${asked.join(', ')})`);
     // Si API-Football no deja (el plan, el límite del día…), lo dice y el carrusel sale igual
     await ca.route('**/.netlify/functions/apifootball**', (r) => r.fulfill(json('{"errors":{"plan":"Free plans do not have access to this season, try from 2021 to 2023."},"response":[]}')));

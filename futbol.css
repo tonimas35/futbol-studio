@@ -1092,6 +1092,11 @@ body.zoom-open { overflow: hidden; }
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
 }
 .fc-onces .pl.gk .dot { background: var(--t-acc); color: var(--t-on); }
+/* Con la cara (API-Football): la foto en el círculo y el dorsal en una bolita */
+.fc-onces .pl .dot .face { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #dcd8cd; }
+.fc-onces .pl .dot .num { display: none; }
+.fc-onces .pl .dot.has-face .num { position: absolute; right: -12px; bottom: -6px; display: grid; place-items: center; width: 34px; height: 34px; border: 2px solid #fff; border-radius: 50%; background: var(--t-bg); color: var(--t-fg); font-size: 18px; }
+.fc-onces .pl.gk .dot.has-face .num { background: var(--t-acc); color: var(--t-on); }
 .fc-onces .pl .nm {
   max-width: 170px;
   margin-top: 6px;
@@ -1171,6 +1176,21 @@ body.zoom-open { overflow: hidden; }
 .fc-tabla .row .pts { text-align: center; font-family: 'Anton', sans-serif; font-size: 44px; }
 .fc-tabla .row.head .c, .fc-tabla .row.head .pts { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 26px; }
 .fc-tabla .gap { height: 40px; text-align: center; color: #888; font-family: 'Anton', sans-serif; font-size: 34px; line-height: 40px; letter-spacing: 0.3em; }
+
+/* ─── LÍDERES DEL PARTIDO · el mejor en cada cosa, con su cara y el número en grande ─── */
+.fc-lideres .wm { position: absolute; right: -200px; top: 260px; width: 900px; height: 900px; opacity: 0.07; }
+.fc-lideres .title { position: absolute; left: 64px; top: 56px; color: #fff; font-family: 'Anton', sans-serif; font-size: 104px; line-height: 1.02; text-transform: uppercase; }
+.fc-lideres .rows { position: absolute; left: 64px; right: 64px; top: 320px; z-index: 5; }
+.fc-lideres .row { display: flex; align-items: center; gap: 22px; height: 108px; border-bottom: 2px solid rgba(255, 255, 255, 0.1); }
+.fc-lideres .face { position: relative; flex: none; display: grid; place-items: center; width: 86px; height: 86px; overflow: hidden; border: 3px solid var(--t-acc); border-radius: 50%; background: var(--t-bg); color: var(--t-fg); font-family: 'Anton', sans-serif; font-size: 34px; }
+.fc-lideres .face img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #dcd8cd; }
+.fc-lideres .who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.fc-lideres .lb { color: #c8f53c; font-weight: 800; font-size: 28px; letter-spacing: 0.06em; text-transform: uppercase; }
+.fc-lideres .nm { display: flex; align-items: center; gap: 12px; overflow: hidden; white-space: nowrap; color: #fff; font-family: 'Anton', sans-serif; font-size: 48px; line-height: 1.05; text-transform: uppercase; }
+.fc-lideres .nm .lg { flex: none; width: 40px; height: 40px; }
+.fc-lideres .v { flex: none; color: #fff; font-family: 'Anton', sans-serif; font-size: 92px; line-height: 1; }
+.fc-lideres .src { position: absolute; right: 64px; bottom: 96px; color: rgba(255, 255, 255, 0.45); font-weight: 700; font-size: 20px; letter-spacing: 0.04em; text-transform: uppercase; }
+.fc-lideres .fc-foot { color: #fff; }
 
 /* ─── LAS NOTAS · la nota de API-Football de cada jugador, con su cara, cada equipo en su columna ─── */
 .fc-notas .title { position: absolute; left: 64px; top: 56px; font-family: 'Anton', sans-serif; font-size: 112px; line-height: 1.06; text-transform: uppercase; }
