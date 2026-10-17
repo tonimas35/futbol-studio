@@ -115,7 +115,7 @@ La primera vez que sale un equipo, el Studio baja su historial (unos segundos; a
 El partido en 30 a 40 segundos, en 1080×1920 para TikTok, Reels y Shorts, con música, subtítulos y, si quieres, tu voz.
 
 - **Escenas:**
-  - **Apertura (1,6 s):** los dos escudos entran desde los lados y chocan en el centro. Se quita con «Apertura con los escudos».
+  - **Apertura (1,6 s):** el gancho, desde el primer fotograma: «EL DATO» con el dato a medias (como en la portada del carrusel) o, si no hay, «FINAL» y el titular. Empieza grande en el centro, así es también la portada del vídeo, y sube arriba cuando los dos escudos entran desde los lados y chocan en el centro. Se quita con «Apertura con los escudos».
   - **Marcador:** cada equipo en su mitad, con los goleadores y el titular de la portada en la cinta.
   - **El dato:** «EL DATO», el número grande que sube, lo que significa y la frase. Dura 3 compases, o 4 si la frase es larga.
   - **Minuto a minuto:** lo mismo que la slide. La línea del partido baja minuto a minuto y cada gol, roja o penalti fallado salta cuando llega a su minuto; las amarillas y los cambios, en pequeño (si en una parte no caben, fuera primero los cambios y luego las amarillas). Arriba, el marcador cambia con cada gol. Con más goles, la escena dura más.

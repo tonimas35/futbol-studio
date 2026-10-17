@@ -318,6 +318,25 @@
 
   // 0 · Apertura (un compás): los dos escudos entran desde los lados y chocan en el centro en
   // el primer pulso, con destello, onda y temblor; luego el «VS», la competición y la fecha.
+  // El gancho de los primeros segundos (y la portada del vídeo): la etiqueta («EL DATO»,
+  // «FINAL») y la frase en grande, desde el primer fotograma. Empieza en el centro, más grande,
+  // y sube arriba cuando chocan los escudos (up: 0 → 1). En dos líneas como mucho.
+  function drawHook(ctx, h, up_ = 1) {
+    let size = 124;
+    const lines = () => wrap(ctx, up(h.text), ANTON(size), (W - 2 * M) / 1.18); // que quepa también en grande
+    while (size > 72 && lines().length > 2) size -= 8;
+    const ls = lines().slice(0, 3);
+    const blockH = 80 + ls.length * size * 1.02;
+    const k = 1.18 - 0.18 * up_;
+    const top = (1 - up_) * (H * 0.44 - (blockH * k) / 2) + up_ * 140;
+    ctx.save();
+    ctx.translate(W / 2, top);
+    ctx.scale(k, k);
+    chip(ctx, h.tag, 0, 0, { acc: ACCENT, on: '#111111' }, 42, 'center');
+    ls.forEach((l, i) => text(ctx, l, 0, 80 + (i + 1) * size * 1.02 - size * 0.12, ANTON(size), '#ffffff', 'center'));
+    ctx.restore();
+  }
+
   function sceneIntro(d, A) {
     const HIT = BEAT, cy = 860, GAP = 250;
     return {
@@ -336,6 +355,7 @@
       draw(ctx, t) {
         ctx.fillStyle = INK_BG;
         ctx.fillRect(0, 0, W, H);
+        if (d.hook) drawHook(ctx, d.hook, easeInOut(prog(t, HIT - 0.12, 0.3)));
         const glow = easeOut(prog(t, HIT, 0.4));
         if (glow > 0) {
           const g = ctx.createRadialGradient(W / 2, cy, 0, W / 2, cy, 900);
@@ -382,8 +402,8 @@
         ctx.save();
         ctx.globalAlpha = info;
         ctx.translate(0, (1 - info) * 40);
-        chip(ctx, d.comp, W / 2, 470, { acc: ACCENT, on: '#111111' }, 44, 'center');
-        text(ctx, d.date, W / 2, 1260, BARLOW(44), 'rgba(255,255,255,.75)', 'center');
+        chip(ctx, d.comp, W / 2, d.hook ? 1330 : 470, { acc: ACCENT, on: '#111111' }, 44, 'center');
+        text(ctx, d.date, W / 2, d.hook ? 1470 : 1260, BARLOW(44), 'rgba(255,255,255,.75)', 'center');
         ctx.restore();
         ctx.restore();
         const flash = 1 - prog(t, HIT, 0.14);
