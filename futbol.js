@@ -1253,9 +1253,9 @@
 
   // ----------------------------------------------------------
   // API-FOOTBALL · la nota y la cara de cada jugador. Se piden desde este navegador con tu clave,
-  // que se guarda solo aquí (en «Tu clave de API-Football»): no va en la página ni pasa por
-  // Netlify, porque API-Football suspende las cuentas que llaman desde IPs compartidas (las
-  // funciones de Netlify son AWS Lambda). Sin clave, todo sigue igual, sin notas.
+  // que se guarda solo aquí (en «Tu clave de API-Football»): no va en la página ni pasa por un
+  // servidor, porque API-Football suspende las cuentas que llaman desde IPs compartidas (AWS
+  // Lambda, GitHub Actions…). Sin clave, todo sigue igual, sin notas.
   // ----------------------------------------------------------
   const AF_API = 'https://v3.football.api-sports.io';
   const AF_KEY = 'fc-af-key';
