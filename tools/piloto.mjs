@@ -1,19 +1,21 @@
 // PILOTO AUTOMÁTICO · lo lanza GitHub Actions (.github/workflows/piloto.yml) cada 10 minutos en
 // las horas de partidos. Cuando acaba un partido de tus competiciones (piloto.json), hace el vídeo
 // con el mismo Studio, lo deja en la web y te avisa al móvil con ntfy: tocas el aviso y lo
-// compartes a TikTok.
+// compartes a TikTok. También la previa de los partidos grandes y, al acabar la jornada de tu
+// liga, su resumen en fotos.
 //
 //   node tools/piloto.mjs buscar         los partidos acabados hace poco que aún no tienen vídeo
 //   node tools/piloto.mjs esperar        si alguno va por el final, vigila ESPN hasta su pitido final
-//   node tools/piloto.mjs video          hace sus vídeos y los sube a la release «videos»
+//   node tools/piloto.mjs video          hace sus vídeos (y el resumen de la jornada) y los sube a la release «videos»
 //   node tools/piloto.mjs web <carpeta>  baja a la web los vídeos de los últimos días
 //   node tools/piloto.mjs avisar         manda el aviso de cada vídeo nuevo
 //
 // Los vídeos y su descripción se guardan como archivos de la release «videos» del repositorio
-// (<id>.mp4 y <id>.json), que es también la lista de lo que ya está hecho. Sin API-Football: desde
+// (<id>.mp4 y <id>.json; las fotos de la jornada, jornada-…-01-portada.png…), que es también la
+// lista de lo que ya está hecho. Sin API-Football: desde
 // los servidores de GitHub (IPs compartidas) suspendería la cuenta.
 import { execFileSync } from 'node:child_process';
-import { appendFileSync, createReadStream, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { appendFileSync, createReadStream, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { extname, join, normalize, resolve } from 'node:path';
@@ -112,15 +114,49 @@ export function findNearEnd(boards, now, done, local = null) {
   return pick(boards, done, local, e => e.status?.type?.state === 'in' && now - Date.parse(e.date) > NEAR_END && now - Date.parse(e.date) < RECENT);
 }
 
-// Lo que ya tiene vídeo: los <id>.mp4 de la release.
+// La jornada de tu liga que acaba de terminar: la del último partido acabado hace poco, con los
+// partidos de los días de alrededor (hasta 4 antes y 4 después) mientras ningún equipo repita, como
+// la cuenta el Studio. Solo si ya no le queda ninguno por jugar (los aplazados no cuentan), tiene
+// al menos 5 partidos (no un aplazado jugado entre semana) y aún no tiene sus fotos.
+const OFF = /POSTPONED|CANCELED|CANCELLED|ABANDONED|SUSPENDED|FORFEIT/;
+export function findJornada(boards, now, done, league = CONFIG.liga) {
+  const days = boards.filter(b => b.league === league).sort((a, b) => a.day.localeCompare(b.day));
+  const games = (b) => (b.data?.events || []).filter(e => !OFF.test(e.status?.type?.name || ''));
+  const teams = (e) => (e.competitions?.[0]?.competitors || []).map(c => String(c.team?.id));
+  const last = days.flatMap(b => games(b).filter(e => e.status?.type?.state === 'post' && now - Date.parse(e.date) < RECENT).map(e => ({ b, e })))
+    .sort((x, y) => Date.parse(y.e.date) - Date.parse(x.e.date))[0];
+  if (!last) return [];
+  const at = days.indexOf(last.b);
+  const list = [...games(last.b)];
+  const seen = new Set(list.flatMap(teams));
+  for (const dir of [-1, 1]) {
+    for (let i = at + dir; i >= 0 && i < days.length && Math.abs(i - at) <= 4; i += dir) {
+      const gs = games(days[i]);
+      if (gs.some(e => teams(e).some(id => seen.has(id)))) break;
+      gs.forEach(e => { list.push(e); teams(e).forEach(id => seen.add(id)); });
+    }
+  }
+  if (list.length < 5 || list.some(e => e.status?.type?.state !== 'post')) return [];
+  const from = list.map(e => madridIso(Date.parse(e.date))).sort()[0];
+  const id = `jornada-${league.replace(/\./g, '-')}-${from}`;
+  return done.has(id) ? [] : [{ kind: 'jornada', league, id, day: last.b.day, title: `Jornada de ${league} (${list.length} partidos)` }];
+}
+
+// Lo que ya está hecho: los <id>.mp4 de la release (y el <id>.json de cada jornada). Si GitHub no
+// contesta, error: sin la lista, el robot repetiría cada 10 minutos los vídeos y los avisos.
 async function releaseAssets() {
   const headers = process.env.GH_TOKEN ? { authorization: `Bearer ${process.env.GH_TOKEN}` } : {};
-  const rel = await getJson(`https://api.github.com/repos/${repo()}/releases/tags/${RELEASE}`, headers);
-  if (!rel) return [];
+  const get = async (url) => {
+    const res = await fetch(url, { headers, signal: AbortSignal.timeout(15000) }).catch(() => null);
+    if (res?.status === 404) return null;
+    if (!res?.ok) throw new Error(`GitHub no deja leer la release «${RELEASE}» (${res?.status || 'sin respuesta'}): sin ella no se sabe qué está hecho`);
+    return res.json();
+  };
+  const rel = await get(`https://api.github.com/repos/${repo()}/releases/tags/${RELEASE}`);
+  if (!rel) return []; // aún no hay release: no hay nada hecho
   const all = [];
   for (let page = 1; ; page++) {
-    const list = await getJson(`https://api.github.com/repos/${repo()}/releases/${rel.id}/assets?per_page=100&page=${page}`, headers);
-    if (!list?.length) break;
+    const list = await get(`https://api.github.com/repos/${repo()}/releases/${rel.id}/assets?per_page=100&page=${page}`) || [];
     all.push(...list);
     if (list.length < 100) break;
   }
@@ -129,41 +165,61 @@ async function releaseAssets() {
 
 async function buscar() {
   // A mano (workflow_dispatch): un partido concreto, aunque ya tenga vídeo.
-  // Con «previa:» delante, su previa.
+  // Con «previa:» delante, su previa; con «jornada:liga», el resumen de la jornada de ese día.
   const forced = (process.env.PARTIDO || '').trim();
+  const day = /^\d{4}-\d{2}-\d{2}$/.test(process.env.DIA || '') ? process.env.DIA : madridIso(Date.now());
+  if (/^jornada:/i.test(forced)) {
+    const league = forced.replace(/^jornada:/i, '');
+    if (!/^[a-z]+\.[\w.]+$/.test(league)) throw new Error(`Liga no válida: ${forced} (p. ej. jornada:esp.1)`);
+    output('partidos', JSON.stringify([{ kind: 'jornada', league, id: `jornada-${league.replace(/\./g, '-')}`, day, title: `Jornada de ${league}` }]));
+    return;
+  }
   if (forced) {
     const previa = /^previa:/i.test(forced);
     const [league, id] = forced.replace(/^previa:/i, '').split('/');
-    if (!league || !/^\d+$/.test(id || '')) throw new Error(`Partido no válido: ${forced} (tiene que ser liga/id, p. ej. esp.1/401882846, o previa:esp.1/401882846)`);
-    const day = /^\d{4}-\d{2}-\d{2}$/.test(process.env.DIA || '') ? process.env.DIA : madridIso(Date.now());
+    if (!league || !/^\d+$/.test(id || '')) throw new Error(`Partido no válido: ${forced} (tiene que ser liga/id, p. ej. esp.1/401882846, previa:esp.1/401882846 o jornada:esp.1)`);
     output('partidos', JSON.stringify([{ kind: previa ? 'previa' : 'final', league, id, day, title: `${league}/${id}` }]));
     return;
   }
-  const { found, near, previas } = await scan();
+  const { found, near, previas, jornadas } = await scan();
   console.log(found.length ? `Acabados: ${found.map(f => f.title).join(' · ')}`
     : near.length ? `Por el final: ${near.map(f => f.title).join(' · ')}` : 'Ningún partido acabado sin vídeo');
   if (previas.length) console.log(`Previas: ${previas.map(f => f.title).join(' · ')}`);
-  output('partidos', JSON.stringify([...found, ...previas]));
-  output('cerca', String(!found.length && !previas.length && near.length > 0));
+  if (jornadas.length) console.log(`Jornada acabada: ${jornadas.map(f => f.title).join(' · ')}`);
+  output('partidos', JSON.stringify([...found, ...previas, ...jornadas]));
+  output('cerca', String(!found.length && !previas.length && !jornadas.length && near.length > 0));
 }
 
 // Los marcadores de hoy (y, de madrugada, de ayer): los acabados sin vídeo y los que van por el final.
 async function scan(ctx = {}) {
   const now = Date.now();
   const days = [...new Set([madridIso(now), madridIso(now - 6 * 3600e3)])];
-  ctx.done ??= new Set((await releaseAssets()).map(a => a.name.match(/^(\d+(?:-previa)?)\.mp4$/)?.[1]).filter(Boolean));
+  ctx.done ??= new Set((await releaseAssets()).map(a => (a.name.match(/^(\d+(?:-previa)?)\.mp4$/) || a.name.match(/^(jornada-[\w-]+)\.json$/))?.[1]).filter(Boolean));
   if (!ctx.local) {
     const teams = await getJson(`${ESPN}/${CONFIG.liga}/teams`);
     const ids = (teams?.sports?.[0]?.leagues?.[0]?.teams || []).map(t => String(t.team?.id));
     ctx.local = ids.length ? new Set(ids) : null;
   }
-  const boards = await Promise.all(CONFIG.competiciones.flatMap(league => days.map(async day => ({
-    league, day, data: await getJson(`${ESPN}/${league}/scoreboard?dates=${day.replaceAll('-', '')}`),
-  }))));
+  const board = async (league, day) => ({ league, day, data: await getJson(`${ESPN}/${league}/scoreboard?dates=${day.replaceAll('-', '')}`) });
+  const boards = await Promise.all(CONFIG.competiciones.flatMap(league => days.map(day => board(league, day))));
+  // Si en tu liga ya no queda nada por jugar y alguno acabó hace poco, los días de alrededor, para
+  // ver si era el último de la jornada (guardados mientras se espera).
+  let jornadas = [];
+  const mine = boards.filter(b => b.league === CONFIG.liga);
+  const evs = mine.flatMap(b => b.data?.events || []).filter(e => !OFF.test(e.status?.type?.name || ''));
+  if (evs.some(e => e.status?.type?.state === 'post' && now - Date.parse(e.date) < RECENT) && evs.every(e => e.status?.type?.state === 'post')) {
+    const anchor = mine.find(b => (b.data?.events || []).some(e => e.status?.type?.state === 'post'))?.day || days[0];
+    ctx.around ??= {};
+    const around = await Promise.all([-4, -3, -2, -1, 1, 2, 3, 4].map(k => madridIso(Date.parse(`${anchor}T12:00Z`) + k * 86400e3))
+      .filter(day => !days.includes(day))
+      .map(async day => (ctx.around[day] ??= await board(CONFIG.liga, day))));
+    jornadas = findJornada([...mine, ...around], now, ctx.done);
+  }
   return {
     found: findFinished(boards, now, ctx.done, ctx.local),
     near: findNearEnd(boards, now, ctx.done, ctx.local),
     previas: findPrevias(boards, now, ctx.done, ctx.local),
+    jornadas,
   };
 }
 
@@ -174,10 +230,11 @@ async function esperar() {
   const until = Date.now() + 50 * 60e3;
   while (Date.now() < until) {
     await new Promise(ok => setTimeout(ok, 30e3));
-    const { found, near } = await scan(ctx);
+    const { found, near, jornadas } = await scan(ctx);
     if (found.length) {
       console.log(`Pitido final: ${found.map(f => f.title).join(' · ')}`);
-      return output('partidos', JSON.stringify(found));
+      if (jornadas.length) console.log(`Y se acaba la jornada: ${jornadas.map(f => f.title).join(' · ')}`);
+      return output('partidos', JSON.stringify([...found, ...jornadas]));
     }
     if (!near.length) break;
   }
@@ -204,21 +261,28 @@ export function serve() {
 // El vídeo de un partido, como lo haría Toni: el enlace del pitido final (?partido=) genera el
 // carrusel y el vídeo con lo que tenga el Studio por defecto (sin música, la firma y el logo de
 // Jornada90). Luego, a H.264 para el iPhone y TikTok.
-export async function makeVideo(browser, base, p, dir) {
+// El Studio en una pestaña nueva, en español y con la hora de Madrid.
+async function studio(browser) {
   // Como un Chrome normal: ESPN contesta 403 (y sin CORS) al «HeadlessChrome» del modo sin ventana
   const userAgent = `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${browser.version()} Safari/537.36`;
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: 'es-ES', timezoneId: 'Europe/Madrid', acceptDownloads: true, userAgent });
+  const page = await ctx.newPage();
+  page.on('dialog', d => d.accept());
+  // Lo que falle dentro, en el registro de GitHub Actions
+  page.on('pageerror', e => console.warn(`  error en la página: ${e.message}`));
+  page.on('console', m => { if (/error|warn/.test(m.type())) console.warn(`  consola: ${m.text()}`); });
+  page.on('requestfailed', r => { if (!r.url().startsWith('blob:')) console.warn(`  sin respuesta: ${r.url()} (${r.failure()?.errorText})`); });
+  page.on('response', r => { if (r.status() >= 400) console.warn(`  ${r.status()}: ${r.url()}`); });
+  return { ctx, page };
+}
+
+export async function makeVideo(browser, base, p, dir) {
+  const { ctx, page } = await studio(browser);
   try {
-    const page = await ctx.newPage();
-    page.on('dialog', d => d.accept());
-    // Lo que falle dentro, en el registro de GitHub Actions
-    page.on('pageerror', e => console.warn(`  error en la página: ${e.message}`));
-    page.on('console', m => { if (/error|warn/.test(m.type())) console.warn(`  consola: ${m.text()}`); });
-    page.on('requestfailed', r => { if (!r.url().startsWith('blob:')) console.warn(`  sin respuesta: ${r.url()} (${r.failure()?.errorText})`); });
-    page.on('response', r => { if (r.status() >= 400) console.warn(`  ${r.status()}: ${r.url()}`); });
     const previa = p.kind === 'previa';
     const file = previa ? `${p.id}-previa` : p.id;
-    await page.goto(`${base}/?${previa ? 'previa' : 'partido'}=${p.league}/${p.id}&dia=${p.day}`);
+    // Sin esperar a todas las imágenes: lo que importa es el vídeo, y el Studio espera a sus letras
+    await page.goto(`${base}/?${previa ? 'previa' : 'partido'}=${p.league}/${p.id}&dia=${p.day}`, { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => !document.getElementById('videoOut').hidden
       || /No se pudo|no da ese partido/.test(document.getElementById('toast').textContent), null, { timeout: 20 * 60e3 });
     if (await page.$eval('#videoOut', el => el.hidden)) throw new Error(await page.textContent('#toast'));
@@ -235,7 +299,41 @@ export async function makeVideo(browser, base, p, dir) {
     writeFileSync(join(dir, `${file}.json`), JSON.stringify({
       id: file, league: p.league, day: p.day, title, caption, file: dl.suggestedFilename(), made: new Date().toISOString(),
     }, null, 2));
-    return { id: file, kind: p.kind || 'final', title, caption };
+    return { id: file, kind: p.kind || 'final', title, caption, files: [`${file}.mp4`, `${file}.json`] };
+  } finally {
+    await ctx.close();
+  }
+}
+
+// El resumen de la jornada, como lo haría Toni: el enlace ?jornada= hace el carrusel y se baja en
+// 9:16 para TikTok (el ZIP con las fotos y la descripción). Las fotos quedan como
+// jornada-esp-1-2026-10-16-01-portada.png…, y su lista en jornada-esp-1-2026-10-16.json.
+export async function makeJornada(browser, base, p, dir) {
+  const { ctx, page } = await studio(browser);
+  try {
+    await page.goto(`${base}/?jornada=${p.league}&dia=${p.day}`, { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => !document.getElementById('jornadaSection').hidden
+      || /No se pudo|No hay partidos/.test(document.getElementById('toast').textContent), null, { timeout: 5 * 60e3 });
+    if (await page.$eval('#jornadaSection', el => el.hidden)) throw new Error(await page.textContent('#toast'));
+    // «LaLiga · 16-19 oct 2026 · 10 partidos»
+    const [comp, dates] = (await page.textContent('#jornadaInfo')).split(' · ');
+    const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 10 * 60e3 }), page.click('#jornadaZipVBtn')]);
+    const id = dl.suggestedFilename().replace(/^futbol-/, '').replace(/(-9x16)?\.zip$/, '');
+    const zip = join(dir, `${id}.zip`), out = join(dir, `${id}-zip`);
+    await dl.saveAs(zip);
+    mkdirSync(out, { recursive: true });
+    execFileSync('unzip', ['-q', '-o', zip, '-d', out]);
+    const pngs = readdirSync(out).filter(n => n.endsWith('.png')).sort();
+    if (!pngs.length) throw new Error('el ZIP de la jornada no trae fotos');
+    const images = pngs.map(n => n.replace(/^futbol-/, ''));
+    pngs.forEach((n, i) => renameSync(join(out, n), join(dir, images[i])));
+    const caption = readFileSync(join(out, 'caption.txt'), 'utf8');
+    const title = `Así fue la jornada · ${comp}${dates ? ` · ${dates}` : ''}`;
+    writeFileSync(join(dir, `${id}.json`), JSON.stringify({
+      id, kind: 'jornada', league: p.league, day: p.day, title, caption, images, made: new Date().toISOString(),
+    }, null, 2));
+    // El .json al final: es lo que dice que ya está hecha
+    return { id, kind: 'jornada', title, caption, files: [...images, `${id}.json`] };
   } finally {
     await ctx.close();
   }
@@ -258,10 +356,10 @@ async function video() {
   }
   const made = [];
   for (const p of list) {
-    console.log(`Vídeo: ${p.title} (${p.league}/${p.id})`);
+    console.log(`${p.kind === 'jornada' ? 'Jornada' : 'Vídeo'}: ${p.title} (${p.league}/${p.id})`);
     try {
-      const v = await makeVideo(browser, base, p, dir);
-      gh('release', 'upload', RELEASE, join(dir, `${v.id}.mp4`), join(dir, `${v.id}.json`), '--clobber');
+      const { files, ...v } = await (p.kind === 'jornada' ? makeJornada : makeVideo)(browser, base, p, dir);
+      gh('release', 'upload', RELEASE, ...files.map(f => join(dir, f)), '--clobber');
       made.push(v);
       console.log(`  hecho: ${v.title}`);
     } catch (e) {
@@ -270,9 +368,9 @@ async function video() {
   }
   await browser.close();
   server.close();
-  // Los de hace más de 7 días, fuera
+  // Los de hace más de 7 días, fuera (si GitHub no contesta, la próxima vez)
   const old = Date.now() - 7 * 86400e3;
-  for (const a of await releaseAssets()) {
+  for (const a of await releaseAssets().catch(() => [])) {
     if (Date.parse(a.created_at) < old) gh('release', 'delete-asset', RELEASE, a.name, '--yes');
   }
   output('hechos', JSON.stringify(made));
@@ -288,13 +386,17 @@ async function web(dir) {
   console.log(`En la web: ${names.length} archivos de vídeos`);
 }
 
-// El aviso al móvil: el resultado y, al tocarlo, el vídeo listo para compartir. Si la web no se ha
-// podido publicar (GitHub Pages sin activar), el vídeo tal cual, desde la release.
+// El aviso al móvil: el resultado y, al tocarlo, el vídeo (o las fotos de la jornada) listo para
+// compartir. Si la web no se ha podido publicar (GitHub Pages sin activar), el vídeo tal cual,
+// desde la release (o la release entera, con las fotos).
 export function notice(v, topic, web, webOk = true) {
-  const url = webOk ? `${web}?video=${v.id}` : `https://github.com/${repo()}/releases/download/${RELEASE}/${v.id}.mp4`;
+  const photos = v.kind === 'jornada';
+  const url = webOk ? `${web}?video=${v.id}`
+    : `https://github.com/${repo()}/releases/${photos ? `tag/${RELEASE}` : `download/${RELEASE}/${v.id}.mp4`}`;
   return {
-    topic, title: `${v.kind === 'previa' ? '🔥' : '⚽'} ${v.title}`, message: v.caption || 'Tu vídeo está listo', click: url, tags: ['movie_camera'], priority: 4,
-    actions: [{ action: 'view', label: 'Abrir el vídeo', url }],
+    topic, title: `${{ previa: '🔥', jornada: '📊' }[v.kind] || '⚽'} ${v.title}`, message: v.caption || (photos ? 'Tus fotos están listas' : 'Tu vídeo está listo'),
+    click: url, tags: [photos ? 'frame_with_picture' : 'movie_camera'], priority: 4,
+    actions: [{ action: 'view', label: photos ? 'Abrir las fotos' : 'Abrir el vídeo', url }],
   };
 }
 

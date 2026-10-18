@@ -24,7 +24,7 @@
     rel="stylesheet"
   />
 
-  <link rel="stylesheet" href="futbol.css?v=18" />
+  <link rel="stylesheet" href="futbol.css?v=19" />
 </head>
 
 <body>
@@ -36,6 +36,7 @@
       <p class="robot-eyebrow">Piloto automático</p>
       <h2 class="robot-title" id="robotTitle">Cargando el vídeo…</h2>
       <video class="robot-video" id="robotVideo" playsinline muted loop controls hidden></video>
+      <div class="robot-photos" id="robotPhotos" hidden></div>
       <div class="robot-actions">
         <button class="btn btn-primary" id="robotShare" type="button" hidden>Compartir vídeo</button>
         <a class="btn btn-ghost" id="robotDl" hidden>Descargar</a>
@@ -46,7 +47,7 @@
           <button class="btn btn-ghost" id="robotCopy" type="button">Copiar</button>
         </div>
         <textarea id="robotCaption" rows="5" spellcheck="false" aria-label="Descripción para TikTok"></textarea>
-        <small>Se copia sola al compartir: en TikTok, mantén pulsado el texto y pega. Elige de portada el primer fotograma, que ya lleva el resultado.</small>
+        <small id="robotHint">Se copia sola al compartir: en TikTok, mantén pulsado el texto y pega. Elige de portada el primer fotograma, que ya lleva el resultado.</small>
       </div>
       <button class="robot-close" id="robotClose" type="button">Cerrar y abrir el Studio</button>
     </div>
@@ -331,6 +332,6 @@
 
   <script src="audio.js?v=3"></script>
   <script src="video.js?v=17"></script>
-  <script src="futbol.js?v=29"></script>
+  <script src="futbol.js?v=30"></script>
 </body>
 </html>

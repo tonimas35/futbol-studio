@@ -650,6 +650,32 @@ try {
     check(prev(t0 - 2.5 * 3600e3)[0].kind === 'previa' && prev(t0 - 2.5 * 3600e3)[0].title === 'L86 – V243'
       && pl.notice({ id: '1-previa', kind: 'previa', title: 'Previa · Real Madrid – Sevilla', caption: 'x' }, 't', 'https://w/').title === '🔥 Previa · Real Madrid – Sevilla',
       'con su aviso («🔥 Previa · …»)');
+    // El resumen de la jornada de LaLiga, al acabar su último partido: la jornada son los días de
+    // alrededor mientras ningún equipo repita (del viernes 16 al lunes 19, 10 partidos)
+    const ev = (id, home, away, iso, state = 'post', name = 'STATUS_FULL_TIME') => ({ id, date: iso, status: { type: { state, name, completed: state === 'post' } },
+      competitions: [{ competitors: [{ homeAway: 'home', team: { id: home } }, { homeAway: 'away', team: { id: away } }] }] });
+    const jb = (mon = 'post') => [
+      { day: '2026-10-15', evs: [ev('90', '1', '50', '2026-10-15T19:00Z')] },
+      { day: '2026-10-16', evs: [ev('1', '1', '2', '2026-10-16T19:00Z')] },
+      { day: '2026-10-17', evs: [ev('2', '3', '4', '2026-10-17T12:00Z'), ev('3', '5', '6', '2026-10-17T14:15Z'), ev('4', '7', '8', '2026-10-17T16:30Z'), ev('5', '9', '10', '2026-10-17T19:00Z')] },
+      { day: '2026-10-18', evs: [ev('6', '11', '12', '2026-10-18T12:00Z'), ev('7', '13', '14', '2026-10-18T14:15Z'), ev('8', '15', '16', '2026-10-18T16:30Z'), ev('9', '17', '18', '2026-10-18T19:00Z')] },
+      { day: '2026-10-19', evs: [ev('10', '19', '20', '2026-10-19T19:00Z', mon), ev('11', '21', '22', '2026-10-19T17:00Z', 'post', 'STATUS_POSTPONED')] },
+      { day: '2026-10-21', evs: [ev('12', '1', '3', '2026-10-21T19:00Z', 'pre')] },
+    ].map((d) => ({ league: 'esp.1', day: d.day, data: { events: d.evs } }));
+    const mondayEnd = Date.parse('2026-10-19T21:05Z');
+    const jor = pl.findJornada(jb(), mondayEnd, new Set(), 'esp.1');
+    check(jor.length === 1 && jor[0].kind === 'jornada' && jor[0].id === 'jornada-esp-1-2026-10-16' && jor[0].day === '2026-10-19' && jor[0].league === 'esp.1',
+      `al acabar el último partido de la jornada, su resumen (${jor.map((j) => `${j.id} · ${j.day}`).join()})`);
+    check(pl.findJornada(jb('in'), mondayEnd, new Set(), 'esp.1').length === 0 && pl.findJornada(jb('pre'), Date.parse('2026-10-18T21:05Z'), new Set(), 'esp.1').length === 0,
+      'pero no mientras le quede algún partido (el aplazado no cuenta)');
+    check(pl.findJornada(jb(), mondayEnd, new Set(['jornada-esp-1-2026-10-16']), 'esp.1').length === 0 && pl.findJornada(jb(), Date.parse('2026-10-20T12:00Z'), new Set(), 'esp.1').length === 0,
+      'ni la repite, ni la hace horas después');
+    const lone = [{ league: 'esp.1', day: '2026-10-21', data: { events: [ev('12', '1', '3', '2026-10-21T19:00Z')] } }, ...jb().filter((b) => b.day === '2026-10-17')];
+    check(pl.findJornada(lone, Date.parse('2026-10-21T21:05Z'), new Set(), 'esp.1').length === 0, 'ni con un aplazado jugado entre semana');
+    const nj = pl.notice({ id: 'jornada-esp-1-2026-10-16', kind: 'jornada', title: 'Así fue la jornada · LaLiga · 16-19 oct 2026', caption: '⚽ RESULTADOS' }, 't', 'https://w/');
+    check(nj.title === '📊 Así fue la jornada · LaLiga · 16-19 oct 2026' && nj.click === 'https://w/?video=jornada-esp-1-2026-10-16' && nj.actions[0].label === 'Abrir las fotos'
+      && pl.notice({ id: 'jornada-esp-1-2026-10-16', kind: 'jornada', title: 'x' }, 't', 'https://w/', false).click === 'https://github.com/tonimas35/futbol-studio/releases/tag/videos',
+      `con su aviso («${nj.title}»)`);
     const cfg = JSON.parse(readFileSync(join(REPO, 'piloto.json')));
     const wf = readFileSync(join(REPO, '.github/workflows/piloto.yml'), 'utf8');
     check(cfg.liga === 'esp.1' && cfg.competiciones.includes('uefa.champions') && cfg.previas.equipos.includes('86') && cfg.previas.horasAntes === 3 && /cron: '3-59\/10 11-23 \* \* \*'/.test(wf) && /tools\/piloto\.mjs esperar/.test(wf),
@@ -712,6 +738,29 @@ try {
     await pw.waitForFunction(() => document.getElementById('robotTitle').textContent !== 'Cargando el vídeo…', null, { timeout: 15000 }).catch(() => {});
     check(/ya no está/.test(await pw.textContent('#robotTitle')) && await pw.$eval('#robotShare', (b) => b.hidden), `si ya no está, lo dice (${await pw.textContent('#robotTitle')})`);
     await cw.close();
+    // El resumen de la jornada: sus fotos, en orden, para compartirlas todas a la vez
+    const jinfo = { id: 'jornada-esp-1-2026-10-16', kind: 'jornada', title: 'Así fue la jornada · LaLiga · 16-19 oct 2026', caption: '⚽ RESULTADOS · LALIGA\n#LaLiga',
+      images: ['jornada-esp-1-2026-10-16-01-portada.png', 'jornada-esp-1-2026-10-16-02-resultados-1.png', 'jornada-esp-1-2026-10-16-03-cierre.png'] };
+    const { ctx: cj, page: pj } = await open({
+      url: `${base}/?video=${jinfo.id}`,
+      before: async (c) => {
+        await c.route(`**/v/${jinfo.id}.json`, (r) => r.fulfill(json(JSON.stringify(jinfo))));
+        await c.route('**/v/jornada-esp-1-2026-10-16-*.png', (r) => r.fulfill({ status: 200, contentType: 'image/png', body: PIXEL }));
+      },
+    });
+    await pj.waitForFunction(() => document.getElementById('robotTitle').textContent !== 'Cargando el vídeo…', null, { timeout: 15000 }).catch(() => {});
+    const rj = await pj.evaluate(() => ({
+      title: document.getElementById('robotTitle').textContent,
+      photos: document.querySelectorAll('#robotPhotos:not([hidden]) img').length,
+      video: !document.getElementById('robotVideo').hidden,
+      share: document.getElementById('robotShare').hidden ? '' : document.getElementById('robotShare').textContent,
+    }));
+    await pj.click('#robotShare').catch(() => {});
+    await pj.waitForTimeout(300);
+    check(rj.title === jinfo.title && rj.photos === 3 && !rj.video && rj.share === 'Compartir 3 fotos'
+      && (await pj.evaluate(() => window.__shared)).join() === '3' && await pj.evaluate(() => navigator.clipboard.readText()) === jinfo.caption,
+      `y el de la jornada, sus fotos para compartirlas todas a la vez (${rj.photos} fotos · ${rj.share})`);
+    await cj.close();
   }
 
   // ── Resumen de la jornada: todos los resultados, lo destacado y la clasificación ──
@@ -741,6 +790,12 @@ try {
     check(jz.suggestedFilename() === 'futbol-jornada-esp-1-2026-09-20.zip', `y se descarga en ZIP (${jz.suggestedFilename()})`);
     check(await p8.$$eval('#slidesPreview .slide', (x) => x.length) === 0, 'sin tocar el carrusel del partido');
     await c8.close();
+    // El enlace del robot (?jornada=liga&dia=) la hace sola
+    const { ctx: c8b, page: p8b } = await open({ url: `${base}/?jornada=esp.1&dia=2026-09-20` });
+    await p8b.waitForSelector('#jornadaSection:not([hidden])', { timeout: 20000 }).catch(() => {});
+    const jl = await p8b.evaluate(() => ({ open: !document.getElementById('jornadaSection').hidden, slides: document.querySelectorAll('#jornadaPreview .slide').length, url: location.search, date: document.getElementById('dateInput').value }));
+    check(jl.open && jl.slides === 4 && jl.url === '' && jl.date === '2026-09-20', `y el enlace ?jornada= del robot la hace sola (${jl.slides} slides · ${jl.date})`);
+    await c8b.close();
   }
 
   // ── En inglés: slides, guion y jornada (la interfaz sigue en español) ──
