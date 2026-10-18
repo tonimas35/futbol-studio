@@ -3752,10 +3752,13 @@
       return f.length ? `${m[side].short} ${c('W')}${L('G', 'W')} ${c('D')}${L('E', 'D')} ${c('L')}${L('P', 'L')}` : '';
     };
     const h = h2hCount(m);
+    // Sin los amistosos pueden quedar menos de 5: «Últimos 4» si son los mismos en los dos
+    const n = new Set(['home', 'away'].map(s => (m.prev?.forma[s] || []).length));
+    const last = n.size === 1 ? L(`Últimos ${[...n][0]}`, `Last ${[...n][0]}`) : L('Cómo llegan', 'Form');
     return [
       `🔥 ${L('PREVIA', 'PREVIEW')} · ${m.home.short} – ${m.away.short}`,
       `⏰ ${k.when}, ${k.hhmm} · ${compName(m.league)}`,
-      [rec('home'), rec('away')].every(Boolean) && `📊 ${L('Últimos 5', 'Last 5')}: ${rec('home')} · ${rec('away')}`,
+      [rec('home'), rec('away')].every(Boolean) && `📊 ${last}: ${rec('home')} · ${rec('away')}`,
       h.n && `🆚 ${L(`Últimos ${h.n} cara a cara`, `Last ${h.n} meetings`)}: ${m.home.short} ${h.home}, ${L('empates', 'draws')} ${h.draws}, ${m.away.short} ${h.away}`,
       `${L('¿Quién gana?', 'Who wins?')} 👇`,
       ttTags(m, isEn() ? ['preview', 'soccer'] : ['previa', 'deportesentiktok']),

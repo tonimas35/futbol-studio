@@ -723,7 +723,7 @@ try {
     check(pv.title === 'Previa · Real Madrid – Sevilla' && pv.dl === 'futbol-rma-sev-2026-11-29-previa.mp4' && pv.box,
       `la previa en vídeo (${pv.title} · ${pv.dl})`);
     check(pv.caption[0] === '🔥 PREVIA · Real Madrid – Sevilla' && pv.caption[1] === '⏰ Hoy, 21:00 · LaLiga'
-      && pv.caption[2] === '📊 Últimos 5: Real Madrid 4G 0E 1P · Sevilla 2G 1E 1P'
+      && pv.caption[2] === '📊 Cómo llegan: Real Madrid 4G 0E 1P · Sevilla 2G 1E 1P'
       && pv.caption[3] === '🆚 Últimos 5 cara a cara: Real Madrid 5, empates 0, Sevilla 0' && pv.caption[5] === '#futbol #laliga #realmadrid #sevilla #previa',
       `y su descripción: la hora, cómo llegan (sin amistosos) y el cara a cara (${pv.caption.slice(0, 4).join(' | ')})`);
     await cp.close();
