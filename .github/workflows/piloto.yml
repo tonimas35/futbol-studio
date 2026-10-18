@@ -2,7 +2,9 @@ name: Piloto automático
 
 # Cada 10 minutos en las horas de partidos (de 11 a 23 h UTC): mira ESPN y, cuando acaba un partido
 # de tus competiciones (piloto.json), hace el vídeo con el Studio, lo publica en la web y te avisa
-# al móvil con ntfy. A mano (Run workflow), hace el de un partido concreto. Ver tools/piloto.mjs.
+# al móvil con ntfy. Si alguno va por el final, se queda vigilándolo cada 30 segundos para avisar
+# a los 3 o 4 minutos del pitido final. A mano (Run workflow), hace el de un partido concreto.
+# Ver tools/piloto.mjs.
 on:
   schedule:
     - cron: '3-59/10 11-23 * * *'
@@ -25,7 +27,7 @@ concurrency:
 jobs:
   video:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     outputs:
       hechos: ${{ steps.video.outputs.hechos }}
     steps:
@@ -43,18 +45,27 @@ jobs:
           DIA: ${{ inputs.dia }}
         run: node tools/piloto.mjs buscar
 
+      # Si hay un partido acabado, o alguno va por el final (y entonces se espera a su pitido final
+      # con todo listo, para avisar a los 3 o 4 minutos)
       - name: Preparar el navegador y ffmpeg
-        if: steps.buscar.outputs.partidos != '[]'
+        if: steps.buscar.outputs.partidos != '[]' || steps.buscar.outputs.cerca == 'true'
         run: |
           npm install --no-save --no-package-lock --silent playwright-core@1
           command -v ffmpeg || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
 
-      - name: Hacer los vídeos
-        id: video
-        if: steps.buscar.outputs.partidos != '[]'
+      - name: Esperar al pitido final
+        id: esperar
+        if: steps.buscar.outputs.partidos == '[]' && steps.buscar.outputs.cerca == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-          PARTIDOS: ${{ steps.buscar.outputs.partidos }}
+        run: node tools/piloto.mjs esperar
+
+      - name: Hacer los vídeos
+        id: video
+        if: steps.buscar.outputs.partidos != '[]' || (steps.esperar.outputs.partidos != '' && steps.esperar.outputs.partidos != '[]')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PARTIDOS: ${{ steps.buscar.outputs.partidos != '[]' && steps.buscar.outputs.partidos || steps.esperar.outputs.partidos }}
         run: |
           export CHROME_PATH="$(command -v google-chrome || command -v chromium)"
           node tools/piloto.mjs video

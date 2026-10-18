@@ -606,6 +606,13 @@ try {
 
     // El piloto automático (tools/piloto.mjs): qué partidos hace y el aviso al móvil, con datos de ESPN.
     const pl = await import(join(REPO, 'tools/piloto.mjs'));
+    // En juego (minuto 74, empezó a las 21:00): a partir de los 80 minutos desde el inicio, el robot
+    // se queda vigilándolo para avisar nada más acabar
+    const live = [{ league: 'esp.1', day: '2026-10-16', data: JSON.parse(readFileSync(join(FIX, 'sb-esp.1-20261016.json'))) }];
+    const kick = Date.parse('2026-10-16T19:00Z');
+    check(pl.findNearEnd(live, kick + 90 * 60e3, new Set()).map((f) => f.id).join() === '401882844'
+      && pl.findNearEnd(live, kick + 30 * 60e3, new Set()).length === 0 && pl.findFinished(live, kick + 90 * 60e3, new Set()).length === 0,
+      'piloto automático: con un partido por el final, se queda vigilándolo (y no lo hace hasta que acaba)');
     const sb = JSON.parse(readFileSync(join(FIX, 'sb-esp.1-20261016.json')));
     for (const e of sb.events) if (e.id === '401882844') e.status = { ...e.status, type: { ...e.status.type, state: 'post', completed: true } };
     const now = Date.parse('2026-10-16T23:10:00+02:00');
@@ -627,8 +634,8 @@ try {
       'y si la web no se ha podido publicar, el vídeo tal cual');
     const cfg = JSON.parse(readFileSync(join(REPO, 'piloto.json')));
     const wf = readFileSync(join(REPO, '.github/workflows/piloto.yml'), 'utf8');
-    check(cfg.liga === 'esp.1' && cfg.competiciones.includes('uefa.champions') && /cron: '3-59\/10 11-23 \* \* \*'/.test(wf),
-      'cada 10 minutos en las horas de partidos, con LaLiga y las copas y competiciones europeas');
+    check(cfg.liga === 'esp.1' && cfg.competiciones.includes('uefa.champions') && /cron: '3-59\/10 11-23 \* \* \*'/.test(wf) && /tools\/piloto\.mjs esperar/.test(wf),
+      'cada 10 minutos en las horas de partidos (y cada 30 segundos al final de uno), con LaLiga y las copas y competiciones europeas');
   }
 
   // ── Piloto automático: el aviso abre el vídeo del robot (?video=), listo para compartirlo ──

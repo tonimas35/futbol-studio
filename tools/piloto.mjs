@@ -4,6 +4,7 @@
 // compartes a TikTok.
 //
 //   node tools/piloto.mjs buscar         los partidos acabados hace poco que aún no tienen vídeo
+//   node tools/piloto.mjs esperar        si alguno va por el final, vigila ESPN hasta su pitido final
 //   node tools/piloto.mjs video          hace sus vídeos y los sube a la release «videos»
 //   node tools/piloto.mjs web <carpeta>  baja a la web los vídeos de los últimos días
 //   node tools/piloto.mjs avisar         manda el aviso de cada vídeo nuevo
@@ -51,16 +52,14 @@ export function scoreLine(e) {
   return `${name(home)} ${home.score ?? 0}-${away.score ?? 0} ${name(away)}${pens}`;
 }
 
-// Los partidos acabados de los marcadores de ESPN que hay que hacer: recientes, sin vídeo (done) y,
-// en las competiciones que no son tu liga, solo si juega uno de sus equipos (local).
-export function findFinished(boards, now, done, local = null) {
+// Los partidos de los marcadores de ESPN que cumplen test, sin vídeo (done) y, en las competiciones
+// que no son tu liga, solo si juega uno de sus equipos (local).
+function pick(boards, done, local, test) {
   const out = [];
   const seen = new Set();
   for (const { league, day, data } of boards) {
     for (const e of data?.events || []) {
-      const type = e.status?.type || {};
-      if (type.state !== 'post' || !type.completed || seen.has(e.id) || done.has(e.id)) continue;
-      if (!(now - Date.parse(e.date) < RECENT)) continue;
+      if (seen.has(e.id) || done.has(e.id) || !test(e)) continue;
       const ids = (e.competitions?.[0]?.competitors || []).map(c => String(c.team?.id));
       if (league !== CONFIG.liga && local && !ids.some(id => local.has(id))) continue;
       seen.add(e.id);
@@ -68,6 +67,19 @@ export function findFinished(boards, now, done, local = null) {
     }
   }
   return out;
+}
+
+// Los acabados hace poco: los que hay que hacer ya.
+export function findFinished(boards, now, done, local = null) {
+  return pick(boards, done, local, e => e.status?.type?.state === 'post' && e.status.type.completed && now - Date.parse(e.date) < RECENT);
+}
+
+// Los que van por el final (siguen en juego y empezaron hace más de 80 minutos, ya en la segunda
+// parte): el robot se queda vigilándolos para hacer el vídeo nada más acabar, en vez de esperar a
+// su siguiente vuelta de 10 minutos.
+export const NEAR_END = 80 * 60e3;
+export function findNearEnd(boards, now, done, local = null) {
+  return pick(boards, done, local, e => e.status?.type?.state === 'in' && now - Date.parse(e.date) > NEAR_END && now - Date.parse(e.date) < RECENT);
 }
 
 // Lo que ya tiene vídeo: los <id>.mp4 de la release.
@@ -95,18 +107,45 @@ async function buscar() {
     output('partidos', JSON.stringify([{ league, id, day, title: forced }]));
     return;
   }
+  const { found, near } = await scan();
+  console.log(found.length ? `Acabados: ${found.map(f => f.title).join(' · ')}`
+    : near.length ? `Por el final: ${near.map(f => f.title).join(' · ')}` : 'Ningún partido acabado sin vídeo');
+  output('partidos', JSON.stringify(found));
+  output('cerca', String(!found.length && near.length > 0));
+}
+
+// Los marcadores de hoy (y, de madrugada, de ayer): los acabados sin vídeo y los que van por el final.
+async function scan(ctx = {}) {
   const now = Date.now();
-  // Hoy y, de madrugada, ayer.
   const days = [...new Set([madridIso(now), madridIso(now - 6 * 3600e3)])];
-  const done = new Set((await releaseAssets()).map(a => a.name.match(/^(\d+)\.mp4$/)?.[1]).filter(Boolean));
-  const teams = await getJson(`${ESPN}/${CONFIG.liga}/teams`);
-  const local = new Set((teams?.sports?.[0]?.leagues?.[0]?.teams || []).map(t => String(t.team?.id)));
+  ctx.done ??= new Set((await releaseAssets()).map(a => a.name.match(/^(\d+)\.mp4$/)?.[1]).filter(Boolean));
+  if (!ctx.local) {
+    const teams = await getJson(`${ESPN}/${CONFIG.liga}/teams`);
+    const ids = (teams?.sports?.[0]?.leagues?.[0]?.teams || []).map(t => String(t.team?.id));
+    ctx.local = ids.length ? new Set(ids) : null;
+  }
   const boards = await Promise.all(CONFIG.competiciones.flatMap(league => days.map(async day => ({
     league, day, data: await getJson(`${ESPN}/${league}/scoreboard?dates=${day.replaceAll('-', '')}`),
   }))));
-  const found = findFinished(boards, now, done, local.size ? local : null);
-  console.log(found.length ? `Acabados: ${found.map(f => f.title).join(' · ')}` : 'Ningún partido acabado sin vídeo');
-  output('partidos', JSON.stringify(found));
+  return { found: findFinished(boards, now, ctx.done, ctx.local), near: findNearEnd(boards, now, ctx.done, ctx.local) };
+}
+
+// Con un partido por el final: mira ESPN cada 30 segundos (con el navegador y ffmpeg ya preparados)
+// hasta que acabe alguno, como mucho 50 minutos (la prórroga y los penaltis caben).
+async function esperar() {
+  const ctx = {};
+  const until = Date.now() + 50 * 60e3;
+  while (Date.now() < until) {
+    await new Promise(ok => setTimeout(ok, 30e3));
+    const { found, near } = await scan(ctx);
+    if (found.length) {
+      console.log(`Pitido final: ${found.map(f => f.title).join(' · ')}`);
+      return output('partidos', JSON.stringify(found));
+    }
+    if (!near.length) break;
+  }
+  console.log('Ninguno ha acabado mientras esperaba');
+  output('partidos', '[]');
 }
 
 // Un servidor de la carpeta del Studio, para abrirlo en el navegador como en la web.
@@ -230,9 +269,9 @@ async function avisar() {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const [cmd, arg] = process.argv.slice(2);
-  const run = { buscar, video, avisar, web: () => web(resolve(arg || '_site/v')) }[cmd];
+  const run = { buscar, esperar, video, avisar, web: () => web(resolve(arg || '_site/v')) }[cmd];
   if (!run) {
-    console.error('Uso: node tools/piloto.mjs buscar|video|web <carpeta>|avisar');
+    console.error('Uso: node tools/piloto.mjs buscar|esperar|video|web <carpeta>|avisar');
     process.exit(2);
   }
   await run();
