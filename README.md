@@ -48,6 +48,18 @@ Arriba del todo, «Los partidos de hoy»: eliges qué competiciones vigilar (las
 
 `https://tonimas35.github.io/futbol-studio/?partido=esp.1/401882846` abre el Studio, elige la competición, busca el partido (hoy o ayer; si es de otro día, `&dia=2026-10-17`), genera el carrusel y crea el vídeo, con la descripción para TikTok escrita. El número es el del partido en ESPN (sale en la dirección de su ficha). Al abrirlo se borra de la barra, para que recargar no lo repita.
 
+## Previa de un partido
+
+Con un partido que aún no ha empezado, en vez de «Generar carrusel» sale **«Crear previa (vídeo)»**: un vídeo de unos 20 segundos para subir antes del partido, con lo de ESPN del propio partido:
+
+- **Apertura:** «PREVIA», el gancho («El Real Madrid ganó los 5 últimos» si uno ganó todos los cara a cara; si no, «… llega con 4 victorias en 5» si uno llega muy bien; si no, los dos equipos) y cuándo («HOY · 21:00»).
+- **Cómo llegan:** los últimos 5 partidos oficiales de cada uno (sin amistosos), con el resultado, el rival y la cuenta («4G · 0E · 1P»).
+- **Cara a cara:** los ganados por cada uno y los empates en grande, y los últimos 5 partidos entre ellos.
+- **Sus goleadores:** el que más marca de cada uno esta temporada («Mbappé, 7 goles en 8 partidos»).
+- **La clasificación** («Así llegan en LaLiga») y el cierre: **«¿Quién gana?»**.
+
+Con su descripción para TikTok: «🔥 PREVIA · Real Madrid – Sevilla», la hora, cómo llegan, el cara a cara, la pregunta y los hashtags (con `#previa`). `?previa=esp.1/401882839` (y `&dia=` si no es de hoy ni de mañana) la crea sola.
+
 ## Piloto automático: el vídeo hecho y en el móvil al pitido final
 
 Sin abrir el Studio: cuando acaba un partido, un robot hace el vídeo y te llega un aviso al móvil. Lo tocas, **Compartir vídeo** y a TikTok (la descripción se copia sola: mantén pulsado y pega).
@@ -57,7 +69,8 @@ Sin abrir el Studio: cuando acaba un partido, un robot hace el vídeo y te llega
 - **Sin notas:** desde los servidores de GitHub, API-Football suspendería la cuenta. Si las quieres, hazlo en el Studio como siempre.
 - **La portada:** el primer fotograma ya lleva el resultado (el gancho y, debajo, «REAL MADRID 2-1 SEVILLA» en verde), que es la portada que pone TikTok si no eliges otra.
 - **Dónde se guardan:** en la release `videos` del repo (se borran solos a los 7 días; en la web están los de los últimos 3).
-- **A mano:** en GitHub, **Actions → Piloto automático → Run workflow**, con el partido (`liga/id`, p. ej. `esp.1/401882846`) y, si no es de hoy, su día: lo hace (o lo rehace) y avisa.
+- **La previa, 3 horas antes de los partidos grandes:** los del Real Madrid, el Barça y el Atlético en cualquier competición y, en la Champions, los de equipos de LaLiga (`previas` en `piloto.json`). Te llega «🔥 Previa · Real Madrid – Sevilla» con el vídeo y su descripción, igual que los del pitido final.
+- **A mano:** en GitHub, **Actions → Piloto automático → Run workflow**, con el partido (`liga/id`, p. ej. `esp.1/401882846`; para su previa, `previa:esp.1/401882846`) y, si no es de hoy, su día: lo hace (o lo rehace) y avisa.
 
 **Para recibir los avisos:** instala la app **ntfy** (gratis y sin cuenta) y suscríbete al tema `jornada90-40dc7171c6b9c5a9` (el de `piloto.json`). El tema está en el repo, que es público: quien lo lea podría suscribirse (solo vería tus vídeos, que son para publicar) o mandarte avisos. Para cambiarlo sin que salga en el repo, pon otro en **Settings → Secrets and variables → Actions → Variables** como `NTFY_TOPIC`.
 

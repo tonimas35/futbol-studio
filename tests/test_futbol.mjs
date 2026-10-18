@@ -632,10 +632,51 @@ try {
       `y el aviso al móvil lleva el resultado, la descripción y el enlace al vídeo (${n.click})`);
     check(pl.notice({ id: '401882844', title: 'x' }, 'tema', 'https://tonimas35.github.io/futbol-studio/', false).click === 'https://github.com/tonimas35/futbol-studio/releases/download/videos/401882844.mp4',
       'y si la web no se ha podido publicar, el vídeo tal cual');
+    // Las previas: 3 horas antes de los partidos grandes (los del Madrid, el Barça y el Atlético; en
+    // la Champions, los de equipos de LaLiga), una vez y nunca a menos de 10 minutos del inicio
+    const pre = (id, home, away, iso) => ({ id, date: iso, status: { type: { state: 'pre' } },
+      competitions: [{ competitors: [{ homeAway: 'home', team: { id: home, shortDisplayName: `L${home}` } }, { homeAway: 'away', team: { id: away, shortDisplayName: `V${away}` } }] }] });
+    const ko = '2026-11-29T20:00Z', t0 = Date.parse(ko);
+    const pb = [
+      { league: 'esp.1', day: '2026-11-29', data: { events: [pre('1', '86', '243', ko), pre('2', '94', '90', ko)] } },
+      { league: 'uefa.champions', day: '2026-11-29', data: { events: [pre('3', '93', '999', ko), pre('4', '998', '999', ko)] } },
+    ];
+    const cfgP = { equipos: ['86', '83', '1068'], competiciones: ['uefa.champions'], horasAntes: 3 };
+    const laliga = new Set(['86', '243', '94', '90', '93']);
+    const prev = (now, done = new Set()) => pl.findPrevias(pb, now, done, laliga, cfgP);
+    check(prev(t0 - 2.5 * 3600e3).map((f) => f.id).join() === '1,3' && prev(t0 - 4 * 3600e3).length === 0 && prev(t0 - 5 * 60e3).length === 0
+      && prev(t0 - 2 * 3600e3, new Set(['1-previa'])).map((f) => f.id).join() === '3',
+      'las previas: 3 horas antes de los partidos grandes, una vez y no a punto de empezar');
+    check(prev(t0 - 2.5 * 3600e3)[0].kind === 'previa' && prev(t0 - 2.5 * 3600e3)[0].title === 'L86 – V243'
+      && pl.notice({ id: '1-previa', kind: 'previa', title: 'Previa · Real Madrid – Sevilla', caption: 'x' }, 't', 'https://w/').title === '🔥 Previa · Real Madrid – Sevilla',
+      'con su aviso («🔥 Previa · …»)');
     const cfg = JSON.parse(readFileSync(join(REPO, 'piloto.json')));
     const wf = readFileSync(join(REPO, '.github/workflows/piloto.yml'), 'utf8');
-    check(cfg.liga === 'esp.1' && cfg.competiciones.includes('uefa.champions') && /cron: '3-59\/10 11-23 \* \* \*'/.test(wf) && /tools\/piloto\.mjs esperar/.test(wf),
+    check(cfg.liga === 'esp.1' && cfg.competiciones.includes('uefa.champions') && cfg.previas.equipos.includes('86') && cfg.previas.horasAntes === 3 && /cron: '3-59\/10 11-23 \* \* \*'/.test(wf) && /tools\/piloto\.mjs esperar/.test(wf),
       'cada 10 minutos en las horas de partidos (y cada 30 segundos al final de uno), con LaLiga y las copas y competiciones europeas');
+  }
+
+  // ── Previa: con un partido sin empezar, un vídeo con cómo llegan, el cara a cara y sus goleadores ──
+  // (datos reales de ESPN del Real Madrid–Sevilla del 18-10-2026, movido al 29-11 para no pisar otras pruebas)
+  {
+    const { ctx: cp, page: pp } = await open({ before: async (c) => { await c.clock.setFixedTime(new Date('2026-11-29T12:00:00+01:00')); } });
+    await pickLeague(pp, 'esp.1');
+    await pickDate(pp, '2026-11-29');
+    await pp.click('.game-card[data-game-id="401882839"]');
+    const btns = await pp.evaluate(() => ({ gen: document.getElementById('generateBtn').disabled, prev: !document.getElementById('previaBtn').hidden,
+      note: document.getElementById('selectedGameInfo').textContent }));
+    check(btns.gen && btns.prev && /puedes crear su previa/.test(btns.note), 'sin empezar: no hay carrusel, pero sí «Crear previa»');
+    await pp.click('#previaBtn');
+    await pp.waitForFunction(() => !document.getElementById('videoOut').hidden || /No se pudo/.test(document.getElementById('toast').textContent), null, { timeout: 400000 });
+    const pv = await pp.evaluate(() => ({ title: document.getElementById('videoOut').dataset.title, caption: document.getElementById('captionText').value.split('\n'),
+      dl: document.getElementById('videoDlBtn').download, box: !document.getElementById('captionBox').hidden }));
+    check(pv.title === 'Previa · Real Madrid – Sevilla' && pv.dl === 'futbol-rma-sev-2026-11-29-previa.mp4' && pv.box,
+      `la previa en vídeo (${pv.title} · ${pv.dl})`);
+    check(pv.caption[0] === '🔥 PREVIA · Real Madrid – Sevilla' && pv.caption[1] === '⏰ Hoy, 21:00 · LaLiga'
+      && pv.caption[2] === '📊 Últimos 5: Real Madrid 4G 0E 1P · Sevilla 2G 1E 1P'
+      && pv.caption[3] === '🆚 Últimos 5 cara a cara: Real Madrid 5, empates 0, Sevilla 0' && /#previa/.test(pv.caption[5]),
+      `y su descripción: la hora, cómo llegan (sin amistosos) y el cara a cara (${pv.caption.slice(0, 4).join(' | ')})`);
+    await cp.close();
   }
 
   // ── Piloto automático: el aviso abre el vídeo del robot (?video=), listo para compartirlo ──

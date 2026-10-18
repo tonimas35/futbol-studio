@@ -388,7 +388,8 @@
   function sceneIntro(d, A) {
     const HIT = BEAT, cy = 860, GAP = 250;
     const pens = d.home.shootout != null ? ` (${d.home.shootout}-${d.away.shootout})` : '';
-    const score = `${up(d.home.short)} ${d.home.score}-${d.away.score} ${up(d.away.short)}${pens}`;
+    // En la previa no hay resultado: cuándo se juega («HOY · 21:00»)
+    const score = d.introLine || `${up(d.home.short)} ${d.home.score}-${d.away.score} ${up(d.away.short)}${pens}`;
     return {
       id: 'intro',
       noScript: true,
@@ -1489,8 +1490,191 @@
     return (x + 0.05) / (y + 0.05);
   }
 
+  // ─── PREVIA (d.kind === 'previa'): cómo llegan, el cara a cara y los goleadores ───
+  // Los colores de ganado, empatado y perdido
+  const RES = { W: { c: '#22a861', l: 'G' }, D: { c: '#8b919c', l: 'E' }, L: { c: '#e0414f', l: 'P' } };
+  // El título en la pastilla blanca, como en las estadísticas
+  function pill(ctx, title, y = 70) {
+    ctx.font = ANTON(56);
+    const tw = ctx.measureText(title).width + 40;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(W / 2 - tw / 2, y, tw, 82);
+    text(ctx, title, W / 2, y + 63, ANTON(56), '#111111', 'center');
+  }
+  // Cada equipo en su mitad (local a la izquierda), con su escudo y su nombre arriba
+  function halvesBg(ctx, d, A) {
+    for (const [team, img, x] of [[d.home, A.homeLogo, 0], [d.away, A.awayLogo, W / 2]]) {
+      const st = team.style;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(...bleed(ctx, x, 0, W / 2, H));
+      ctx.clip();
+      teamBg(ctx, st, x, 0, W / 2, H, 0.5, 0.25);
+      logo(ctx, img, x + W / 4, 260, 150);
+      text(ctx, up(team.short), x + W / 4, 410, ANTON(fit(ctx, up(team.short), ANTON, 64, W / 2 - 60)), st.fg, 'center');
+      ctx.restore();
+    }
+  }
+
+  // Cómo llegan: los últimos 5 de cada uno (el más reciente arriba), con el resultado y el rival,
+  // y abajo la cuenta («4G · 0E · 1P»)
+  function scenePrevForma(d, A) {
+    const n = Math.max(d.forma.home.length, d.forma.away.length);
+    const rowAt = (i) => BEAT + i * STEP * 2;
+    const TOP = 500, ROW = 190;
+    return {
+      id: 'forma',
+      dur: 3 * BAR,
+      accent: d.home.style.acc,
+      music: { energy: 'full' },
+      cues: [...Array(n)].map((_, i) => ({ t: rowAt(i), kind: 'hit', vel: 0.7 })),
+      draw(ctx, t) {
+        halvesBg(ctx, d, A);
+        ctx.save();
+        ctx.globalAlpha = easeOut(prog(t, 0.1, 0.4));
+        pill(ctx, d.t?.forma || 'CÓMO LLEGAN');
+        ctx.restore();
+        [['home', 0], ['away', W / 2]].forEach(([side, x0]) => {
+          const st = d[side].style;
+          const list = [...d.forma[side]].reverse();
+          list.forEach((g, i) => {
+            const a = easeBack(prog(t, rowAt(i), 0.35));
+            if (a <= 0) return;
+            const y = TOP + i * ROW;
+            const r = RES[g.res] || RES.D;
+            ctx.save();
+            ctx.globalAlpha = Math.min(1, a);
+            ctx.translate(x0 + 120, y + 60);
+            ctx.scale(a, a);
+            ctx.fillStyle = r.c;
+            roundRect(ctx, -60, -60, 120, 120, 22);
+            ctx.fill();
+            text(ctx, r.l, 0, 30, ANTON(80), '#ffffff', 'center');
+            ctx.restore();
+            ctx.save();
+            ctx.globalAlpha = easeOut(prog(t, rowAt(i) + 0.1, 0.35));
+            text(ctx, g.score, x0 + 210, y + 66, ANTON(70), st.fg);
+            text(ctx, `${g.home ? 'vs' : '@'} ${up(g.opp)}`, x0 + 210, y + 112, BARLOW(fit(ctx, `${g.home ? 'vs' : '@'} ${up(g.opp)}`, (z) => BARLOW(z), 36, W / 2 - 240)), st.fg);
+            ctx.restore();
+          });
+          const c = d.forma[side].reduce((acc, g) => ({ ...acc, [g.res]: (acc[g.res] || 0) + 1 }), {});
+          ctx.save();
+          ctx.globalAlpha = easeOut(prog(t, rowAt(n) + 0.2, 0.4));
+          text(ctx, `${c.W || 0}G · ${c.D || 0}E · ${c.L || 0}P`, x0 + W / 4, TOP + 5 * ROW + 70, ANTON(64), st.fg, 'center');
+          ctx.restore();
+        });
+      },
+    };
+  }
+
+  // El cara a cara: las victorias de cada uno y los empates en grande, y los últimos partidos
+  function scenePrevH2H(d, A) {
+    const h = d.h2h;
+    const games = h.games.slice(0, 5);
+    const rowAt = (i) => BAR + i * STEP * 2;
+    const TOP = 900, ROW = 150;
+    return {
+      id: 'h2h',
+      dur: 3 * BAR,
+      accent: d.home.style.acc,
+      music: { energy: 'full' },
+      cues: [{ t: BEAT, kind: 'slam' }, ...games.map((_, i) => ({ t: rowAt(i), kind: 'tick', p: i / 5, vel: 0.6 }))],
+      draw(ctx, t) {
+        const P = sheet(d);
+        sheetBg(ctx, d);
+        const k = easeOut(prog(t, 0.1, 0.4));
+        ctx.save();
+        ctx.globalAlpha = k;
+        text(ctx, d.t?.h2h || 'CARA A CARA', M, 230, ANTON(110), P.ink);
+        text(ctx, up(h.label), M, 300, BARLOW(40), P.mute);
+        ctx.restore();
+        // Las tres cifras: victorias del local, empates, victorias del visitante
+        const cols = [
+          [d.home.style, h.home, A.homeLogo, W / 6],
+          [null, h.draws, null, W / 2],
+          [d.away.style, h.away, A.awayLogo, (5 * W) / 6],
+        ];
+        cols.forEach(([st, v, img, cx], i) => {
+          const a = easeBack(prog(t, BEAT + i * STEP, 0.4));
+          if (a <= 0) return;
+          ctx.save();
+          ctx.globalAlpha = Math.min(1, a);
+          ctx.translate(cx, 620);
+          ctx.scale(a, a);
+          if (img) logo(ctx, img, 0, -170, 130);
+          else text(ctx, d.t?.draws || 'EMPATES', 0, -150, BARLOW(40), P.mute, 'center');
+          text(ctx, String(v), 0, 90, ANTON(200), st ? P.team(st) : P.ink, 'center');
+          ctx.restore();
+        });
+        games.forEach((g, i) => {
+          const a = easeOut(prog(t, rowAt(i), 0.35));
+          if (a <= 0) return;
+          const y = TOP + i * ROW;
+          ctx.save();
+          ctx.globalAlpha = a;
+          ctx.translate((1 - a) * 200, 0);
+          ctx.fillStyle = P.zebra;
+          roundRect(ctx, M - 16, y, W - 2 * M + 32, ROW - 20, 16);
+          ctx.fill();
+          text(ctx, up(g.date), M + 10, y + 82, BARLOW(34), P.mute);
+          const mid = W / 2 + 120;
+          const win = (side) => (g.winner === side ? P.ink : P.faint);
+          text(ctx, up(g.homeName), mid - 90, y + 82, BARLOW(fit(ctx, up(g.homeName), (z) => BARLOW(z), 40, 300)), win('home'), 'right');
+          text(ctx, `${g.homeScore}-${g.awayScore}`, mid, y + 86, ANTON(60), P.ink, 'center');
+          text(ctx, up(g.awayName), mid + 90, y + 82, BARLOW(fit(ctx, up(g.awayName), (z) => BARLOW(z), 40, 300)), win('away'), 'left');
+          ctx.restore();
+        });
+      },
+    };
+  }
+
+  // Los que más marcan de cada uno («7 goles en 8 partidos»)
+  function scenePrevGoles(d, A) {
+    return {
+      id: 'goleadores',
+      dur: 2 * BAR,
+      accent: d.away.style.acc,
+      music: { energy: 'full' },
+      cues: [{ t: BEAT, kind: 'hit', vel: 0.9 }, { t: BEAT + STEP * 2, kind: 'hit', vel: 0.9 }],
+      draw(ctx, t) {
+        halvesBg(ctx, d, A);
+        ctx.save();
+        ctx.globalAlpha = easeOut(prog(t, 0.1, 0.4));
+        pill(ctx, d.t?.scorers || 'SUS GOLEADORES');
+        ctx.restore();
+        [['home', 0, 0], ['away', W / 2, 1]].forEach(([side, x0, j]) => {
+          const p = d.goleadores[side];
+          if (!p) return;
+          const st = d[side].style;
+          const a = easeOut(prog(t, BEAT + j * STEP * 2, 0.45));
+          ctx.save();
+          ctx.globalAlpha = a;
+          ctx.translate(0, (1 - a) * 60);
+          const cx = x0 + W / 4;
+          if (p.first) text(ctx, up(p.first), cx, 760, BARLOW(fit(ctx, up(p.first), (z) => BARLOW(z), 48, W / 2 - 60)), st.fg, 'center');
+          text(ctx, up(p.last), cx, 880, ANTON(fit(ctx, up(p.last), ANTON, 110, W / 2 - 60)), st.fg, 'center');
+          text(ctx, String(p.goals), cx, 1180, ANTON(260), st.fg, 'center');
+          text(ctx, up(p.unit), cx, 1260, BARLOW(42), st.fg, 'center');
+          if (p.games) text(ctx, up(p.games), cx, 1320, BARLOW(36), st.fg, 'center');
+          ctx.restore();
+        });
+      },
+    };
+  }
+
   // intro: con la apertura de los escudos (se quita en el Studio).
   function buildScenes(d, A, intro = true) {
+    if (d.kind === 'previa') {
+      return [
+        intro && sceneIntro(d, A),
+        d.forma && (d.forma.home.length || d.forma.away.length) && scenePrevForma(d, A),
+        d.h2h?.games.length && scenePrevH2H(d, A),
+        d.goleadores && (d.goleadores.home || d.goleadores.away) && scenePrevGoles(d, A),
+        d.table?.rows.length && sceneTable(d, A),
+        sceneOutro(d, A),
+        d.brand && sceneMarca(d, A),
+      ].filter(Boolean);
+    }
     return [
       intro && sceneIntro(d, A),
       sceneScore(d, A),
