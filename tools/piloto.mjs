@@ -133,7 +133,11 @@ export async function makeVideo(browser, base, p, dir) {
   try {
     const page = await ctx.newPage();
     page.on('dialog', d => d.accept());
+    // Lo que falle dentro, en el registro de GitHub Actions
     page.on('pageerror', e => console.warn(`  error en la página: ${e.message}`));
+    page.on('console', m => { if (/error|warn/.test(m.type())) console.warn(`  consola: ${m.text()}`); });
+    page.on('requestfailed', r => console.warn(`  sin respuesta: ${r.url()} (${r.failure()?.errorText})`));
+    page.on('response', r => { if (r.status() >= 400) console.warn(`  ${r.status()}: ${r.url()}`); });
     await page.goto(`${base}/?partido=${p.league}/${p.id}&dia=${p.day}`);
     await page.waitForFunction(() => !document.getElementById('videoOut').hidden
       || /No se pudo|no da ese partido/.test(document.getElementById('toast').textContent), null, { timeout: 20 * 60e3 });
