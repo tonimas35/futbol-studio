@@ -1352,7 +1352,7 @@ body.zoom-open { overflow: hidden; }
 .fc-jtabla .night .row.head { color: rgba(255, 255, 255, 0.5); }
 
 /* ─── Piloto automático: el vídeo del robot, para compartirlo ─── */
-.robot { position: fixed; inset: 0; z-index: 60; display: flex; justify-content: center; align-items: flex-start; padding: 24px 16px; overflow-y: auto; background: rgba(8, 9, 12, 0.94); }
+.robot { position: fixed; inset: 0; z-index: 60; display: flex; justify-content: center; align-items: flex-start; padding: 24px 16px; overflow-y: auto; background: var(--bg); }
 .robot[hidden] { display: none; }
 .robot-card { width: 100%; max-width: 460px; }
 .robot-eyebrow { margin: 0 0 6px; color: var(--accent); font-family: var(--label); font-weight: 800; font-size: 15px; letter-spacing: 0.12em; text-transform: uppercase; }
