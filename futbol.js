@@ -2083,10 +2083,10 @@
       const how = [g.own ? L('En propia puerta', 'Own goal') : g.pen ? L('De penalti', 'Penalty') : g.header ? L('De cabeza', 'Header')
         : g.freeKick ? L('De falta', 'Free kick') : g.volley ? L('De volea', 'Volley') : '',
       g.assist ? `${L('Asist.', 'Assist:')} ${nameOf(m, g.assist, g.assistName)}` : ''].filter(Boolean).join(' · ');
-      evs.push({ side: g.side, min: g.min, kind: 'goal', name: nameOf(m, g.scorer, g.scorerName), how, score: m.goalsOk ? g.score : null });
+      evs.push({ side: g.side, min: g.min, kind: 'goal', name: nameOf(m, g.scorer, g.scorerName), how, score: m.goalsOk ? g.score : null, pen: !!g.pen, own: !!g.own });
     });
     m.cards.filter(c => c.red && c.side).forEach(c => evs.push({ side: c.side, min: c.min, kind: 'red', name: nameOf(m, c.player, c.name), how: L('Tarjeta roja', 'Red card') }));
-    m.pens.filter(p => p.side).forEach(p => evs.push({ side: p.side, min: p.min, kind: 'pen', name: nameOf(m, p.player, p.name), how: p.saved ? L('Penalti parado', 'Penalty saved') : L('Penalti fallado', 'Penalty missed') }));
+    m.pens.filter(p => p.side).forEach(p => evs.push({ side: p.side, min: p.min, kind: 'pen', name: nameOf(m, p.player, p.name), how: p.saved ? L('Penalti parado', 'Penalty saved') : L('Penalti fallado', 'Penalty missed'), saved: !!p.saved }));
     if (all) {
       m.cards.filter(c => !c.red && c.side).forEach(c => evs.push({ side: c.side, min: c.min, kind: 'yellow', tiny: true, name: nameOf(m, c.player, c.name) }));
       m.subs.filter(x => x.side && x.in).forEach(x => evs.push({ side: x.side, min: x.min, kind: 'sub', tiny: true, name: nameOf(m, x.in), out: x.out ? nameOf(m, x.out) : '' }));
@@ -3620,7 +3620,7 @@
       return {
         name: t.name, short: t.short, abbr: t.abbr, score: t.score, shootout: pensWon(m) ? t.shootout : null,
         logo: t.logo, style: videoStyle(t), won: winner === side, lost: !!winner && winner !== side,
-        the: theTeam(t), to: toTeam(t),
+        the: theTeam(t), to: toTeam(t), of: ofTeam(t), fem: article(t) === 'la ',
         lines: scorerList(m, side).map(x => (x.red ? `${x.text} · ${L('roja', 'red card')}` : x.text)),
       };
     };
@@ -3657,7 +3657,8 @@
         : { tag: live(m) ? L('En juego', 'Live') : L('Final', 'Full time'), text: writtenText('#slide-portada .head h1') || headline(m) },
       polemica: pol && { ...pol, style: teamStyle(m[pol.side]) },
       goals: timeline.map(e => ({
-        side: e.side, min: e.min.label, t: e.min.t, kind: e.kind, name: e.name, how: e.how, score: e.score || null,
+        side: e.side, min: e.min.label, t: e.min.t, base: e.min.base, extra: e.min.extra || 0, kind: e.kind, name: e.name, how: e.how, score: e.score || null,
+        pen: !!e.pen, own: !!e.own, saved: !!e.saved,
         tiny: !!e.tiny, out: e.out || '', style: videoStyle(m[e.side]),
       })),
       goalsTitle: timeline.every(e => e.kind === 'goal') ? L('LOS GOLES', 'THE GOALS') : L('MINUTO A MINUTO', 'MINUTE BY MINUTE'),
@@ -3694,6 +3695,7 @@
       } : null,
       table: tbl && {
         title: L(`Así va ${tableName(m)}`, `${tableName(m)} table`),
+        teams: m.standings.length,
         rows: tbl.map(r => r && {
           rank: r.rank, pts: r.pts, logo: r.logo,
           name: r.id === m.home.id ? m.home.short : r.id === m.away.id ? m.away.short : r.name,
@@ -3848,7 +3850,10 @@
   function previaData(m) {
     const team = (side) => {
       const t = m[side];
-      return { name: t.name, short: t.short, abbr: t.abbr, score: '', logo: t.logo, style: videoStyle(t), won: false, lost: false, lines: [] };
+      return {
+        name: t.name, short: t.short, abbr: t.abbr, score: '', logo: t.logo, style: videoStyle(t), won: false, lost: false, lines: [],
+        the: theTeam(t), to: toTeam(t), of: ofTeam(t), fem: article(t) === 'la ',
+      };
     };
     const k = kickoffOf(m);
     const h = h2hCount(m);
@@ -3881,6 +3886,7 @@
       goleadores: { home: scorer('home'), away: scorer('away') },
       table: tbl && {
         title: L(`Así llegan en ${tableName(m)}`, `${tableName(m)} table`),
+        teams: m.standings.length,
         rows: tbl.map(r => r && {
           rank: r.rank, pts: r.pts, logo: r.logo,
           name: r.id === m.home.id ? m.home.short : r.id === m.away.id ? m.away.short : r.name,
@@ -3928,9 +3934,10 @@
     btn.classList.add('btn-loading');
     try {
       const m = await fetchMatch(game);
-      const out = await window.StudioVideo.render(previaData(m), (p, stage) => {
+      const data = previaData(m);
+      const out = await window.StudioVideo.render(data, (p, stage) => {
         label.textContent = stage || `Creando la previa… ${Math.round(p * 100)}%`;
-      }, { ...videoOptions(), captions: false, script: null });
+      }, { ...videoOptions(), captions: document.getElementById('videoSubs').checked, script: previaScript(data) });
       resetVideo();
       videoUrl = URL.createObjectURL(out.blob);
       document.getElementById('videoPreview').src = videoUrl;
@@ -3970,9 +3977,249 @@
     stats: 'Estadísticas', tabla: 'Clasificación', outro: 'Cierre',
     stats2: 'Más estadísticas', forma: 'Cómo llegaban', h2h: 'Cara a cara', polemica: 'La polémica',
   };
-  const NUM_WORDS = ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco'];
+  const NUM_WORDS = ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez', 'once', 'doce',
+    'trece', 'catorce', 'quince', 'dieciséis', 'diecisiete', 'dieciocho', 'diecinueve', 'veinte'];
   const ORDINALS = ['', 'primero', 'segundo', 'tercero', 'cuarto', 'quinto', 'sexto', 'séptimo', 'octavo', 'noveno', 'décimo'];
   const ordinal = (n) => ORDINALS[n] || `${n}.º`;
+
+  // ─── El guion que cuenta el partido · como lo contaría alguien que lo ha visto, no una lista de
+  // datos: quién se adelantó, si hubo remontada, quién sentenció y quién maquilló; si el que ganó
+  // tiró menos; qué le sirvió el balón al que lo tuvo; a cuánto se queda del líder. Cada escena
+  // prueba de la frase más completa a la más corta y se queda la primera que cabe a ritmo normal.
+  // ───
+  const fitsScene = (d, id, text) => {
+    const sc = window.StudioVideo?.plan ? window.StudioVideo.plan(d, { [id]: text }).find(x => x.id === id) : null;
+    return !sc || sc.speed <= 1.1;
+  };
+  const firstFit = (d, id, options) => {
+    const list = [...new Set(options.filter(Boolean))];
+    return list.find(t => fitsScene(d, id, t)) || list[list.length - 1] || '';
+  };
+  // «en el 30», «antes del descanso» (45+2), «en el descuento» (90+3)
+  const saidMin = (e) => (e.extra && e.base === 45 ? 'antes del descanso' : e.extra && e.base >= 90 ? 'en el descuento' : `en el ${e.base}`);
+  const late = (e) => e.base >= 85;
+  const ordinalOf = (n, fem) => (ORDINALS[n] ? (fem ? ORDINALS[n].replace(/o$/, 'a') : ORDINALS[n]) : `en el puesto ${n}`);
+  const many = (n, one, more) => `${NUM_WORDS[n] || n} ${n === 1 ? one : more}`;
+  // «doblete», «un hat-trick», «cuatro goles» (y con artículo: «un doblete»)
+  const haul = (n) => (n === 2 ? 'doblete' : n === 3 ? 'un hat-trick' : many(n, 'gol', 'goles'));
+  const aHaul = (n) => (n === 2 ? 'un doblete' : haul(n));
+
+  function goalsStory(d) {
+    const H = d.home, A = d.away;
+    const team = (s) => (s === 'home' ? H : A);
+    const gs = d.goals.filter(e => e.kind === 'goal');
+    const extras = [
+      ...d.goals.filter(e => e.kind === 'red').map(e => `Roja para ${e.name} ${saidMin(e)}.`),
+      ...d.goals.filter(e => e.kind === 'pen').map(e => (e.saved ? `A ${e.name} le pararon un penalti ${saidMin(e)}.` : `${e.name} falló un penalti ${saidMin(e)}.`)),
+    ].join(' ');
+    if (!gs.length) return [extras && `Ni un gol. ${extras}`, 'Ni un gol en todo el partido.'];
+    // El marcador gol a gol: la ventaja del que marca, antes y después
+    let h = 0, a = 0;
+    const steps = gs.map(g => {
+      const before = g.side === 'home' ? h - a : a - h;
+      if (g.side === 'home') h++; else a++;
+      return { ...g, before, after: before + 1, now: `${h}-${a}` };
+    });
+    // Si a ESPN le falta algún gol, sin historia: quién marcó
+    const plainList = () => {
+      const tally = new Map();
+      gs.filter(g => !g.own).forEach(g => tally.set(g.name, (tally.get(g.name) || 0) + 1));
+      const top = [...tally].sort((x, y) => y[1] - x[1])[0];
+      const others = [...tally.keys()].filter(n => n !== top?.[0]);
+      if (top && top[1] > 1) return `${top[0]} marca ${NUM_WORDS[top[1]] || top[1]}.${others.length ? ` También ${others.length > 1 ? 'marcan' : 'marca'} ${listEs(others)}.` : ''}`;
+      return tally.size ? `${tally.size > 1 ? 'Marcan' : 'Marca'} ${listEs([...tally.keys()])}.` : 'Así fue el partido, minuto a minuto.';
+    };
+    if (h !== H.score || a !== A.score) return [plainList()];
+
+    const who = (g) => (g.own ? `un gol en propia de ${g.name}` : g.name);
+    const goalOf = (g) => (g.own ? `un gol en propia de ${g.name}` : g.pen ? `un penalti de ${g.name}` : `un gol de ${g.name}`);
+    const pen = (g) => (g.pen ? ' de penalti' : '');
+    const goalsOf = (name, side) => steps.filter(g => !g.own && g.name === name && g.side === side).length;
+    const W = h > a ? 'home' : a > h ? 'away' : null;
+    const variants = [];
+    const add = (...parts) => variants.push(parts.filter(Boolean).map(x => cap(x.trim())).join(' '));
+
+    if (!W) {
+      // Empate: quién se adelantó y quién lo igualó (el último empate)
+      const first = steps[0];
+      const eq = [...steps].reverse().find(g => g.after === 0);
+      const top = Math.max(...steps.map(g => g.after));
+      if (h === 1) {
+        const told = `${who(first)} adelantó ${team(first.side).to}${pen(first)} ${saidMin(first)} y ${who(eq)} empató${pen(eq)} ${saidMin(eq)}.`;
+        add(told, extras);
+        add(told);
+        add(`${who(first)} adelantó ${team(first.side).to} y ${who(eq)} empató.`);
+      } else {
+        const leader = steps.find(g => g.after === top);
+        const told = `${top >= 2 ? `${team(leader.side).the} llegó a ganar de ${NUM_WORDS[top]}, pero` : 'Ida y vuelta hasta el final:'} ${who(eq)} firmó el ${h}-${a}${pen(eq)} ${saidMin(eq)}.`;
+        add(told, extras);
+        add(told);
+        add(`${who(eq)} firmó el ${h}-${a}${pen(eq)} ${saidMin(eq)}.`);
+      }
+      return [...variants, plainList()];
+    }
+
+    const Wt = team(W), Lt = team(W === 'home' ? 'away' : 'home');
+    const mine = steps.filter(g => g.side === W);
+    const theirs = steps.filter(g => g.side !== W);
+    // El gol que lo decidió: el último que puso por delante al que gana
+    const dec = [...mine].reverse().find(g => g.before === 0);
+    const margin = Math.abs(h - a);
+    // Los que marcan más de uno, del que gana
+    const multi = [...new Set(mine.filter(g => !g.own).map(g => g.name))].map(n => [n, goalsOf(n, W)]).filter(([, n]) => n > 1);
+    const mins = (on, g) => (on ? ` ${saidMin(g)}` : '');
+
+    if (steps.length === 1) {
+      const g = steps[0];
+      const what = goalOf(g);
+      const told = d.live ? `${what} ${saidMin(g)} pone por delante ${Wt.to}.` : `Lo decidió ${what} ${saidMin(g)}.`;
+      add(told, extras);
+      add(told);
+      add(d.live ? `${what} pone por delante ${Wt.to}.` : `Lo decidió ${what}.`);
+      return [...variants, plainList()];
+    }
+
+    const behind = theirs.filter(g => g.after > 0); // los goles con los que el otro iba por delante
+    if (behind.length) {
+      // Remontada: el otro se adelantó y el que gana le dio la vuelta
+      const first = theirs[0];
+      const top = Math.max(...behind.map(g => g.after));
+      // Los que marcaron para darle la vuelta (desde que iba perdiendo por última vez)
+      const turn = mine.filter(g => g.t > behind[behind.length - 1].t);
+      const names = [...new Set(turn.filter(g => !g.own).map(g => g.name))];
+      const start = `${Lt.the} se adelantó con ${first.own ? goalOf(first) : first.name}${top >= 2 ? ` y llegó a ir ganando de ${NUM_WORDS[top]}` : ''}`;
+      const how = late(dec) ? ` con ${goalOf(dec)} ${saidMin(dec)}`
+        : names.length === 1 ? ` con ${goalsOf(names[0], W) > 1 ? `${aHaul(goalsOf(names[0], W))} de` : 'el gol de'} ${names[0]}`
+          : names.length ? ` con goles de ${listEs(names)}` : '';
+      add(`${start}, pero ${Wt.the} le dio la vuelta${how}.`, extras);
+      add(`${start}, pero ${Wt.the} le dio la vuelta${how}.`);
+      // Mejor quién la remató que quién abrió el marcador
+      if (how && top >= 2) add(`${Lt.the} llegó a ir ganando de ${NUM_WORDS[top]}, pero ${Wt.the} le dio la vuelta${how}.`);
+      if (how) add(`${Lt.the} se adelantó, pero ${Wt.the} le dio la vuelta${how}.`);
+      add(`${start}, pero ${Wt.the} le dio la vuelta.`);
+      add(`${Lt.the} se adelantó, pero ${Wt.the} le dio la vuelta.`);
+      return [...variants, plainList()];
+    }
+
+    // Siempre por delante (o empatado un rato): el que abrió, el del doblete, el que sentenció
+    // o cerró la goleada y el que maquilló
+    const o = steps[0];
+    const eqs = theirs.filter(g => g.after === 0);
+    const story = (opt) => {
+      const parts = [];
+      if (eqs.length) {
+        // Se adelantó, le empataron y lo volvió a poner por delante
+        const eq = eqs[eqs.length - 1];
+        parts.push(`${who(o)} adelantó ${Wt.to}${pen(o)}${mins(opt.mins, o)}, ${who(eq)} empató${pen(eq)}${mins(opt.mins, eq)} y ${who(dec)} ${d.live ? 'desempató' : 'lo decidió'}${pen(dec)}${mins(opt.mins, dec)}.`);
+        const last = mine[mine.length - 1];
+        if (opt.minor && last.t > dec.t) parts.push(`${who(last)} sentenció${pen(last)}${mins(opt.mins, last)}`);
+      } else {
+        const star = multi.find(([n]) => n !== o.name && n !== dec.name) || multi[0];
+        let s1 = `${who(o)} abrió el marcador${pen(o)}${mins(opt.mins, o)}`;
+        if (star && star[0] === o.name) s1 += ` y acabó con ${haul(star[1])}`;
+        else if (star) s1 += ` y ${star[0]} hizo ${haul(star[1])}`;
+        parts.push(`${s1}.`);
+        const last = mine[mine.length - 1];
+        const said = [o.name, star?.[0]];
+        if (opt.minor && last !== o && !said.includes(last.name)) {
+          // «cerró la goleada»; si luego le recortaron, «hizo el 2-0»; si no, «sentenció»
+          // (en juego, aún sin cerrar nada: «hizo el 3-0»)
+          parts.push(margin >= 3 && !d.live ? `${who(last)} cerró la goleada` : margin === 1 || d.live ? `${who(last)} hizo el ${last.now}${pen(last)}${mins(opt.mins, last)}`
+            : `${who(last)} sentenció${pen(last)}${mins(opt.mins, last)}`);
+        }
+      }
+      const cut = theirs[theirs.length - 1];
+      if (opt.minor && cut && !eqs.includes(cut)) {
+        const n = cut.own ? 0 : goalsOf(cut.name, cut.side);
+        const c = d.live ? `${who(cut)} recortó${mins(opt.mins, cut)}`
+          : margin >= 2 ? `${who(cut)}${n > 1 ? `, con ${haul(n)},` : ''} maquilló` : `${who(cut)} recortó${mins(opt.mins, cut)}, pero no bastó`;
+        if (parts.length > 1) parts[1] = `${parts[1]} y ${c}`;
+        else parts.push(c);
+      }
+      return parts.map(x => cap(/[.!?]$/.test(x) ? x : `${x}.`)).join(' ');
+    };
+    add(story({ mins: true, minor: true }), extras);
+    add(story({ mins: true, minor: true }));
+    add(story({ mins: false, minor: true }));
+    add(story({ mins: true, minor: false }));
+    add(story({ mins: false, minor: false }));
+    return [...variants, plainList()];
+  }
+
+  function shotsStory(d) {
+    const H = d.home, A = d.away, sh = d.shots;
+    const fallback = `${cap(H.the)}, ${sh.home.total} tiros y ${sh.home.on} a puerta; ${A.the}, ${sh.away.total} y ${sh.away.on}.`;
+    const W = H.score > A.score ? 'home' : A.score > H.score ? 'away' : null;
+    if (!W) {
+      const more = sh.home.total >= sh.away.total ? 'home' : 'away', less = more === 'home' ? 'away' : 'home';
+      const T = more === 'home' ? H : A, O = more === 'home' ? A : H;
+      return [
+        sh[more].total >= 2 * Math.max(1, sh[less].total) && `${cap(T.the)} lo intentó más: ${sh[more].total} tiros, por ${sh[less].total} ${O.of}.`,
+        fallback,
+      ];
+    }
+    const L = W === 'home' ? 'away' : 'home';
+    const Wt = W === 'home' ? H : A, Lt = W === 'home' ? A : H;
+    const ws = sh[W], ls = sh[L];
+    return [
+      ls.on === 0 && `${cap(Lt.the)} no tiró ni una vez entre los tres palos.`,
+      ls.on === 1 && `${cap(Lt.the)} solo tiró una vez a puerta en todo el partido.`,
+      ws.total < ls.total && `Y eso que ${Lt.the} tiró más: ${ls.total} veces, por ${ws.total} ${Wt.of}.`,
+      Wt.score >= 3 && ws.on <= Wt.score + 4 && `Pegada ${Wt.of}: ${Wt.score} goles con ${ws.on} tiros a puerta.`,
+      `${cap(Wt.the)} lo intentó ${ws.total} veces, ${ws.on} a puerta; ${Lt.the}, ${ls.total}.`,
+      fallback,
+    ];
+  }
+
+  function statsStory(d) {
+    const H = d.home, A = d.away;
+    const pos = d.stats.find(r => r.pct);
+    if (!pos) return ['Así fueron las estadísticas.'];
+    if (pos.v[0] === pos.v[1]) return ['Igualdad total: el balón, a medias.', 'Así fueron las estadísticas.'];
+    const i = pos.v[0] > pos.v[1] ? 0 : 1;
+    const P = i ? A : H, p = Math.round(pos.v[i]);
+    const W = H.score > A.score ? H : A.score > H.score ? A : null;
+    const passes = d.stats.find(r => /^pases|^passes/.test(plain(r.label)));
+    const k = passes && passes.v[1 - i] > 0 ? passes.v[i] / passes.v[1 - i] : 0;
+    const more = k >= 2.5 ? 'más del doble de pases' : k >= 2 ? 'el doble de pases' : k >= 1.75 ? 'casi el doble de pases' : '';
+    if (d.live) return [`${cap(P.the)} tiene más el balón: ${p}% de posesión.`];
+    if (W && W !== P) return [`${cap(P.the)} tuvo más el balón, un ${p}%, pero no le sirvió.`, `${cap(P.the)} tuvo más el balón, pero no le sirvió.`];
+    if (W) return [more && `${cap(P.the)} mandó: ${p}% de posesión y ${more}.`, `${cap(P.the)} mandó: ${p}% de posesión.`];
+    return [`${cap(P.the)} tuvo más el balón: ${p}% de posesión.`];
+  }
+
+  function tableStory(d) {
+    const H = d.home, A = d.away;
+    const rows = d.table.rows.filter(Boolean);
+    const top = rows.find(r => r.rank === 1);
+    const say = (side) => {
+      const r = rows.find(x => x.me === side);
+      if (!r) return '';
+      const T = side === 'home' ? H : A;
+      if (r.rank === 1) return `${T.the}, líder con ${many(r.pts, 'punto', 'puntos')}`;
+      if (d.table.teams && r.rank === d.table.teams) return `${T.the}, colista`;
+      const gap = top && top.pts != null && r.pts != null ? top.pts - r.pts : null;
+      const where = ordinalOf(r.rank, T.fem);
+      return gap == null ? `${T.the}, ${where}` : gap === 0 ? `${T.the}, ${where}, empatad${T.fem ? 'a' : 'o'} con el líder`
+        : `${T.the}, ${where}, a ${NUM_WORDS[gap] || gap} del líder`;
+    };
+    const Wside = H.score > A.score ? 'home' : A.score > H.score ? 'away' : null;
+    const first = Wside || (rows.find(x => x.me === 'home') ? 'home' : 'away');
+    const second = first === 'home' ? 'away' : 'home';
+    const a = say(first), b = say(second);
+    const short = (side) => {
+      const r = rows.find(x => x.me === side);
+      const T = side === 'home' ? H : A;
+      return r ? `${T.short}, ${ordinalOf(r.rank, T.fem)}` : '';
+    };
+    return [
+      a && b && `${cap(a)}; ${b}.`,
+      a && `${cap(a)}.`,
+      short(first) && short(second) && `${short(first)}; ${short(second)}.`,
+      short(first) && `${short(first)}.`,
+      'Así va la clasificación.',
+    ];
+  }
 
   // El guion en inglés: lo mismo, dicho como en la Premier.
   const ORDINALS_EN = ['', 'first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'];
@@ -4087,46 +4334,19 @@
     if (d.dato) script.dato = d.dato.sentence;
     if (d.polemica) script.polemica = d.polemica.sentence;
 
-    const goals = d.goals.filter(e => e.kind === 'goal');
-    if (d.goals.length) {
-      const tally = new Map();
-      goals.forEach(e => tally.set(e.name, (tally.get(e.name) || 0) + 1));
-      const top = [...tally].sort((a, b) => b[1] - a[1])[0];
-      const reds = d.goals.filter(e => e.kind === 'red').map(e => e.name);
-      const parts = [];
-      if (top && top[1] > 1) {
-        const others = [...tally.keys()].filter(n => n !== top[0]);
-        parts.push(`${top[0]} marca ${NUM_WORDS[top[1]] || top[1]}.`);
-        if (others.length) parts.push(`También ${others.length > 1 ? 'marcan' : 'marca'} ${listEs(others)}.`);
-      } else if (tally.size) {
-        parts.push(`${tally.size > 1 ? 'Marcan' : 'Marca'} ${listEs([...tally.keys()])}.`);
-      }
-      if (reds.length) parts.push(`Roja para ${listEs(reds)}.`);
-      script.goals = parts.join(' ') || 'Así fue el partido, minuto a minuto.';
-    }
-    if (d.shots) {
-      script.tiros = `${cap(H.the)}, ${d.shots.home.total} tiros y ${d.shots.home.on} a puerta; ${A.the}, ${d.shots.away.total} y ${d.shots.away.on}.`;
-    }
+    if (d.goals.length) script.goals = firstFit(d, 'goals', goalsStory(d));
+    if (d.shots) script.tiros = firstFit(d, 'tiros', shotsStory(d));
     if (d.jugador) {
-      const say = (s) => (s.clean ? 'portería a cero' : s.rating ? `un ${s.v} de nota` : `${String(s.v).replace('/', ' de ')} ${s.label.toLocaleLowerCase('es')}`);
+      // «doblete» mejor que «2 goles»
+      const say = (s) => (s.clean ? 'portería a cero' : s.rating ? `un ${s.v} de nota`
+        : /^gol/.test(plain(s.label)) && s.v >= 1 && s.v <= 3 ? (s.v === 1 ? 'un gol' : haul(s.v))
+          : /^asistencia/.test(plain(s.label)) && s.v === 1 ? 'una asistencia'
+            : `${String(s.v).replace('/', ' de ')} ${s.label.toLocaleLowerCase('es')}`);
       const [a, b] = d.jugador.stats;
       script.jugador = `${d.jugador.last}, el mejor del partido${a ? `: ${say(a)}${b ? ` y ${say(b)}` : ''}` : ''}.`;
     }
-    if (d.stats) {
-      const pos = d.stats.find(r => r.pct);
-      if (pos && pos.v[0] !== pos.v[1]) {
-        const i = pos.v[0] > pos.v[1] ? 0 : 1;
-        script.stats = `${cap((i ? A : H).the)} tuvo el balón: ${Math.round(pos.v[i])}% de posesión.`;
-      } else {
-        script.stats = 'Así fueron las estadísticas.';
-      }
-    }
-    if (d.table) {
-      const rank = (side) => d.table.rows.find(r => r?.me === side)?.rank;
-      const [rh, ra] = [rank('home'), rank('away')];
-      script.tabla = rh && ra ? `${H.short}, ${ordinal(rh)}; ${A.short}, ${ordinal(ra)}.`
-        : rh ? `${cap(H.the)} es ${ordinal(rh)}.` : ra ? `${cap(A.the)} es ${ordinal(ra)}.` : 'Así va la clasificación.';
-    }
+    if (d.stats) script.stats = firstFit(d, 'stats', statsStory(d));
+    if (d.table) script.tabla = firstFit(d, 'tabla', tableStory(d));
     // Las de la versión larga
     if (d.statsMore) script.stats2 = 'Y el resto de números del partido.';
     const form = (side) => {
@@ -4145,6 +4365,51 @@
       const { home: a, away: b, draws: e } = d.h2h;
       script.h2h = `${d.h2h.label}: ${H.short} ${a}, ${A.short} ${b} y ${e ? e === 1 ? 'un empate' : `${e} empates` : 'ningún empate'}.`;
     }
+    return script;
+  }
+
+  // El guion de la previa: cómo llegan, el cara a cara, sus goleadores y la tabla, contado
+  function previaScript(d) {
+    if (d.lang === 'en') return null;
+    const H = d.home, A = d.away;
+    const script = { outro: `${d.closing.question} Te leo en comentarios.` };
+    const wins = (side) => (d.forma?.[side] || []).filter(x => x.res === 'W').length;
+    const games = (side) => (d.forma?.[side] || []).length;
+    const form = (side, full) => {
+      const n = games(side), w = wins(side);
+      if (!n) return '';
+      if (!w) return `sin ganar en ${NUM_WORDS[n] || n}`;
+      return w === n ? `con ${NUM_WORDS[n] || n} victorias seguidas` : `con ${NUM_WORDS[w] || w}${full ? ` ${w === 1 ? 'victoria' : 'victorias'}` : ''} de ${NUM_WORDS[n] || n}`;
+    };
+    if (games('home') || games('away')) {
+      script.forma = firstFit(d, 'forma', [
+        games('home') && games('away') && `${cap(H.the)} llega ${form('home', true)}; ${A.the}, ${form('away', false)}.`,
+        games('home') && `${cap(H.the)} llega ${form('home', true)}.`,
+        games('away') && `${cap(A.the)} llega ${form('away', true)}.`,
+      ]);
+    }
+    if (d.h2h?.games.length) {
+      const { home: a, away: b, draws: e } = d.h2h;
+      const n = a + b + e;
+      const all = a === n ? H : b === n ? A : null;
+      script.h2h = firstFit(d, 'h2h', [
+        all && `En los ${NUM_WORDS[n] || n} últimos cara a cara, todo para ${all.the}: ${NUM_WORDS[n] || n} de ${NUM_WORDS[n] || n}.`,
+        all && `${cap(all.the)} ganó los ${NUM_WORDS[n] || n} últimos.`,
+        `En los ${NUM_WORDS[n] || n} últimos: ${a === 1 ? 'una victoria' : `${NUM_WORDS[a] || a} victorias`} ${H.of}, ${b === 1 ? 'una' : NUM_WORDS[b] || b} ${A.of} y ${e === 1 ? 'un empate' : `${NUM_WORDS[e] || e} empates`}.`,
+        `${H.short} ${a}, ${A.short} ${b} y ${e} ${e === 1 ? 'empate' : 'empates'}.`,
+      ]);
+    }
+    const g = d.goleadores || {};
+    const said = (p) => `${p.last}, ${p.goals === 1 ? 'un gol' : `${p.goals} goles`}${p.games ? ` ${p.games}` : ''}`;
+    if (g.home || g.away) {
+      script.goleadores = firstFit(d, 'goleadores', [
+        g.home && g.away && `Los que más marcan: ${said(g.home)}; ${said(g.away)}.`,
+        g.home && g.away && `Los que más marcan: ${g.home.last}, ${g.home.goals}; ${g.away.last}, ${g.away.goals}.`,
+        g.home && !g.away && `Ojo a ${said(g.home)}.`,
+        g.away && !g.home && `Ojo a ${said(g.away)}.`,
+      ]);
+    }
+    if (d.table) script.tabla = firstFit(d, 'tabla', tableStory(d));
     return script;
   }
 
@@ -4260,7 +4525,9 @@
       if (Number.isFinite(saved.music)) document.getElementById('musicVol').value = saved.music;
       // El estilo guardado antes de la urbana nueva (v < 2) era la épica por defecto: no cuenta.
       if (saved.v >= 2 && MUSIC_STYLES[saved.style]) setMusicStyle(saved.style);
-      if (typeof saved.subs === 'boolean') document.getElementById('videoSubs').checked = saved.subs;
+      // Los subtítulos (el guion que cuenta el partido) van encendidos desde la v3: lo guardado antes,
+      // con los apagados de entonces, no cuenta.
+      if (saved.v >= 3 && typeof saved.subs === 'boolean') document.getElementById('videoSubs').checked = saved.subs;
       if (typeof saved.long === 'boolean') document.getElementById('videoLong').checked = saved.long;
       // Sin música por defecto (en TikTok se pone un sonido en tendencia); si la activas, se recuerda.
       if (typeof saved.musicOn === 'boolean') document.getElementById('videoMusic').checked = saved.musicOn;
@@ -4274,7 +4541,7 @@
     player.hidden = true;
     try {
       localStorage.setItem(MIX_KEY, JSON.stringify({
-        v: 2, music: Number(document.getElementById('musicVol').value), style: musicStyle(),
+        v: 3, music: Number(document.getElementById('musicVol').value), style: musicStyle(),
         subs: document.getElementById('videoSubs').checked, musicOn: document.getElementById('videoMusic').checked,
         long: document.getElementById('videoLong').checked,
       }));
