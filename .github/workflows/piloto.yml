@@ -1,0 +1,88 @@
+name: Piloto automático
+
+# Cada 10 minutos en las horas de partidos (de 11 a 23 h UTC): mira ESPN y, cuando acaba un partido
+# de tus competiciones (piloto.json), hace el vídeo con el Studio, lo publica en la web y te avisa
+# al móvil con ntfy. A mano (Run workflow), hace el de un partido concreto. Ver tools/piloto.mjs.
+on:
+  schedule:
+    - cron: '3-59/10 11-23 * * *'
+  workflow_dispatch:
+    inputs:
+      partido:
+        description: 'Un partido concreto: liga/id de ESPN (p. ej. esp.1/401882846). Vacío: los que acaben'
+        required: false
+      dia:
+        description: 'Su día (AAAA-MM-DD), si no es de hoy'
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: piloto
+  cancel-in-progress: false
+
+jobs:
+  video:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      hechos: ${{ steps.video.outputs.hechos }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Buscar partidos acabados sin vídeo
+        id: buscar
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PARTIDO: ${{ inputs.partido }}
+          DIA: ${{ inputs.dia }}
+        run: node tools/piloto.mjs buscar
+
+      - name: Preparar el navegador y ffmpeg
+        if: steps.buscar.outputs.partidos != '[]'
+        run: |
+          npm install --no-save --no-package-lock --silent playwright-core@1
+          command -v ffmpeg || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
+
+      - name: Hacer los vídeos
+        id: video
+        if: steps.buscar.outputs.partidos != '[]'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PARTIDOS: ${{ steps.buscar.outputs.partidos }}
+        run: |
+          export CHROME_PATH="$(command -v google-chrome || command -v chromium)"
+          node tools/piloto.mjs video
+
+  web:
+    needs: video
+    if: needs.video.outputs.hechos != '' && needs.video.outputs.hechos != '[]'
+    uses: ./.github/workflows/web.yml
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+  # También si la web ha fallado (GitHub Pages sin activar): entonces el aviso lleva el vídeo tal cual
+  avisar:
+    needs: [video, web]
+    if: always() && needs.video.outputs.hechos != '' && needs.video.outputs.hechos != '[]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Avisar al móvil
+        env:
+          HECHOS: ${{ needs.video.outputs.hechos }}
+          WEB: ${{ needs.web.result }}
+          NTFY_TOPIC: ${{ vars.NTFY_TOPIC }}
+        run: node tools/piloto.mjs avisar

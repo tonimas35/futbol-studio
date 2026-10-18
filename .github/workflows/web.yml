@@ -1,0 +1,50 @@
+name: Web
+
+# El Studio en GitHub Pages (https://tonimas35.github.io/futbol-studio/): gratis y sin límite de
+# publicaciones en un repositorio público. Se publica con cada cambio en main y cada vez que el
+# piloto automático hace un vídeo (los de los últimos días van en v/, para compartirlos desde el
+# aviso). Solo la página: ni las pruebas ni el README.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: web
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: La página y los vídeos del piloto automático
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p _site
+          cp index.html futbol.js futbol.css video.js audio.js favicon.svg manifest.webmanifest apple-touch-icon.png icon-192.png icon-512.png jornada90-logo.png _site/
+          node tools/piloto.mjs web _site/v
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4

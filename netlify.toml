@@ -1,5 +1,6 @@
-# Netlify, para usar el Studio en el móvil (con HTTPS). Publica solo lo que usa la página: ni
-# las pruebas ni el README. Sin dependencias: el «build» es copiar los archivos.
+# Netlify: la dirección de antes (studio-toni.netlify.app) y las vistas previas de cada PR, que no
+# gastan. La web de verdad está ahora en GitHub Pages (.github/workflows/web.yml), sin límite de
+# publicaciones. Publica solo lo que usa la página: ni las pruebas ni el README.
 [build]
   command = "rm -rf _site && mkdir _site && cp index.html futbol.js futbol.css video.js audio.js favicon.svg manifest.webmanifest apple-touch-icon.png icon-192.png icon-512.png jornada90-logo.png _site/"
   publish = "_site"
@@ -9,8 +10,5 @@
   # (no gastan). Las vistas previas de las PR son gratis y siguen saliendo siempre.
   ignore = "if [ \"$BRANCH\" = main ] && ! git log -1 --pretty=%B | grep -q '\\[publicar\\]'; then exit 0; else exit 1; fi"
 
-# La función pitido-final.mjs (cada 5 minutos, de 11 a 23 h UTC) avisa al móvil con ntfy cuando
-# acaba un partido (NTFY_TOPIC y, si quieres, AVISOS_LIGAS). API-Football no pasa por aquí: se
-# pide desde el navegador (las IPs compartidas de las funciones hacen que suspenda la cuenta).
-[functions]
-  directory = "netlify/functions"
+# El aviso al móvil al pitido final ya no es una función de Netlify: lo hace el piloto automático
+# en GitHub Actions (.github/workflows/piloto.yml), con el vídeo hecho.

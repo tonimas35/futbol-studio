@@ -604,38 +604,66 @@ try {
     check(/ni hoy ni ayer/.test(await p7b.textContent('#toast')) && !(await p7b.$('#slide-portada')), 'si el partido no está, avisa y no genera nada');
     await c7b.close();
 
-    // La función de Netlify que avisa al móvil (ntfy), con ESPN y ntfy de mentira.
-    const pf = await import(join(REPO, 'netlify/functions/pitido-final.mjs'));
+    // El piloto automático (tools/piloto.mjs): qué partidos hace y el aviso al móvil, con datos de ESPN.
+    const pl = await import(join(REPO, 'tools/piloto.mjs'));
     const sb = JSON.parse(readFileSync(join(FIX, 'sb-esp.1-20261016.json')));
     for (const e of sb.events) if (e.id === '401882844') e.status = { ...e.status, type: { ...e.status.type, state: 'post', completed: true } };
-    const posts = [];
-    const realFetch = globalThis.fetch, realNow = Date.now, realTopic = process.env.NTFY_TOPIC;
-    globalThis.fetch = async (url, opts = {}) => {
-      url = String(url);
-      if (url.startsWith('https://ntfy.sh/') && url.includes('/json?poll=1')) return new Response(posts.map((p) => JSON.stringify({ event: 'message', click: JSON.parse(p).click })).join('\n'));
-      if (url === 'https://ntfy.sh' && opts.method === 'POST') { posts.push(opts.body); return new Response('{}'); }
-      return new Response(JSON.stringify(url.endsWith('/esp.1/scoreboard?dates=20261016') ? sb : { events: [] }));
-    };
-    Date.now = () => Date.parse('2026-10-16T23:10:00+02:00');
-    try {
-      delete process.env.NTFY_TOPIC;
-      const off = await (await pf.default()).text();
-      process.env.NTFY_TOPIC = 'tema-de-prueba';
-      const first = await (await pf.default()).text();
-      const again = await (await pf.default()).text();
-      const sent = JSON.parse(posts[0] || '{}');
-      check(/Sin NTFY_TOPIC/.test(off) && posts.length === 1 && /^0 aviso/.test(again) && pf.config.schedule === '*/5 11-23 * * *',
-        `aviso al móvil: cada 5 minutos en horas de partido, uno por partido y sin repetir (${first})`);
-      check(sent.topic === 'tema-de-prueba' && sent.title === 'Final: Deportivo 1-0 Levante' && sent.click === 'https://studio-toni.netlify.app/?partido=esp.1/401882844&dia=2026-10-16',
-        `con el resultado y el enlace que lo genera todo (${sent.click})`);
-      Date.now = () => Date.parse('2026-10-17T03:30:00+02:00'); // mira también el 16, pero empezó hace 6 h y media
-      posts.length = 0;
-      check(/^0 aviso/.test(await (await pf.default()).text()), 'y no avisa de partidos de hace horas');
-    } finally {
-      globalThis.fetch = realFetch;
-      Date.now = realNow;
-      if (realTopic === undefined) delete process.env.NTFY_TOPIC; else process.env.NTFY_TOPIC = realTopic;
-    }
+    const now = Date.parse('2026-10-16T23:10:00+02:00');
+    const boards = [{ league: 'esp.1', day: '2026-10-16', data: sb }];
+    const found = pl.findFinished(boards, now, new Set());
+    check(found.length === 1 && found[0].id === '401882844' && found[0].title === 'Deportivo 1-0 Levante' && found[0].day === '2026-10-16',
+      `piloto automático: hace el vídeo de los partidos acabados (${found.map((f) => f.title).join(', ')})`);
+    check(pl.findFinished(boards, now, new Set(['401882844'])).length === 0, 'y no repite los que ya tienen vídeo');
+    check(pl.findFinished(boards, Date.parse('2026-10-17T03:30:00+02:00'), new Set()).length === 0, 'ni hace los de hace horas');
+    // En la Champions (o la Copa), solo si juega un equipo de LaLiga
+    const ucl = [{ league: 'uefa.champions', day: '2026-10-16', data: sb }];
+    check(pl.findFinished(ucl, now, new Set(), new Set(['999'])).length === 0 && pl.findFinished(ucl, now, new Set(), new Set([String(sb.events.find((e) => e.id === '401882844').competitions[0].competitors[0].team.id)])).length === 1,
+      'fuera de LaLiga, solo los partidos de equipos de LaLiga');
+    const n = pl.notice({ id: '401882844', title: 'Deportivo 1-0 Levante', caption: '⚽ Final · Depor 1-0 Levante' }, 'tema', 'https://tonimas35.github.io/futbol-studio/');
+    check(n.topic === 'tema' && n.title === '⚽ Deportivo 1-0 Levante' && n.message === '⚽ Final · Depor 1-0 Levante'
+      && n.click === 'https://tonimas35.github.io/futbol-studio/?video=401882844' && n.actions[0].url === n.click,
+      `y el aviso al móvil lleva el resultado, la descripción y el enlace al vídeo (${n.click})`);
+    check(pl.notice({ id: '401882844', title: 'x' }, 'tema', 'https://tonimas35.github.io/futbol-studio/', false).click === 'https://github.com/tonimas35/futbol-studio/releases/download/videos/401882844.mp4',
+      'y si la web no se ha podido publicar, el vídeo tal cual');
+    const cfg = JSON.parse(readFileSync(join(REPO, 'piloto.json')));
+    const wf = readFileSync(join(REPO, '.github/workflows/piloto.yml'), 'utf8');
+    check(cfg.liga === 'esp.1' && cfg.competiciones.includes('uefa.champions') && /cron: '3-59\/10 11-23 \* \* \*'/.test(wf),
+      'cada 10 minutos en las horas de partidos, con LaLiga y las copas y competiciones europeas');
+  }
+
+  // ── Piloto automático: el aviso abre el vídeo del robot (?video=), listo para compartirlo ──
+  {
+    const info = { id: '401882844', title: 'Deportivo 1-0 Levante', caption: '⚽ Final · Depor 1-0 Levante\n#futbol', file: 'futbol-dep-lev-2026-10-16-short.mp4' };
+    const { ctx: cv, page: pv } = await open({
+      url: `${base}/?video=401882844`,
+      before: async (c) => {
+        await c.route('**/v/401882844.json', (r) => r.fulfill(json(JSON.stringify(info))));
+        await c.route('**/v/401882844.mp4', (r) => r.fulfill({ status: 200, contentType: 'video/mp4', body: Buffer.from('mp4 de prueba') }));
+      },
+    });
+    await pv.waitForFunction(() => document.getElementById('robotTitle').textContent !== 'Cargando el vídeo…', null, { timeout: 15000 }).catch(() => {});
+    const rv = await pv.evaluate(() => ({
+      open: !document.getElementById('robotBox').hidden,
+      title: document.getElementById('robotTitle').textContent,
+      caption: document.getElementById('robotCaption').value,
+      share: !document.getElementById('robotShare').hidden,
+      dl: document.getElementById('robotDl').download,
+      url: location.search,
+    }));
+    check(rv.open && rv.title === info.title && rv.caption === info.caption && rv.share && rv.dl === info.file && rv.url === '',
+      `el aviso abre el vídeo con su descripción, para compartir o descargar (${rv.title})`);
+    await pv.click('#robotShare');
+    await pv.waitForTimeout(300);
+    check((await pv.evaluate(() => window.__shared)).join() === '1' && await pv.evaluate(() => navigator.clipboard.readText()) === info.caption,
+      'y «Compartir vídeo» lo comparte con la descripción ya copiada');
+    await pv.click('#robotClose');
+    check(await pv.$eval('#robotBox', (b) => b.hidden) && !!(await pv.$('.game-card, .games-empty')), '«Cerrar» deja el Studio de siempre');
+    await cv.close();
+    // Si el vídeo ya no está (se guardan unos días), lo dice
+    const { ctx: cw, page: pw } = await open({ url: `${base}/?video=401882845` });
+    await pw.waitForFunction(() => document.getElementById('robotTitle').textContent !== 'Cargando el vídeo…', null, { timeout: 15000 }).catch(() => {});
+    check(/ya no está/.test(await pw.textContent('#robotTitle')) && await pw.$eval('#robotShare', (b) => b.hidden), `si ya no está, lo dice (${await pw.textContent('#robotTitle')})`);
+    await cw.close();
   }
 
   // ── Resumen de la jornada: todos los resultados, lo destacado y la clasificación ──

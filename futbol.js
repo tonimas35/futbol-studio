@@ -5125,6 +5125,59 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
     return true;
   }
 
+  // ─── Piloto automático: el vídeo que ha hecho el robot al pitido final ───
+  // ?video=401882846 abre v/401882846.mp4 y su descripción (v/401882846.json), que el robot
+  // (.github/workflows/piloto.yml) deja en esta misma web, listo para compartirlo a TikTok desde el
+  // móvil. Es el enlace del aviso que llega con ntfy. Los vídeos se quedan unos días.
+  async function openRobotVideo(params) {
+    const id = params.get('video') || '';
+    if (!/^\d+$/.test(id)) return false;
+    history.replaceState(null, '', location.pathname);
+    const $ = (x) => document.getElementById(x);
+    $('robotBox').hidden = false;
+    $('robotClose').addEventListener('click', () => { $('robotBox').hidden = true; });
+    try {
+      const get = (ext, as) => fetch(`v/${id}.${ext}`).then(r => {
+        if (!r.ok) throw new Error(`v/${id}.${ext}: ${r.status}`);
+        return r[as]();
+      });
+      const [info, blob] = await Promise.all([get('json', 'json'), get('mp4', 'blob')]);
+      const file = new File([blob], info.file || `jornada90-${id}.mp4`, { type: 'video/mp4' });
+      const url = URL.createObjectURL(blob);
+      $('robotTitle').textContent = info.title || 'Tu vídeo';
+      Object.assign($('robotVideo'), { src: url, hidden: false });
+      $('robotVideo').play().catch(() => {});
+      Object.assign($('robotDl'), { href: url, download: file.name, hidden: false });
+      $('robotCaption').value = info.caption || '';
+      $('robotCaptionBox').hidden = !info.caption;
+      const caption = () => $('robotCaption').value;
+      $('robotCopy').addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(caption());
+          showToast('Descripción copiada: pégala en TikTok', 'success');
+        } catch (e) {
+          $('robotCaption').select();
+          showToast('Selecciónala y cópiala a mano: este navegador no deja copiar solo', 'error');
+        }
+      });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        $('robotShare').hidden = false;
+        $('robotShare').addEventListener('click', async () => {
+          navigator.clipboard?.writeText(caption()).catch(() => {});
+          try {
+            await navigator.share({ files: [file] });
+          } catch (e) {
+            if (e.name !== 'AbortError') showToast(`No se pudo compartir: ${e.message}`, 'error');
+          }
+        });
+      }
+    } catch (e) {
+      console.warn('Piloto automático:', e);
+      $('robotTitle').textContent = 'Este vídeo ya no está: se guardan unos días. Hazlo en el Studio.';
+    }
+    return true;
+  }
+
   function renderDirecto() {
     const sub = document.getElementById('liveSub');
     const leaguesBox = document.getElementById('liveLeagues');
@@ -5350,6 +5403,7 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
     setupZoom();
 
     const params = new URLSearchParams(location.search);
+    if (params.has('video')) openRobotVideo(params);
     if (params.has('partido')) {
       openFromLink(params).then(done => { if (!done) { loadGames(today); restoreDraft(); } });
     } else {

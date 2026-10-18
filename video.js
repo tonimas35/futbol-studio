@@ -364,12 +364,16 @@
   // El gancho de los primeros segundos (y la portada del vídeo): la etiqueta («EL DATO»,
   // «FINAL») y la frase en grande, desde el primer fotograma. Empieza en el centro, más grande,
   // y sube arriba cuando chocan los escudos (up: 0 → 1). En dos líneas como mucho.
-  function drawHook(ctx, h, up_ = 1) {
+  // score: el resultado, debajo y en verde. El primer fotograma es la portada que pone TikTok si no
+  // eliges otra, así que ya lleva el resultado.
+  function drawHook(ctx, h, up_ = 1, score = '') {
     let size = 124;
     const lines = () => wrap(ctx, up(h.text), ANTON(size), (W - 2 * M) / 1.18); // que quepa también en grande
     while (size > 72 && lines().length > 2) size -= 8;
     const ls = lines().slice(0, 3);
-    const blockH = 80 + ls.length * size * 1.02;
+    const SCORE = 96;
+    const scoreSize = score ? fit(ctx, score, ANTON, SCORE, (W - 2 * M) / 1.18) : 0;
+    const blockH = 80 + ls.length * size * 1.02 + (score ? 40 + SCORE : 0);
     const k = 1.18 - 0.18 * up_;
     const top = (1 - up_) * (H * 0.44 - (blockH * k) / 2) + up_ * 140;
     ctx.save();
@@ -377,11 +381,14 @@
     ctx.scale(k, k);
     chip(ctx, h.tag, 0, 0, { acc: ACCENT, on: '#111111' }, 42, 'center');
     ls.forEach((l, i) => text(ctx, l, 0, 80 + (i + 1) * size * 1.02 - size * 0.12, ANTON(size), '#ffffff', 'center'));
+    if (score) text(ctx, score, 0, 80 + ls.length * size * 1.02 + 40 + SCORE * 0.88, ANTON(scoreSize), ACCENT, 'center');
     ctx.restore();
   }
 
   function sceneIntro(d, A) {
     const HIT = BEAT, cy = 860, GAP = 250;
+    const pens = d.home.shootout != null ? ` (${d.home.shootout}-${d.away.shootout})` : '';
+    const score = `${up(d.home.short)} ${d.home.score}-${d.away.score} ${up(d.away.short)}${pens}`;
     return {
       id: 'intro',
       noScript: true,
@@ -397,7 +404,7 @@
       ],
       draw(ctx, t) {
         fillAll(ctx, INK_BG);
-        if (d.hook) drawHook(ctx, d.hook, easeInOut(prog(t, HIT - 0.12, 0.3)));
+        if (d.hook) drawHook(ctx, d.hook, easeInOut(prog(t, HIT - 0.12, 0.3)), score);
         const glow = easeOut(prog(t, HIT, 0.4));
         if (glow > 0) {
           const g = ctx.createRadialGradient(W / 2, cy, 0, W / 2, cy, 900);
