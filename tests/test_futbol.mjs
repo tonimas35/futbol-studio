@@ -111,6 +111,8 @@ async function open({ strip = [], viewport = { width: 1280, height: 900 }, url =
     const key = Object.keys(LIBS).find((k) => r.request().url().includes(`/${k}@`));
     return key ? r.fulfill({ status: 200, contentType: 'application/javascript', body: LIBS[key] }) : r.abort();
   });
+  // Las caras guardadas en el repo (caras/laliga.json), fuera: la prueba que las usa pone las suyas
+  await ctx.route(`${base}/caras/laliga.json`, (r) => r.fulfill({ status: 404, body: '' }));
   if (before) await before(ctx);
   const page = await ctx.newPage();
   page.on('pageerror', (e) => errors.push(e.message));
@@ -1018,6 +1020,62 @@ try {
     check(/sin las notas · API-Football: no contesta \(¿la clave está bien copiada\?\)/.test(await pa.textContent('#toast')),
       `y con la clave mal copiada, lo dice (${await pa.textContent('#toast')})`);
     await ca.close();
+  }
+
+  // ── Caras para el robot: sin las notas de API-Football, las caras guardadas en el repo ──
+  {
+    const saved = { hecho: '2026-10-17', liga: 'esp.1', equipos: [
+      { espn: '104', af: 497, nombre: 'AS Roma', jugadores: [{ id: 1001, nombre: 'D. Malen', dorsal: 14 }, { id: 1002, nombre: 'P. Dybala', dorsal: 21 }] },
+      // «Otro Jugador» lleva el dorsal de Bellingham, pero no su apellido: sin cara (mejor que la de otro)
+      { espn: '86', af: 541, nombre: 'Real Madrid', jugadores: [{ id: 1003, nombre: 'K. Mbappé', dorsal: 10 }, { id: 1004, nombre: 'Vinícius Júnior', dorsal: 7 }, { id: 1005, nombre: 'Otro Jugador', dorsal: 5 }] },
+      { espn: '244', af: 543, nombre: 'Real Betis', jugadores: [{ id: 2001, nombre: 'Isco', dorsal: 22 }] },
+    ] };
+    const asked = [];
+    const { ctx: cf, page: pf } = await open({ before: async (c) => {
+      await c.addInitScript(() => { window.fsFacesPace = 0; });
+      await c.route(`${base}/caras/**`, (r) => (r.request().url().endsWith('/laliga.json') ? r.fulfill(json(JSON.stringify(saved)))
+        : r.fulfill({ status: 200, contentType: 'image/png', body: readFileSync(join(FIX, 'af-cara.png')) })));
+      await c.route(/site\.api\.espn\.com\/.*\/esp\.1\/teams$/, (r) => r.fulfill(json(JSON.stringify({ sports: [{ leagues: [{ teams: [
+        { team: { id: '86', displayName: 'Real Madrid' } }, { team: { id: '83', displayName: 'Barcelona' } }, { team: { id: '244', displayName: 'Real Betis' } }] }] }] }))));
+      await c.route('https://v3.football.api-sports.io/**', (r) => {
+        const u = new URL(r.request().url());
+        asked.push(`${u.pathname.slice(1)}?${u.searchParams}`);
+        const team = (id, name) => ({ id, name });
+        const res = u.pathname === '/fixtures' ? [{ league: { id: 140 }, teams: { home: team(541, 'Real Madrid'), away: team(530, 'Atletico Madrid') } }]
+          : u.pathname === '/teams' ? [{ team: { id: 9001, name: 'Barcelona SC', country: 'Ecuador' } }, { team: { id: 529, name: 'Barcelona', country: 'Spain' } }]
+            : u.searchParams.get('team') === '541' ? [{ players: [{ id: 1003, name: 'K. Mbappé', number: 10 }, { id: 1006, name: 'J. Bellingham', number: 5 }] }]
+              : u.searchParams.get('team') === '529' ? [{ players: [{ id: 3001, name: 'Pedri', number: 8 }] }] : [];
+        return r.fulfill(json(JSON.stringify({ errors: [], response: res })));
+      });
+    } });
+    await pickLeague(pf, 'uefa.champions');
+    await pickDate(pf, '2026-10-14');
+    await generate(pf, '401915414');
+    // Malen tiene foto grande en ESPN; Mbappé no: su cara, en el retrato
+    const pick = await pf.$eval('[data-slide-id="jugador"] .slide-pick', (s) => [...s.options].find((o) => /Mbappé/.test(o.textContent))?.value);
+    await pf.selectOption('[data-slide-id="jugador"] .slide-pick', pick);
+    await pf.waitForFunction(() => document.querySelector('#slide-jugador .portrait img')?.dataset.src, null, { timeout: 10000 }).catch(() => {});
+    const lf = await pf.evaluate(() => ({
+      name: document.querySelector('#slide-jugador .bar span')?.textContent,
+      face: document.querySelector('#slide-jugador .portrait img')?.dataset.src || '',
+      onces: [...document.querySelectorAll('#slide-onces .dot.has-face .face')].map((i) => i.getAttribute('src')).sort(),
+      button: !document.getElementById('facesField').hidden,
+    }));
+    check(lf.name === 'Kylian Mbappé' && lf.face.endsWith('/caras/1003.png') && !(await slideNames(pf)).includes('Las notas'),
+      `sin clave (el robot), el jugador del partido con su cara guardada en el repo y sin notas (${lf.name} · ${lf.face.split('/').slice(-2).join('/')})`);
+    check(lf.onces.join(' ') === 'caras/1001.png caras/1002.png caras/1003.png caras/1004.png' && asked.length === 0 && !lf.button,
+      `y en «Los onces», por el apellido (el dorsal solo no basta), sin pedir nada a API-Football (${lf.onces.length} caras)`);
+    // Con tu clave, «Caras para el robot» baja las plantillas en laliga.json
+    await pf.fill('#afKeyInput', 'clave-de-prueba');
+    const [dl] = await Promise.all([pf.waitForEvent('download', { timeout: 30000 }), pf.click('#facesBtn')]);
+    const made = JSON.parse(readFileSync(await dl.path(), 'utf8'));
+    const eq = Object.fromEntries(made.equipos.map((t) => [t.espn, `${t.af}:${t.jugadores.map((p) => `${p.id}/${p.dorsal}`).join(',')}`]));
+    check(dl.suggestedFilename() === 'laliga.json' && made.liga === 'esp.1' && eq['86'] === '541:1003/10,1006/5' && eq['83'] === '529:3001/8' && eq['244'] === '543:2001/22',
+      `«Caras para el robot»: las plantillas en laliga.json, cada equipo con su id de ESPN; el que no sale, el de antes (${Object.entries(eq).map(([k, v]) => `${k}→${v}`).join(' · ')})`);
+    check(asked.filter((a) => a.startsWith('fixtures')).length === 3 && asked.includes('teams?search=barcelona') && asked.filter((a) => a.startsWith('players/squads')).length === 2
+      && /laliga\.json: 3 equipos y 4 jugadores\. Súbelo/.test(await pf.textContent('#toast')),
+      `con los partidos de ayer, hoy y mañana, el nombre del que no juega y una plantilla por equipo (${asked.length} peticiones · ${await pf.textContent('#toast')})`);
+    await cf.close();
   }
 
   // ── Tu logo: junto a la firma en cada slide, grande en el cierre y se recuerda ──

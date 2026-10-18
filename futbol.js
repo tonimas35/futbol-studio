@@ -1409,6 +1409,108 @@
   }
 
   // ----------------------------------------------------------
+  // CARAS PARA EL ROBOT · el robot no puede pedir nada a API-Football (le suspenderían la cuenta a
+  // Toni), así que las caras se guardan en el repo: caras/laliga.json (las plantillas de LaLiga de
+  // API-Football, que hace «Caras para el robot» con tu clave, desde este navegador) y las fotos,
+  // caras/<id>.png (las baja .github/workflows/caras.yml: van sin clave y no gastan peticiones).
+  // Sin las notas de API-Football, la cara de cada jugador sale de ahí.
+  // ----------------------------------------------------------
+  const FACES_FILE = 'caras/laliga.json';
+  let facesJob = null;
+  // (abierto como archivo, el navegador no deja leerlo: sin caras)
+  const savedSquads = () => (facesJob ||= location.protocol === 'file:' ? Promise.resolve(null)
+    : fetch(FACES_FILE, { cache: 'no-cache' }).then(r => (r.ok ? r.json() : null)).catch(() => null));
+  const lastWord = (s) => plain(String(s || '').trim().split(/\s+/).pop());
+  // El de la plantilla con el mismo apellido (y, si hay dos, el mismo dorsal). Sin apellido igual,
+  // nada: mejor sin cara que con la de otro.
+  function squadPlayer(squad, p) {
+    const same = squad.filter(x => lastWord(x.nombre) === lastWord(p.name));
+    return same.length > 1 ? same.find(x => String(x.dorsal) === String(p.jersey)) || null : same[0] || null;
+  }
+  async function localFaces(m) {
+    const data = await savedSquads();
+    const players = {};
+    for (const side of ['home', 'away']) {
+      const team = (data?.equipos || []).find(t => String(t.espn) === m[side].id);
+      for (const p of team ? m[side].players : []) {
+        const hit = squadPlayer(team.jugadores || [], p);
+        if (hit) players[p.id] = { rating: null, photo: `caras/${hit.id}.png` };
+      }
+    }
+    return Object.keys(players).length ? { players, local: true } : null;
+  }
+
+  // «Caras para el robot»: los equipos de LaLiga de ESPN, su id en API-Football (de los partidos
+  // de LaLiga de ayer, hoy y mañana, que es lo que deja el plan gratis; los que no jueguen, por su
+  // nombre) y la plantilla de cada uno. Unas 25 peticiones, despacio (el plan gratis deja 10 por
+  // minuto). Lo que ya hubiera en el repo se mantiene si ahora no sale.
+  const AF_LALIGA = 140;
+  const facesPace = () => window.fsFacesPace ?? 6500;
+  const teamScore = (a, b) => {
+    if (plain(a) === plain(b)) return 2;
+    const x = new Set(teamWords(a)), y = new Set(teamWords(b));
+    const both = [...x].filter(w => y.has(w)).length;
+    return both / (new Set([...x, ...y]).size || 1);
+  };
+  async function makeFacesFile(btn) {
+    if (!afOn() || btn.disabled) return;
+    btn.disabled = true;
+    const say = (t) => showToast(`Caras para el robot · ${t}`, '', true);
+    let calls = 0;
+    const af = async (path, params) => {
+      if (calls++) await new Promise(r => setTimeout(r, facesPace()));
+      return afGet(path, params);
+    };
+    try {
+      say('los equipos de LaLiga…');
+      const espn = ((await espnFetch('/esp.1/teams'))?.sports?.[0]?.leagues?.[0]?.teams || []).map(x => x.team)
+        .map(t => ({ espn: String(t.id), nombre: t.displayName || t.name || '' })).filter(t => t.espn && t.nombre);
+      if (!espn.length) throw new Error('ESPN no da los equipos de LaLiga');
+      const afTeams = new Map();
+      for (const d of [-1, 0, 1]) {
+        const day = new Date(Date.now() + d * 86400e3).toISOString().slice(0, 10);
+        for (const f of await af('fixtures', { date: day })) {
+          if (f.league?.id === AF_LALIGA) [f.teams?.home, f.teams?.away].forEach(t => t?.id && afTeams.set(t.id, t.name));
+        }
+      }
+      const best = (name, list) => list.map(([id, n]) => ({ id, n, w: teamScore(name, n) })).sort((a, b) => b.w - a.w)[0];
+      const found = espn.map(t => {
+        const b = best(t.nombre, [...afTeams]);
+        return { ...t, af: b && b.w >= 0.5 ? b.id : null };
+      });
+      for (const t of found.filter(x => !x.af)) {
+        say(`buscando ${t.nombre}…`);
+        const q = plain(teamWords(t.nombre).sort((a, b) => b.length - a.length)[0] || t.nombre);
+        const list = (await af('teams', { search: q })).filter(x => x.team?.country === 'Spain').map(x => [x.team.id, x.team.name]);
+        const b = best(t.nombre, list);
+        if (b && b.w >= 0.5) t.af = b.id;
+      }
+      const old = await savedSquads();
+      const equipos = [];
+      for (const [i, t] of found.entries()) {
+        let jugadores = null;
+        if (t.af) {
+          say(`plantilla ${i + 1}/${found.length}: ${t.nombre}…`);
+          jugadores = ((await af('players/squads', { team: t.af }))[0]?.players || [])
+            .filter(p => p.id && p.name).map(p => ({ id: p.id, nombre: p.name, dorsal: p.number ?? null }));
+        }
+        const keep = (old?.equipos || []).find(x => String(x.espn) === t.espn);
+        if (jugadores?.length) equipos.push({ espn: t.espn, af: t.af, nombre: t.nombre, jugadores });
+        else if (keep) equipos.push(keep);
+      }
+      const missing = espn.filter(t => !equipos.some(x => x.espn === t.espn)).map(t => t.nombre);
+      const file = { hecho: localIso(), liga: 'esp.1', equipos };
+      triggerDownload(new Blob([JSON.stringify(file, null, 1)], { type: 'application/json' }), 'laliga.json');
+      const n = equipos.reduce((sum, t) => sum + t.jugadores.length, 0);
+      showToast(`laliga.json: ${equipos.length} equipos y ${n} jugadores${missing.length ? ` (faltan ${missing.join(', ')})` : ''}. Súbelo a la carpeta caras del repo.`, missing.length ? 'error' : 'success', true);
+    } catch (e) {
+      showToast(`Caras para el robot: ${e.api ? `API-Football: ${e.message}` : e.message}`, 'error', true);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ----------------------------------------------------------
   // STATE
   // ----------------------------------------------------------
   const state = {
@@ -2998,7 +3100,8 @@
       if (seq !== genSeq) return;
       const [dato, af] = await Promise.all([findDato(match), findRatings(match)]);
       match.dato = dato;
-      match.af = af.data;
+      // Sin notas de API-Football (el robot, o sin clave), las caras guardadas en el repo
+      match.af = af.data || await localFaces(match);
       if (seq !== genSeq) return;
       state.rendered = match;
       state.previa = null;
@@ -5746,11 +5849,15 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
     document.getElementById('brandInput').addEventListener('change', (e) => { onBrandFile(e.target.files[0]); e.target.value = ''; });
     document.getElementById('brandDel').addEventListener('click', () => setBrand(''));
     const afInput = document.getElementById('afKeyInput');
+    const facesBtn = document.getElementById('facesBtn');
     afInput.value = afKey();
+    document.getElementById('facesField').hidden = !afOn();
     afInput.addEventListener('input', () => {
       try { localStorage.setItem(AF_KEY, afInput.value.trim()); } catch (e) { /* sin almacenamiento: no se recuerda */ }
       afCache.clear();
+      document.getElementById('facesField').hidden = !afOn();
     });
+    facesBtn.addEventListener('click', () => makeFacesFile(facesBtn));
     document.getElementById('captionCopyBtn').addEventListener('click', copyCaption);
     document.getElementById('captionText').addEventListener('input', () => { captionEdited = true; });
 

@@ -24,7 +24,7 @@
     rel="stylesheet"
   />
 
-  <link rel="stylesheet" href="futbol.css?v=19" />
+  <link rel="stylesheet" href="futbol.css?v=20" />
 </head>
 
 <body>
@@ -217,6 +217,10 @@
         <input type="password" id="afKeyInput" maxlength="64" placeholder="Pega aquí tu API-KEY" autocomplete="off" spellcheck="false" />
         <small>Para las notas y las caras de los jugadores. Está en dashboard.api-football.com → Profile. Se guarda solo en este navegador y las pide desde aquí, no desde un servidor (API-Football suspende las cuentas que piden desde servidores compartidos). Sin clave, sale todo sin notas.</small>
       </label>
+      <div class="sign-field faces-field" id="facesField" hidden>
+        <button class="btn btn-ghost" id="facesBtn" type="button">Caras para el robot</button>
+        <small>Baja las plantillas de LaLiga de API-Football (unas 25 de tus peticiones del día; tarda unos 3 minutos) en <b>laliga.json</b>. Súbelo a la carpeta <b>caras</b> del repo y el robot pondrá la cara de cada jugador. Repítelo cuando cambien las plantillas (en septiembre y en enero).</small>
+      </div>
     </section>
 
     <!-- Paso 3: retocar -->
@@ -334,6 +338,6 @@
 
   <script src="audio.js?v=3"></script>
   <script src="video.js?v=20"></script>
-  <script src="futbol.js?v=36"></script>
+  <script src="futbol.js?v=37"></script>
 </body>
 </html>

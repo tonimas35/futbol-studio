@@ -1,0 +1,39 @@
+name: Caras
+
+# Las fotos de los jugadores para el robot. Cuando subes caras/laliga.json (lo hace el Studio con
+# «Caras para el robot», con tu clave y desde tu navegador), baja las fotos que faltan de
+# API-Football (sin clave: no gastan peticiones ni tocan tu cuenta) y las guarda en caras/<id>.png.
+# Ver tools/caras.mjs.
+on:
+  push:
+    branches: [main]
+    paths: ['caras/laliga.json']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: caras
+  cancel-in-progress: false
+
+jobs:
+  fotos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Bajar las fotos que faltan
+        run: node tools/caras.mjs
+
+      - name: Guardarlas en el repo
+        run: |
+          git add caras
+          if git diff --cached --quiet; then echo "No hay fotos nuevas"; exit 0; fi
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+            commit -q -m 'Caras: las fotos que faltaban de caras/laliga.json'
+          git push
