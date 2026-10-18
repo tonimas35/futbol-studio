@@ -318,8 +318,17 @@ try {
   // ── El vídeo: guion automático, la mezcla y el MP4 ──
   const script = await page.$$eval('#scriptLines .script-line', (ls) => ls.map((l) => [l.dataset.scene, l.querySelector('textarea').value, l.querySelector('.script-fit').className]));
   check(script.map(([id]) => id).join(',') === 'score,dato,goals,tiros,jugador,stats,tabla,outro', `guion: una frase por escena (${script.map(([id]) => id).join(', ')})`);
-  check(script[0][1] === 'Remontada del Real Madrid: 4-3 a la Roma.' && script[1][1] === 'Se acaba la racha de la Roma: 14 partidos sin perder.' && /Malen marca dos/.test(script[2][1]),
-    `y escrita con los datos (${script[0][1]} · ${script[1][1]} · ${script[2][1]})`);
+  check(script[0][1] === 'Remontada del Real Madrid: 4-3 a la Roma.' && script[1][1] === 'Se acaba la racha de la Roma: 14 partidos sin perder.',
+    `y escrita con los datos (${script[0][1]} · ${script[1][1]})`);
+  // Que cuente el partido, no una lista de datos: la remontada, la pegada, el doblete, a quién no le
+  // sirvió el balón y dónde se queda
+  const told = Object.fromEntries(script.map(([id, line]) => [id, line]));
+  check(told.goals === 'La Roma se adelantó, pero el Real Madrid le dio la vuelta con un gol de Rüdiger en el 90.'
+    && told.tiros === 'Pegada del Real Madrid: 4 goles con 8 tiros a puerta.'
+    && told.jugador === 'Malen, el mejor del partido: doblete y 3 de 4 tiros a puerta.'
+    && told.stats === 'La Roma tuvo más el balón, un 54%, pero no le sirvió.'
+    && told.tabla === 'El Real Madrid, octavo.',
+    `y cuenta el partido (${['goals', 'tiros', 'jugador', 'stats', 'tabla'].map((id) => told[id]).join(' · ')})`);
   check(script.every(([, , cls]) => /ok/.test(cls)), 'todas caben a ritmo normal');
   await page.fill('#scriptLines textarea[data-scene="outro"]', '¿Mbappé o Malen?');
   await page.waitForTimeout(700);
@@ -334,7 +343,7 @@ try {
     return a.duration;
   });
   check(await page.getAttribute('.lang-opt[data-music="trap"]', 'aria-checked') === 'true' && await page.isHidden('#mixResetBtn'), 'la música, urbana por defecto');
-  check(!(await page.isChecked('#videoSubs')), 'y los subtítulos, apagados por defecto');
+  check(await page.isChecked('#videoSubs'), 'y los subtítulos, encendidos por defecto (el guion cuenta el partido)');
   check(!(await page.isChecked('#videoMusic')) && await page.isDisabled('#musicVol'), 'y sin música por defecto (en TikTok se pone un sonido)');
   await page.check('#videoMusic');
   await page.click('#mixPreviewBtn');
@@ -738,8 +747,18 @@ try {
     const btns = await pp.evaluate(() => ({ gen: document.getElementById('generateBtn').disabled, prev: !document.getElementById('previaBtn').hidden,
       note: document.getElementById('selectedGameInfo').textContent }));
     check(btns.gen && btns.prev && /puedes crear su previa/.test(btns.note), 'sin empezar: no hay carrusel, pero sí «Crear previa»');
+    // Lo que le llega al vídeo: con su guion y los subtítulos
+    await pp.evaluate(() => {
+      const render = window.StudioVideo.render;
+      window.StudioVideo.render = (data, cb, opts) => { window.__previaOpts = opts; return render(data, cb, opts); };
+    });
     await pp.click('#previaBtn');
     await pp.waitForFunction(() => !document.getElementById('videoOut').hidden || /No se pudo/.test(document.getElementById('toast').textContent), null, { timeout: 400000 });
+    const said = await pp.evaluate(() => ({ captions: window.__previaOpts?.captions, ...window.__previaOpts?.script }));
+    check(said.captions && said.forma === 'El Real Madrid llega con cuatro victorias de cinco.' && said.h2h === 'El Real Madrid ganó los cinco últimos.'
+      && said.goleadores === 'Los que más marcan: Mbappé, 7; Sierra, 2.' && /^El Real Madrid, cuarto, a nueve del líder/.test(said.tabla)
+      && said.outro === '¿Quién gana? Te leo en comentarios.',
+      `y su guion, en subtítulos: cómo llegan, el cara a cara, los goleadores y la tabla (${[said.forma, said.h2h, said.goleadores, said.tabla].join(' · ')})`);
     const pv = await pp.evaluate(() => ({ title: document.getElementById('videoOut').dataset.title, caption: document.getElementById('captionText').value.split('\n'),
       dl: document.getElementById('videoDlBtn').download, box: !document.getElementById('captionBox').hidden }));
     check(pv.title === 'Previa · Real Madrid – Sevilla' && pv.dl === 'futbol-rma-sev-2026-11-29-previa.mp4' && pv.box,

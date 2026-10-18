@@ -613,7 +613,8 @@
     const AX = W / 2;
     // Arriba, fijos, el título y el marcador; debajo, una ventana (VT–VB) por la que baja la
     // línea. La cámara sigue la punta de la línea y, al final, se aleja para enseñarla entera.
-    const VT = 440, VB = 1560;
+    // Hasta 1480: debajo van los subtítulos.
+    const VT = 440, VB = 1480;
     const TOP = VT + 90;
     const hOf = (e) => (e.kind === 'goal' ? 112 : e.tiny ? 58 : 84);
     // Lo larga que es la línea: lo que pidan los sucesos de cada lado (para no tener que quitar
@@ -912,7 +913,8 @@
   // con los tiros que ya han llegado.
   function sceneShots(d, A) {
     const s = d.shots;
-    const PW = 700, PH = Math.round(PW * 105 / 68), PX = (W - PW) / 2, PY = 400;
+    // El campo acaba en 1419 y la leyenda en 1488: debajo van los subtítulos
+    const PW = 660, PH = Math.round(PW * 105 / 68), PX = (W - PW) / 2, PY = 400;
     const sx = PW / 68, sy = PH / 105; // metros → píxeles
     const GOAL_W = 7.32 * sx;
     // ESPN da cada tiro en % del campo, atacando hacia x = 100.
@@ -1083,7 +1085,7 @@
         // Leyenda
         ctx.save();
         ctx.globalAlpha = k;
-        const ly = 1560;
+        const ly = 1488;
         football(ctx, M + 18, ly - 14, 16);
         ctx.font = BARLOW(38);
         const lw = (str) => ctx.measureText(str).width;
@@ -1190,7 +1192,7 @@
           chip(ctx, s.label, M, y + 22, st, 38);
           ctx.restore();
         });
-        tape(ctx, m.scoreLine, W - M - 330, 1530, st, fit(ctx, up(m.scoreLine), ANTON, 54, 640), prog(t, 2 * BAR, 0.45));
+        tape(ctx, m.scoreLine, W - M - 330, 1430, st, fit(ctx, up(m.scoreLine), ANTON, 54, 640), prog(t, 2 * BAR, 0.45));
       },
     };
   }
@@ -1591,7 +1593,8 @@
   function scenePrevForma(d, A) {
     const n = Math.max(d.forma.home.length, d.forma.away.length);
     const rowAt = (i) => BEAT + i * STEP * 2;
-    const TOP = 500, ROW = 190;
+    // Las cuentas («4G · 0E · 1P») acaban en 1445: debajo van los subtítulos
+    const TOP = 500, ROW = 175;
     return {
       id: 'forma',
       dur: 3 * BAR,
@@ -1643,7 +1646,8 @@
     const h = d.h2h;
     const games = h.games.slice(0, 5);
     const rowAt = (i) => BAR + i * STEP * 2;
-    const TOP = 900, ROW = 150;
+    // Los partidos acaban en 1450: debajo van los subtítulos
+    const TOP = 820, ROW = 130, MID = (ROW - 20) / 2;
     return {
       id: 'h2h',
       dur: 3 * BAR,
@@ -1687,12 +1691,12 @@
           ctx.fillStyle = P.zebra;
           roundRect(ctx, M - 16, y, W - 2 * M + 32, ROW - 20, 16);
           ctx.fill();
-          text(ctx, up(g.date), M + 10, y + 82, BARLOW(34), P.mute);
+          text(ctx, up(g.date), M + 10, y + MID + 13, BARLOW(34), P.mute);
           const mid = W / 2 + 120;
           const win = (side) => (g.winner === side ? P.ink : P.faint);
-          text(ctx, up(g.homeName), mid - 90, y + 82, BARLOW(fit(ctx, up(g.homeName), (z) => BARLOW(z), 40, 300)), win('home'), 'right');
-          text(ctx, `${g.homeScore}-${g.awayScore}`, mid, y + 86, ANTON(60), P.ink, 'center');
-          text(ctx, up(g.awayName), mid + 90, y + 82, BARLOW(fit(ctx, up(g.awayName), (z) => BARLOW(z), 40, 300)), win('away'), 'left');
+          text(ctx, up(g.homeName), mid - 90, y + MID + 15, BARLOW(fit(ctx, up(g.homeName), (z) => BARLOW(z), 40, 300)), win('home'), 'right');
+          text(ctx, `${g.homeScore}-${g.awayScore}`, mid, y + MID + 21, ANTON(60), P.ink, 'center');
+          text(ctx, up(g.awayName), mid + 90, y + MID + 15, BARLOW(fit(ctx, up(g.awayName), (z) => BARLOW(z), 40, 300)), win('away'), 'left');
           ctx.restore();
         });
       },
@@ -1756,7 +1760,7 @@
       d.jugador && sceneJugador(d, A),
       d.stats?.length >= 3 && sceneStats(d, A),
       // La versión larga: también el resto de estadísticas, cómo llegaban y el cara a cara
-      d.long && d.stats?.length >= 3 && d.statsMore?.length >= 2 && sceneStats(d, A, d.statsMore, 'stats2'),
+      d.long && d.stats?.length >= 3 && d.statsMore?.length >= 2 && sceneStats(d, A, d.statsMore.slice(0, 5), 'stats2'),
       d.long && d.forma && (d.forma.home.length || d.forma.away.length) && scenePrevForma(d, A),
       d.long && d.h2h?.games.length && scenePrevH2H(d, A),
       d.table?.rows.length && sceneTable(d, A),
@@ -1830,12 +1834,17 @@
   }
 
   // Subtítulos de creador: mayúsculas gruesas con borde negro, de dos o tres palabras, y la
-  // que suena sobre un recuadro verde lima que salta.
+  // que suena sobre un recuadro verde lima que salta. Debajo de lo que se ve (la tabla y el minuto
+  // a minuto acaban hacia 1490) y por encima del nombre y la descripción de TikTok, que tapan la
+  // parte de abajo de la pantalla.
   const CAP_FONT = (size) => `900 ${size}px Montserrat, "Arial Black", sans-serif`;
-  const CAP_Y = 1650;
+  const CAP_Y = 1560;
   const CAP_SIZE = 84;
   const CAP_MAX_W = W - 2 * M - 40;
   const capUp = (w) => up(w).replace(/[,;:]$/, '');
+  // Las palabras que no cierran un trozo («LA GOLEADA Y» → «LA GOLEADA» · «Y BUENO MAQUILLÓ»)
+  const WEAK = new Set(['y', 'e', 'o', 'ni', 'el', 'la', 'los', 'las', 'un', 'una', 'de', 'del', 'a', 'al', 'en', 'con', 'por',
+    'para', 'que', 'su', 'sus', 'le', 'lo', 'se', 'sin', 'the', 'an', 'and', 'of', 'to', 'in', 'on', 'for', 'with', 'at', 'by']);
   function captionPages(words) {
     const measure = document.createElement('canvas').getContext('2d');
     const widthOf = (ws, size) => {
@@ -1848,7 +1857,9 @@
       const last = cur?.words[cur.words.length - 1];
       if (!cur || cur.scene !== w.scene || cur.words.length >= 3 || /[.,:;!?…]$/.test(last.text)
         || widthOf([...cur.words, w], CAP_SIZE) > CAP_MAX_W) {
-        cur = { scene: w.scene, words: [] };
+        // Si el trozo acaba en «y», «el», «de»…, esa palabra pasa al siguiente
+        const carry = cur && cur.scene === w.scene && cur.words.length > 1 && WEAK.has(last.text.toLowerCase()) ? [cur.words.pop()] : [];
+        cur = { scene: w.scene, words: carry };
         pages.push(cur);
       }
       cur.words.push(w);
