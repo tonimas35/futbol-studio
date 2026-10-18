@@ -1027,7 +1027,9 @@ try {
     const saved = { hecho: '2026-10-17', liga: 'esp.1', equipos: [
       { espn: '104', af: 497, nombre: 'AS Roma', jugadores: [{ id: 1001, nombre: 'D. Malen', dorsal: 14 }, { id: 1002, nombre: 'P. Dybala', dorsal: 21 }] },
       // «Otro Jugador» lleva el dorsal de Bellingham, pero no su apellido: sin cara (mejor que la de otro)
-      { espn: '86', af: 541, nombre: 'Real Madrid', jugadores: [{ id: 1003, nombre: 'K. Mbappé', dorsal: 10 }, { id: 1004, nombre: 'Vinícius Júnior', dorsal: 7 }, { id: 1005, nombre: 'Otro Jugador', dorsal: 5 }] },
+      // Valverde, con un apellido de más; «Aurélien Otro» comparte con Tchouaméni solo el nombre: sin cara
+      { espn: '86', af: 541, nombre: 'Real Madrid', jugadores: [{ id: 1003, nombre: 'K. Mbappé', dorsal: 10 }, { id: 1004, nombre: 'Vinícius Júnior', dorsal: 7 }, { id: 1005, nombre: 'Otro Jugador', dorsal: 5 },
+        { id: 1007, nombre: 'Federico Valverde Dipetta', dorsal: 8 }, { id: 1008, nombre: 'Aurélien Otro', dorsal: 14 }] },
       { espn: '244', af: 543, nombre: 'Real Betis', jugadores: [{ id: 2001, nombre: 'Isco', dorsal: 22 }] },
     ] };
     const asked = [];
@@ -1065,8 +1067,8 @@ try {
     }));
     check(lf.name === 'Kylian Mbappé' && lf.face.endsWith('/caras/1003.png') && !(await slideNames(pf)).includes('Las notas'),
       `sin clave (el robot), el jugador del partido con su cara guardada en el repo y sin notas (${lf.name} · ${lf.face.split('/').slice(-2).join('/')})`);
-    check(lf.onces.join(' ') === 'caras/1001.png caras/1002.png caras/1003.png caras/1004.png' && asked.length === 0 && !lf.button,
-      `y en «Los onces», por el apellido (el dorsal solo no basta), sin pedir nada a API-Football (${lf.onces.length} caras)`);
+    check(lf.onces.join(' ') === 'caras/1001.png caras/1002.png caras/1003.png caras/1004.png caras/1007.png' && asked.length === 0 && !lf.button,
+      `y en «Los onces», por el apellido (o el nombre y un apellido de más; el dorsal solo no basta), sin pedir nada a API-Football (${lf.onces.length} caras)`);
     // Con tu clave, «Caras para el robot» baja las plantillas en laliga.json
     await pf.fill('#afKeyInput', 'clave-de-prueba');
     const [dl] = await Promise.all([pf.waitForEvent('download', { timeout: 30000 }), pf.click('#facesBtn')]);
