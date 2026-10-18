@@ -716,6 +716,7 @@ body.zoom-open { overflow: hidden; }
 .brand-btn { min-height: 44px; height: 44px; padding: 0 16px; font-size: 16px; }
 .brand-field .brand-del { display: inline-flex; align-items: center; }
 .brand-field .brand-del[hidden] { display: none; }
+.faces-field[hidden] { display: none; }
 
 /* Tu firma */
 .sign-field { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 18px; }
