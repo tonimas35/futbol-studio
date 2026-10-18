@@ -3677,16 +3677,13 @@
       return f.length ? `${m[side].short} ${c('W')}${L('G', 'W')} ${c('D')}${L('E', 'D')} ${c('L')}${L('P', 'L')}` : '';
     };
     const h = h2hCount(m);
-    const tags = [L('futbol', 'football'), TT_COMP[m.league] || hashtag(compOf(m.league).tag),
-      ...[m.home, m.away].map(t => TT_TEAM[t.id] || hashtag(t.name)),
-      ...(isEn() ? ['soccer', 'sportsontiktok', 'fyp'] : ['previa', 'deportesentiktok', 'parati'])];
     return [
       `🔥 ${L('PREVIA', 'PREVIEW')} · ${m.home.short} – ${m.away.short}`,
       `⏰ ${k.when}, ${k.hhmm} · ${compName(m.league)}`,
       [rec('home'), rec('away')].every(Boolean) && `📊 ${L('Últimos 5', 'Last 5')}: ${rec('home')} · ${rec('away')}`,
       h.n && `🆚 ${L(`Últimos ${h.n} cara a cara`, `Last ${h.n} meetings`)}: ${m.home.short} ${h.home}, ${L('empates', 'draws')} ${h.draws}, ${m.away.short} ${h.away}`,
       `${L('¿Quién gana?', 'Who wins?')} 👇`,
-      [...new Set(tags)].map(t => `#${t}`).join(' '),
+      ttTags(m, isEn() ? ['preview', 'soccer'] : ['previa', 'deportesentiktok']),
     ].filter(Boolean).join('\n');
   }
 
@@ -4840,6 +4837,11 @@ ${inside.length ? `\n${L('Desliza para ver', 'Swipe for')} ${listEs(inside)}.\n`
   // Los clubes cuyo hashtag de siempre no es su nombre; el resto, su nombre sin espacios.
   const TT_TEAM = { 83: 'fcbarcelona', 1068: 'atleticodemadrid', 110: 'inter', 132: 'fcbayern', 160: 'psg' };
   const hashtag = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9]/g, '').toLowerCase();
+  // TikTok deja como mucho 5 hashtags por publicación: el fútbol, la competición, los dos equipos
+  // y uno más (extra, el primero que no repita)
+  const TT_MAX = 5;
+  const ttTags = (m, extra) => [...new Set([L('futbol', 'football'), TT_COMP[m.league] || hashtag(compOf(m.league).tag),
+    ...[m.home, m.away].map(t => TT_TEAM[t.id] || hashtag(t.name)), ...extra].filter(Boolean))].slice(0, TT_MAX).map(t => `#${t}`).join(' ');
   function tiktokCaption(m) {
     const dato = slideDefs().some(d => d.id === 'dato') ? datoFacts(m)[0] : null;
     const score = `${m.home.short} ${m.home.score}-${m.away.score} ${m.away.short}${pensWon(m) ? ` (${m.home.shootout}-${m.away.shootout} ${L('pen.', 'pens')})` : ''}`;
@@ -4854,10 +4856,7 @@ ${inside.length ? `\n${L('Desliza para ver', 'Swipe for')} ${listEs(inside)}.\n`
     const rating = best ? afRating(m, best) : null;
     const star = best ? `⭐ ${best.name}${rating != null ? L(`, un ${fmtRating(rating)}`, `, rated ${fmtRating(rating)}`) : ''}` : '';
     const question = writtenText('#slide-cierre .q') || closingQuestion(m);
-    const tags = [L('futbol', 'football'), TT_COMP[m.league] || hashtag(compOf(m.league).tag),
-      ...[m.home, m.away].map(t => TT_TEAM[t.id] || hashtag(t.name)),
-      ...(isEn() ? ['soccer', 'sportsontiktok', 'fyp'] : ['deportesentiktok', 'tiktokfootballacademy', 'parati'])];
-    return [`${hook} · ${score}`, star, `${question} 👇`, [...new Set(tags)].map(t => `#${t}`).join(' ')].filter(Boolean).join('\n');
+    return [`${hook} · ${score}`, star, `${question} 👇`, ttTags(m, isEn() ? ['soccer', 'fyp'] : ['deportesentiktok', 'parati'])].filter(Boolean).join('\n');
   }
   // El cuadro de la descripción: se rehace con cada cambio salvo que la hayas retocado tú.
   let captionEdited = false;

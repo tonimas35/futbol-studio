@@ -194,7 +194,7 @@ try {
   // La descripción para TikTok: el gancho (el dato dicho entero, con quién) con el resultado, el mejor, la pregunta y los hashtags
   const caption = (await page.inputValue('#captionText')).split('\n');
   check(caption[0] === '🤯 Se acaba la racha de la Roma: 14 partidos sin perder · Roma 3-4 Real Madrid' && /^⭐ /.test(caption[1]) && /👇$/.test(caption[2])
-    && caption[3] === '#futbol #championsleague #roma #realmadrid #deportesentiktok #tiktokfootballacademy #parati',
+    && caption[3] === '#futbol #championsleague #roma #realmadrid #deportesentiktok',
     `descripción para TikTok lista (${caption.join(' | ')})`);
   // El estilo: claro por defecto; en oscuro, las slides de datos cambian de fondo (sin volver a pedir nada)
   const sheets = () => page.evaluate(() => ({
@@ -714,7 +714,7 @@ try {
       `la previa en vídeo (${pv.title} · ${pv.dl})`);
     check(pv.caption[0] === '🔥 PREVIA · Real Madrid – Sevilla' && pv.caption[1] === '⏰ Hoy, 21:00 · LaLiga'
       && pv.caption[2] === '📊 Últimos 5: Real Madrid 4G 0E 1P · Sevilla 2G 1E 1P'
-      && pv.caption[3] === '🆚 Últimos 5 cara a cara: Real Madrid 5, empates 0, Sevilla 0' && /#previa/.test(pv.caption[5]),
+      && pv.caption[3] === '🆚 Últimos 5 cara a cara: Real Madrid 5, empates 0, Sevilla 0' && pv.caption[5] === '#futbol #laliga #realmadrid #sevilla #previa',
       `y su descripción: la hora, cómo llegan (sin amistosos) y el cara a cara (${pv.caption.slice(0, 4).join(' | ')})`);
     await cp.close();
   }
