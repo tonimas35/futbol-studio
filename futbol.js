@@ -3253,6 +3253,7 @@
     } catch (e) { /* sin red o abierto como archivo: sin logo */ }
   }
   function updateBrandUi() {
+    if (scriptData) showVideoLength();
     const prev = document.getElementById('brandPreview');
     prev.hidden = !state.brandLogo;
     if (state.brandLogo) prev.src = state.brandLogo;
@@ -3960,10 +3961,12 @@
     showVideoLength();
   }
 
-  // «El vídeo dura 40 s» · «1:02»: con la versión larga, que se vea que pasa del minuto
+  // «El vídeo dura 40 s» · «1:02»: con la versión larga, que se vea que pasa del minuto. Con lo de
+  // ahora (el logo de Jornada90 llega después del guion y añade su escena).
   function showVideoLength() {
     const el = document.getElementById('scriptTotal');
-    const secs = scriptData && window.StudioVideo.length ? window.StudioVideo.length(scriptData, document.getElementById('videoIntro').checked) : 0;
+    const secs = scriptData && state.rendered && window.StudioVideo.length
+      ? window.StudioVideo.length(videoData(state.rendered), document.getElementById('videoIntro').checked) : 0;
     el.textContent = !secs ? '' : `El vídeo dura ${secs < 60 ? `${Math.round(secs)} s` : `${Math.floor(secs / 60)}:${String(Math.round(secs % 60)).padStart(2, '0')}`}.`;
   }
 
