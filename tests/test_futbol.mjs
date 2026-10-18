@@ -655,8 +655,8 @@ try {
       `y el aviso al móvil lleva el resultado, la descripción y el enlace al vídeo (${n.click})`);
     check(pl.notice({ id: '401882844', title: 'x' }, 'tema', 'https://tonimas35.github.io/futbol-studio/', false).click === 'https://github.com/tonimas35/futbol-studio/releases/download/videos/401882844.mp4',
       'y si la web no se ha podido publicar, el vídeo tal cual');
-    // Las previas: 3 horas antes de los partidos grandes (los del Madrid, el Barça y el Atlético; en
-    // la Champions, los de equipos de LaLiga), una vez y nunca a menos de 10 minutos del inicio
+    // Las previas: 3 horas antes de los partidos grandes (los del Madrid, el Barça y el Atlético) y de
+    // todos los de la Champions, una vez y nunca a menos de 10 minutos del inicio
     const pre = (id, home, away, iso) => ({ id, date: iso, status: { type: { state: 'pre' } },
       competitions: [{ competitors: [{ homeAway: 'home', team: { id: home, shortDisplayName: `L${home}` } }, { homeAway: 'away', team: { id: away, shortDisplayName: `V${away}` } }] }] });
     const ko = '2026-11-29T20:00Z', t0 = Date.parse(ko);
@@ -665,11 +665,10 @@ try {
       { league: 'uefa.champions', day: '2026-11-29', data: { events: [pre('3', '93', '999', ko), pre('4', '998', '999', ko)] } },
     ];
     const cfgP = { equipos: ['86', '83', '1068'], competiciones: ['uefa.champions'], horasAntes: 3 };
-    const laliga = new Set(['86', '243', '94', '90', '93']);
-    const prev = (now, done = new Set()) => pl.findPrevias(pb, now, done, laliga, cfgP);
-    check(prev(t0 - 2.5 * 3600e3).map((f) => f.id).join() === '1,3' && prev(t0 - 4 * 3600e3).length === 0 && prev(t0 - 5 * 60e3).length === 0
-      && prev(t0 - 2 * 3600e3, new Set(['1-previa'])).map((f) => f.id).join() === '3',
-      'las previas: 3 horas antes de los partidos grandes, una vez y no a punto de empezar');
+    const prev = (now, done = new Set()) => pl.findPrevias(pb, now, done, cfgP);
+    check(prev(t0 - 2.5 * 3600e3).map((f) => f.id).join() === '1,3,4' && prev(t0 - 4 * 3600e3).length === 0 && prev(t0 - 5 * 60e3).length === 0
+      && prev(t0 - 2 * 3600e3, new Set(['1-previa'])).map((f) => f.id).join() === '3,4',
+      'las previas: 3 horas antes de los partidos grandes y de toda la Champions, una vez y no a punto de empezar');
     check(prev(t0 - 2.5 * 3600e3)[0].kind === 'previa' && prev(t0 - 2.5 * 3600e3)[0].title === 'L86 – V243'
       && pl.notice({ id: '1-previa', kind: 'previa', title: 'Previa · Real Madrid – Sevilla', caption: 'x' }, 't', 'https://w/').title === '🔥 Previa · Real Madrid – Sevilla',
       'con su aviso («🔥 Previa · …»)');

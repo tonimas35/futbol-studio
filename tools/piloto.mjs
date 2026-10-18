@@ -78,10 +78,10 @@ export const vsLine = (e) => {
   return `${name(cs.find(c => c.homeAway === 'home') || cs[0])} – ${name(cs.find(c => c.homeAway === 'away') || cs[1])}`;
 };
 
-// Las previas: los partidos grandes (los de los equipos de piloto.json, en cualquier competición,
-// y en las competiciones de piloto.json, los de equipos de tu liga) que empiezan dentro de las
-// horas de antes que diga (3), y aún no tienen previa. Nada si faltan menos de 10 minutos.
-export function findPrevias(boards, now, done, local = null, cfg = CONFIG.previas) {
+// Las previas: los partidos grandes (los de los equipos de piloto.json, en cualquier competición)
+// y todos los de sus competiciones (la Champions entera) que empiezan dentro de las horas de antes
+// que diga (3), y aún no tienen previa. Nada si faltan menos de 10 minutos.
+export function findPrevias(boards, now, done, cfg = CONFIG.previas) {
   if (!cfg) return [];
   const out = [];
   const seen = new Set();
@@ -91,8 +91,7 @@ export function findPrevias(boards, now, done, local = null, cfg = CONFIG.previa
       if (e.status?.type?.state !== 'pre' || seen.has(e.id) || done.has(`${e.id}-previa`)) continue;
       if (!(left > 10 * 60e3 && left <= (cfg.horasAntes || 3) * 3600e3)) continue;
       const ids = (e.competitions?.[0]?.competitors || []).map(c => String(c.team?.id));
-      const big = ids.some(id => (cfg.equipos || []).includes(id))
-        || ((cfg.competiciones || []).includes(league) && (!local || ids.some(id => local.has(id))));
+      const big = ids.some(id => (cfg.equipos || []).includes(id)) || (cfg.competiciones || []).includes(league);
       if (!big) continue;
       seen.add(e.id);
       out.push({ kind: 'previa', league, id: e.id, day, title: vsLine(e) });
@@ -218,7 +217,7 @@ async function scan(ctx = {}) {
   return {
     found: findFinished(boards, now, ctx.done, ctx.local),
     near: findNearEnd(boards, now, ctx.done, ctx.local),
-    previas: findPrevias(boards, now, ctx.done, ctx.local),
+    previas: findPrevias(boards, now, ctx.done),
     jornadas,
   };
 }
