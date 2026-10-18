@@ -142,15 +142,21 @@ export function findJornada(boards, now, done, league = CONFIG.liga) {
   return done.has(id) ? [] : [{ kind: 'jornada', league, id, day: last.b.day, title: `Jornada de ${league} (${list.length} partidos)` }];
 }
 
-// Lo que ya está hecho: los <id>.mp4 de la release (y el <id>.json de cada jornada).
+// Lo que ya está hecho: los <id>.mp4 de la release (y el <id>.json de cada jornada). Si GitHub no
+// contesta, error: sin la lista, el robot repetiría cada 10 minutos los vídeos y los avisos.
 async function releaseAssets() {
   const headers = process.env.GH_TOKEN ? { authorization: `Bearer ${process.env.GH_TOKEN}` } : {};
-  const rel = await getJson(`https://api.github.com/repos/${repo()}/releases/tags/${RELEASE}`, headers);
-  if (!rel) return [];
+  const get = async (url) => {
+    const res = await fetch(url, { headers, signal: AbortSignal.timeout(15000) }).catch(() => null);
+    if (res?.status === 404) return null;
+    if (!res?.ok) throw new Error(`GitHub no deja leer la release «${RELEASE}» (${res?.status || 'sin respuesta'}): sin ella no se sabe qué está hecho`);
+    return res.json();
+  };
+  const rel = await get(`https://api.github.com/repos/${repo()}/releases/tags/${RELEASE}`);
+  if (!rel) return []; // aún no hay release: no hay nada hecho
   const all = [];
   for (let page = 1; ; page++) {
-    const list = await getJson(`https://api.github.com/repos/${repo()}/releases/${rel.id}/assets?per_page=100&page=${page}`, headers);
-    if (!list?.length) break;
+    const list = await get(`https://api.github.com/repos/${repo()}/releases/${rel.id}/assets?per_page=100&page=${page}`) || [];
     all.push(...list);
     if (list.length < 100) break;
   }
@@ -362,9 +368,9 @@ async function video() {
   }
   await browser.close();
   server.close();
-  // Los de hace más de 7 días, fuera
+  // Los de hace más de 7 días, fuera (si GitHub no contesta, la próxima vez)
   const old = Date.now() - 7 * 86400e3;
-  for (const a of await releaseAssets()) {
+  for (const a of await releaseAssets().catch(() => [])) {
     if (Date.parse(a.created_at) < old) gh('release', 'delete-asset', RELEASE, a.name, '--yes');
   }
   output('hechos', JSON.stringify(made));
