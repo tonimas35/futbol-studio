@@ -1196,13 +1196,12 @@
   }
 
   // 5 · Estadísticas: cada equipo en su mitad y una fila por pulso, con los números subiendo;
-  // el peor, apagado.
-  function sceneStats(d, A) {
-    const rows = d.stats.slice(0, 5);
+  // el peor, apagado. En la versión larga, una segunda con las que no caben (stats2).
+  function sceneStats(d, A, rows = d.stats.slice(0, 5), id = 'stats') {
     const rowAt = (i) => (i + 1) * BEAT;
     const TOP = 520, ROW = 190;
     return {
-      id: 'stats',
+      id,
       dur: rows.length <= 3 ? 2 * BAR : 3 * BAR,
       accent: (d.home.won ? d.home : d.away).style.acc,
       music: { energy: 'full' },
@@ -1560,7 +1559,8 @@
           const c = d.forma[side].reduce((acc, g) => ({ ...acc, [g.res]: (acc[g.res] || 0) + 1 }), {});
           ctx.save();
           ctx.globalAlpha = easeOut(prog(t, rowAt(n) + 0.2, 0.4));
-          text(ctx, `${c.W || 0}G · ${c.D || 0}E · ${c.L || 0}P`, x0 + W / 4, TOP + 5 * ROW + 70, ANTON(64), st.fg, 'center');
+          const [w, dr, l] = d.t?.wdl || ['G', 'E', 'P'];
+          text(ctx, `${c.W || 0}${w} · ${c.D || 0}${dr} · ${c.L || 0}${l}`, x0 + W / 4, TOP + 5 * ROW + 70, ANTON(64), st.fg, 'center');
           ctx.restore();
         });
       },
@@ -1675,7 +1675,7 @@
         d.brand && sceneMarca(d, A),
       ].filter(Boolean);
     }
-    return [
+    const scenes = [
       intro && sceneIntro(d, A),
       sceneScore(d, A),
       d.dato && sceneDato(d, A),
@@ -1683,10 +1683,34 @@
       d.shots?.list.length >= 4 && sceneShots(d, A),
       d.jugador && sceneJugador(d, A),
       d.stats?.length >= 3 && sceneStats(d, A),
+      // La versión larga: también el resto de estadísticas, cómo llegaban y el cara a cara
+      d.long && d.stats?.length >= 3 && d.statsMore?.length >= 2 && sceneStats(d, A, d.statsMore, 'stats2'),
+      d.long && d.forma && (d.forma.home.length || d.forma.away.length) && scenePrevForma(d, A),
+      d.long && d.h2h?.games.length && scenePrevH2H(d, A),
       d.table?.rows.length && sceneTable(d, A),
       sceneOutro(d, A),
       d.brand && sceneMarca(d, A),
     ].filter(Boolean);
+    return d.long ? stretchScenes(scenes) : scenes;
+  }
+
+  // VERSIÓN LARGA · TikTok paga los vídeos de más de un minuto: si con sus escenas no llega, cada
+  // una se queda más en pantalla (compases enteros, para que la música siga cuadrando), primero
+  // las de más que leer. La animación va a su ritmo y luego se queda quieta, con la cámara
+  // acercándose; el paso a la siguiente, igual que siempre.
+  const LONG_MIN = 62;
+  const LONG_FIRST = ['goals', 'tabla', 'h2h', 'forma', 'stats', 'stats2', 'jugador', 'tiros', 'dato', 'score'];
+  function stretchScenes(scenes) {
+    let need = Math.ceil((LONG_MIN - scenes.reduce((sum, sc) => sum + sc.dur, 0)) / BAR);
+    const order = LONG_FIRST.map(id => scenes.findIndex(sc => sc.id === id)).filter(i => i >= 0);
+    if (need <= 0 || !order.length) return scenes;
+    const extra = scenes.map(() => 0);
+    for (let k = 0; need > 0; k++, need--) extra[order[k % order.length]] += BAR;
+    return scenes.map((sc, i) => {
+      if (!extra[i]) return sc;
+      const end = sc.dur;
+      return { ...sc, dur: end + extra[i], draw: (ctx, t) => sc.draw(ctx, t < end ? t : t < end + extra[i] ? end : t - extra[i]) };
+    });
   }
   // Lo que dura la apertura (para colocar la voz si se grabó con ella o sin ella).
   const leadOf = (scenes) => (scenes[0]?.id === 'intro' ? scenes[0].dur : 0);
@@ -2309,13 +2333,13 @@
         if (codec.muxer !== 'avc') notes.push('el vídeo va en VP9');
         if (acodec && acodec.muxer !== 'aac') notes.push('el sonido va en Opus');
         return {
-          blob, ext: 'mp4', audio: audioOut, mix,
+          blob, ext: 'mp4', audio: audioOut, mix, duration: drawer.duration,
           note: notes.length ? `Tu navegador no tiene H.264/AAC: ${notes.join(' y ')}. Si TikTok no lo acepta, créalo con Chrome.` : '',
         };
       }
       const blob = await recordRealtime(drawer, onProgress, audioBuffer, live);
       const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
-      return { blob, ext, audio: audioOut, mix, note: ext === 'webm' ? 'Este navegador solo graba WebM: TikTok e Instagram lo aceptan, pero el MP4 sale con Chrome.' : '' };
+      return { blob, ext, audio: audioOut, mix, duration: drawer.duration, note: ext === 'webm' ? 'Este navegador solo graba WebM: TikTok e Instagram lo aceptan, pero el MP4 sale con Chrome.' : '' };
     } finally {
       live?.close();
     }

@@ -371,6 +371,20 @@ try {
   await page.waitForFunction(() => !document.getElementById('mixPlayer').hidden, null, { timeout: 120000 });
   const epicLen = await mixDuration();
   check(epicLen > 39.4 && epicLen < 40.6, `y la épica dura lo mismo (${epicLen.toFixed(1)} s)`);
+  // La versión larga (TikTok solo paga a partir del minuto): más escenas si hay datos y cada una
+  // algo más en pantalla, en compases enteros, hasta pasar del minuto
+  const secs = () => page.$$eval('#scriptLines .script-line', (ls) => ls.map((l) => [l.dataset.scene, parseFloat(l.querySelector('small').textContent.replace(',', '.'))]));
+  const shortScenes = await secs();
+  await page.check('#videoLong');
+  const longScenes = await secs();
+  await page.click('#mixPreviewBtn');
+  await page.waitForFunction(() => !document.getElementById('mixPlayer').hidden, null, { timeout: 120000 });
+  const longLen = await mixDuration();
+  const bars = longScenes.every(([, t]) => Math.abs(t / 1.6 - Math.round(t / 1.6)) < 0.05);
+  check(longLen > 61 && longLen < 64 && longScenes.length >= shortScenes.length && bars,
+    `«Versión larga (+1 min)»: ${longLen.toFixed(1)} s (${longScenes.map(([id, t]) => `${id} ${t}`).join(' · ')})`);
+  await page.uncheck('#videoLong');
+  check((await secs()).join() === shortScenes.join(), 'y al quitarla, el vídeo de siempre');
   await page.uncheck('#videoSubs');
   // En el iPhone salía mudo: el AudioEncoder de Safari da para el AAC una descripción que no es la
   // AudioSpecificConfig (WebKit 302253). Con uno de mentira que hace lo mismo, el MP4 tiene que

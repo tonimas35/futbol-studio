@@ -3406,9 +3406,13 @@
     const tbl = (m.standings?.length || 0) >= 4 ? tableRows(m, 11) : null;
     const closingSide = winner || 'home';
     const dato = slideDefs().some(x => x.id === 'dato') ? datoFacts(m)[0] : null;
+    const h = h2hCount(m);
     return {
       home: team('home'),
       away: team('away'),
+      // La versión larga (más de un minuto, la que paga TikTok): también el resto de
+      // estadísticas, cómo llegaban los dos y el cara a cara de antes
+      long: !!document.getElementById('videoLong')?.checked,
       live: live(m),
       clock: minuteText(m.status.clock),
       lang: state.lang,
@@ -3452,6 +3456,13 @@
         side: dato.side, style: teamStyle(m[dato.side]),
       },
       stats: rows.length >= 3 ? rows.slice(0, 5).map(r => ({ label: r.label, v: r.v, more: r.more, pct: !!r.fmt })) : null,
+      statsMore: rows.length > 6 ? rows.slice(5).map(r => ({ label: r.label, v: r.v, more: r.more, pct: !!r.fmt })) : null,
+      forma: m.prev?.forma,
+      h2h: h.n ? {
+        home: h.home, away: h.away, draws: h.draws,
+        label: L(h.n === 1 ? 'El anterior' : `Los ${h.n} anteriores`, h.n === 1 ? 'Previous meeting' : `Previous ${h.n} meetings`),
+        games: m.prev.h2h.map(g => ({ ...g, date: asDate(g.date).toLocaleDateString(outLocale(), { month: 'short', year: 'numeric' }) })),
+      } : null,
       table: tbl && {
         title: L(`Así va ${tableName(m)}`, `${tableName(m)} table`),
         rows: tbl.map(r => r && {
@@ -3475,6 +3486,7 @@
         player: L('JUGADOR', 'PLAYER'), ofMatch: L(' DEL PARTIDO', ' OF THE MATCH'),
         stats: L('ESTADÍSTICAS', 'STATS'),
         dato: L('EL DATO', 'THE STAT'),
+        forma: L('CÓMO LLEGABAN', 'FORM COMING IN'), h2h: L('CARA A CARA', 'HEAD TO HEAD'), draws: L('EMPATES', 'DRAWS'), wdl: L(['G', 'E', 'P'], ['W', 'D', 'L']),
         halftime: L('DESCANSO', 'HALF-TIME'), extraTime: L('PRÓRROGA', 'EXTRA TIME'), now: L('AHORA', 'NOW'), fullTime: L('FINAL', 'FULL TIME'),
         onPens: L('EN LOS PENALTIS', 'ON PENALTIES'),
         comments: L('TE LEO EN COMENTARIOS', 'LET ME KNOW IN THE COMMENTS'),
@@ -3520,7 +3532,8 @@
     document.activeElement?.blur();
     try {
       const opts = { ...videoOptions(), captions: document.getElementById('videoSubs').checked };
-      const out = await window.StudioVideo.render(videoData(m), (p, stage) => {
+      const data = videoData(m);
+      const out = await window.StudioVideo.render(data, (p, stage) => {
         label.textContent = stage || `Creando el vídeo… ${Math.round(p * 100)}%`;
       }, opts);
       if (state.rendered !== m) {
@@ -3528,7 +3541,7 @@
         return;
       }
       resetVideo();
-      const base = `futbol-${stamp(m)}-short`;
+      const base = `futbol-${stamp(m)}-${data.long ? 'largo' : 'short'}`;
       videoUrl = URL.createObjectURL(out.blob);
       const preview = document.getElementById('videoPreview');
       // Que el preview no se quede en el primer fotograma: el marcador con la cinta.
@@ -3547,7 +3560,8 @@
         adl.download = `${base}-musica.wav`;
       }
       const parts = [out.mix?.voice && 'tu voz', out.mix?.music && `música ${MUSIC_STYLES[opts.musicStyle]}`, out.mix?.captions && 'subtítulos', out.mix?.intro && 'la apertura con los escudos'].filter(Boolean);
-      document.getElementById('videoMeta').textContent = parts.length ? `Lleva ${listEs(parts)}.` : 'Sin sonido ni subtítulos.';
+      const long = out.duration ? ` Dura ${Math.floor(out.duration / 60)}:${String(Math.round(out.duration % 60)).padStart(2, '0')}.` : '';
+      document.getElementById('videoMeta').textContent = `${parts.length ? `Lleva ${listEs(parts)}.` : 'Sin sonido ni subtítulos.'}${data.long ? long : ''}`;
       document.getElementById('videoOut').hidden = false;
       showToast(out.note || 'Vídeo listo · revísalo y descárgalo', out.note ? '' : 'success');
     } catch (e) {
@@ -3648,7 +3662,7 @@
       sign: state.sign,
       brand: state.brandLogo || null,
       t: {
-        forma: L('CÓMO LLEGAN', 'FORM'), h2h: L('CARA A CARA', 'HEAD TO HEAD'), draws: L('EMPATES', 'DRAWS'),
+        forma: L('CÓMO LLEGAN', 'FORM'), h2h: L('CARA A CARA', 'HEAD TO HEAD'), draws: L('EMPATES', 'DRAWS'), wdl: L(['G', 'E', 'P'], ['W', 'D', 'L']),
         scorers: L('SUS GOLEADORES', 'TOP SCORERS'),
         comments: L('TE LEO EN COMENTARIOS', 'LET ME KNOW IN THE COMMENTS'),
         follow: L('Sígueme para más fútbol', 'Follow for more football'),
@@ -3725,6 +3739,7 @@
   const SCENE_NAMES = {
     score: 'Marcador', dato: 'El dato', goals: 'Los goles', tiros: 'Mapa de tiros', jugador: 'Jugador del partido',
     stats: 'Estadísticas', tabla: 'Clasificación', outro: 'Cierre',
+    stats2: 'Más estadísticas', forma: 'Cómo llegaban', h2h: 'Cara a cara',
   };
   const NUM_WORDS = ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco'];
   const ORDINALS = ['', 'primero', 'segundo', 'tercero', 'cuarto', 'quinto', 'sexto', 'séptimo', 'octavo', 'noveno', 'décimo'];
@@ -3798,6 +3813,20 @@
       script.tabla = rh && ra ? `${H.short}, ${ordinalEn(rh)}; ${A.short}, ${ordinalEn(ra)}.`
         : rh ? `${H.short} sit ${ordinalEn(rh)}.` : ra ? `${A.short} sit ${ordinalEn(ra)}.` : 'Here is the table.';
     }
+    if (d.statsMore) script.stats2 = 'And the rest of the numbers.';
+    const form = (side) => {
+      const f = d.forma?.[side] || [];
+      const w = f.filter(x => x.res === 'W').length;
+      return f.length ? (w ? `${w} ${w === 1 ? 'win' : 'wins'} in ${f.length}` : `no wins in ${f.length}`) : '';
+    };
+    if (form('home') || form('away')) {
+      script.forma = form('home') && form('away') ? `${H.short} came in with ${form('home')}; ${A.short} with ${form('away')}.`
+        : form('home') ? `${H.short} came in with ${form('home')}.` : `${A.short} came in with ${form('away')}.`;
+    }
+    if (d.h2h) {
+      const { home: a, away: b, draws: e } = d.h2h;
+      script.h2h = `${d.h2h.label}: ${H.short} ${a}, ${A.short} ${b} and ${e} ${e === 1 ? 'draw' : 'draws'}.`;
+    }
     return script;
   }
 
@@ -3866,6 +3895,24 @@
       const [rh, ra] = [rank('home'), rank('away')];
       script.tabla = rh && ra ? `${H.short}, ${ordinal(rh)}; ${A.short}, ${ordinal(ra)}.`
         : rh ? `${cap(H.the)} es ${ordinal(rh)}.` : ra ? `${cap(A.the)} es ${ordinal(ra)}.` : 'Así va la clasificación.';
+    }
+    // Las de la versión larga
+    if (d.statsMore) script.stats2 = 'Y el resto de números del partido.';
+    const form = (side) => {
+      const f = d.forma?.[side] || [];
+      const w = f.filter(x => x.res === 'W').length;
+      const n = NUM_WORDS[f.length] || f.length;
+      return f.length ? (w ? `con ${NUM_WORDS[w] || w} ${w === 1 ? 'victoria' : 'victorias'} de ${n}` : `sin ganar en ${n}`) : '';
+    };
+    // «El Betis llegaba con cuatro victorias de cinco; el Barcelona, con cinco de cinco.»
+    if (form('home') || form('away')) {
+      script.forma = form('home') && form('away') ? `${cap(H.the)} llegaba ${form('home')}; ${A.the}, ${form('away').replace(/ victorias? de/, ' de')}.`
+        : form('home') ? `${cap(H.the)} llegaba ${form('home')}.` : `${cap(A.the)} llegaba ${form('away')}.`;
+    }
+    // «Los 5 anteriores: Betis 0, Barcelona 3 y 2 empates.»
+    if (d.h2h) {
+      const { home: a, away: b, draws: e } = d.h2h;
+      script.h2h = `${d.h2h.label}: ${H.short} ${a}, ${A.short} ${b} y ${e ? e === 1 ? 'un empate' : `${e} empates` : 'ningún empate'}.`;
     }
     return script;
   }
@@ -3973,6 +4020,7 @@
       // El estilo guardado antes de la urbana nueva (v < 2) era la épica por defecto: no cuenta.
       if (saved.v >= 2 && MUSIC_STYLES[saved.style]) setMusicStyle(saved.style);
       if (typeof saved.subs === 'boolean') document.getElementById('videoSubs').checked = saved.subs;
+      if (typeof saved.long === 'boolean') document.getElementById('videoLong').checked = saved.long;
       // Sin música por defecto (en TikTok se pone un sonido en tendencia); si la activas, se recuerda.
       if (typeof saved.musicOn === 'boolean') document.getElementById('videoMusic').checked = saved.musicOn;
     } catch (e) { /* sin localStorage: por defecto */ }
@@ -3987,6 +4035,7 @@
       localStorage.setItem(MIX_KEY, JSON.stringify({
         v: 2, music: Number(document.getElementById('musicVol').value), style: musicStyle(),
         subs: document.getElementById('videoSubs').checked, musicOn: document.getElementById('videoMusic').checked,
+        long: document.getElementById('videoLong').checked,
       }));
     } catch (e) { /* sin localStorage: vale para esta vez */ }
   }
@@ -5609,6 +5658,14 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
     document.getElementById('scriptLines').addEventListener('input', onScriptInput);
     document.getElementById('scriptResetBtn').addEventListener('click', resetScript);
     ['musicVol', 'videoMusic', 'videoIntro', 'videoSubs'].forEach(id => document.getElementById(id).addEventListener('input', mixChanged));
+    // La versión larga tiene más escenas: el guion, con las suyas
+    document.getElementById('videoLong').addEventListener('input', () => {
+      mixChanged();
+      if (!state.rendered || !scriptData) return;
+      scriptData = videoData(state.rendered);
+      state.script = { ...autoScript(scriptData), ...state.script };
+      renderScript();
+    });
     document.getElementById('musicStyle').addEventListener('click', (e) => {
       const btn = e.target.closest('.lang-opt[data-music]');
       if (!btn || btn.disabled || btn.dataset.music === musicStyle()) return;
