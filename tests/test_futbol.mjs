@@ -701,6 +701,9 @@ try {
     const wf = readFileSync(join(REPO, '.github/workflows/piloto.yml'), 'utf8');
     check(cfg.liga === 'esp.1' && cfg.competiciones.includes('uefa.champions') && cfg.previas.equipos.includes('86') && cfg.previas.horasAntes === 3 && /cron: '3,13,23,33,43,53 11-23 \* \* \*'/.test(wf) && /tools\/piloto\.mjs esperar/.test(wf),
       'cada 10 minutos en las horas de partidos (y cada 30 segundos al final de uno), con LaLiga y las copas y competiciones europeas');
+    const vg = readFileSync(join(REPO, '.github/workflows/vigia.yml'), 'utf8');
+    check(/node tools\/piloto\.mjs buscar/.test(vg) && /sleep 600/.test(vg) && /gh workflow run piloto\.yml/.test(vg) && /gh workflow run vigia\.yml/.test(vg) && /actions: write/.test(vg) && /group: vigia/.test(vg),
+      'y el vigía hace de reloj: mira cada 10 minutos, lanza el piloto y, al acabar su vuelta, la siguiente');
   }
 
   // ── Previa: con un partido sin empezar, un vídeo con cómo llegan, el cara a cara y sus goleadores ──
