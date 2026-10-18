@@ -2354,6 +2354,8 @@
   }
 
   const plan = (data, script) => scriptFit(buildScenes(data, {}), script);
+  // Lo que va a durar el vídeo (con o sin la apertura), antes de crearlo
+  const length = (data, intro = true) => buildScenes(data, {}, intro).reduce((sum, sc) => sum + sc.dur, 0);
 
   async function audio(data, {
     music = true, script = null, voice = null, musicVolume = 1, voiceVolume = 1, intro = true, voiceLead = null, voiceShift = 0,
@@ -2370,5 +2372,5 @@
     return buffer && window.StudioAudio ? window.StudioAudio.toWav(buffer, drawer.duration) : null;
   }
 
-  window.StudioVideo = { render, prepare, plan, audio, measureVoiceLag, crisp, layerCount: () => layers.size };
+  window.StudioVideo = { render, prepare, plan, length, audio, measureVoiceLag, crisp, layerCount: () => layers.size };
 })();

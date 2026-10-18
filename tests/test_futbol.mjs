@@ -375,16 +375,15 @@ try {
   // algo más en pantalla, en compases enteros, hasta pasar del minuto
   const secs = () => page.$$eval('#scriptLines .script-line', (ls) => ls.map((l) => [l.dataset.scene, parseFloat(l.querySelector('small').textContent.replace(',', '.'))]));
   const shortScenes = await secs();
+  const shortTotal = await page.textContent('#scriptTotal');
   await page.check('#videoLong');
   const longScenes = await secs();
-  await page.click('#mixPreviewBtn');
-  await page.waitForFunction(() => !document.getElementById('mixPlayer').hidden, null, { timeout: 120000 });
-  const longLen = await mixDuration();
+  const longTotal = await page.textContent('#scriptTotal');
   const bars = longScenes.every(([, t]) => Math.abs(t / 1.6 - Math.round(t / 1.6)) < 0.05);
-  check(longLen > 61 && longLen < 64 && longScenes.length >= shortScenes.length && bars,
-    `«Versión larga (+1 min)»: ${longLen.toFixed(1)} s (${longScenes.map(([id, t]) => `${id} ${t}`).join(' · ')})`);
+  check(shortTotal === 'El vídeo dura 40 s.' && longTotal === 'El vídeo dura 1:02.' && longScenes.length >= shortScenes.length && bars,
+    `«Versión larga (+1 min)»: ${shortTotal} → ${longTotal} (${longScenes.map(([id, t]) => `${id} ${t}`).join(' · ')})`);
   await page.uncheck('#videoLong');
-  check((await secs()).join() === shortScenes.join(), 'y al quitarla, el vídeo de siempre');
+  check((await secs()).join() === shortScenes.join() && await page.textContent('#scriptTotal') === shortTotal, 'y al quitarla, el vídeo de siempre');
   await page.uncheck('#videoSubs');
   // En el iPhone salía mudo: el AudioEncoder de Safari da para el AAC una descripción que no es la
   // AudioSpecificConfig (WebKit 302253). Con uno de mentira que hace lo mismo, el MP4 tiene que
@@ -530,12 +529,14 @@ try {
     check((await slideNames(p5)).includes('Clasificación') && /Así va\s*la Europa League/.test(await tie('#slide-tabla h1')),
       'Europa League: con la clasificación (pedida aparte)');
 
-    // Copa de Alemania: un apellido con «ß» (Meißner) no rompe la descarga
+    // Copa de Alemania: un apellido con «ß» (Meißner, en los goleadores de la portada) no rompe la
+    // captura (html2canvas se rompía con las letras que cambian de largo al pasar a mayúsculas)
     await pickLeague(p5, 'ger.dfb_pokal');
     await pickDate(p5, '2026-09-02');
     await generate(p5, '401875174');
-    const [zip5] = await Promise.all([p5.waitForEvent('download', { timeout: 90000 }), p5.click('#downloadBtn')]);
-    check(/\.zip$/.test(zip5.suggestedFilename()), `con «ß» en un apellido, el ZIP se descarga (${zip5.suggestedFilename()})`);
+    const meissner = /MEISSNER|Meißner/i.test(await p5.textContent('#slide-portada'));
+    const [png5] = await Promise.all([p5.waitForEvent('download', { timeout: 90000 }), p5.click('[data-slide-id="portada"] .slide-dl-btn')]);
+    check(meissner && /\.png$/.test(png5.suggestedFilename()), `con «ß» en un apellido, la portada se descarga (${png5.suggestedFilename()})`);
     await c5.close();
   }
 
@@ -903,7 +904,7 @@ try {
     check(await pa.$eval('#afKeyInput', (i) => i.type) === 'password', 'la clave se escribe oculta');
     await pa.fill('#afKeyInput', ' clave-de-prueba ');
     await pa.reload();
-    await pa.waitForSelector('.game-card', { timeout: 30000 }).catch(() => {});
+    await pa.waitForFunction(() => document.getElementById('gamesList').childElementCount && !document.querySelector('#gamesList .loader'), null, { timeout: 30000 });
     check(await pa.inputValue('#afKeyInput') === 'clave-de-prueba', 'y se recuerda en este navegador');
     await pickLeague(pa, 'uefa.champions');
     await pickDate(pa, '2026-10-14');
