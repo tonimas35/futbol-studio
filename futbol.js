@@ -1456,10 +1456,17 @@
     if (!afOn() || btn.disabled) return;
     btn.disabled = true;
     const say = (t) => showToast(`Caras para el robot · ${t}`, '', true);
-    let calls = 0;
+    // Una petición que falla (un día que el plan no deja, el límite por minuto…) solo deja fuera
+    // ese equipo: se queda el de antes
+    let calls = 0, problem = '';
     const af = async (path, params) => {
       if (calls++) await new Promise(r => setTimeout(r, facesPace()));
-      return afGet(path, params);
+      try {
+        return await afGet(path, params);
+      } catch (e) {
+        problem ||= e.message;
+        return [];
+      }
     };
     try {
       say('los equipos de LaLiga…');
@@ -1498,11 +1505,12 @@
         if (jugadores?.length) equipos.push({ espn: t.espn, af: t.af, nombre: t.nombre, jugadores });
         else if (keep) equipos.push(keep);
       }
+      if (!equipos.length) throw Object.assign(new Error(problem || 'no ha salido ninguna plantilla'), { api: !!problem });
       const missing = espn.filter(t => !equipos.some(x => x.espn === t.espn)).map(t => t.nombre);
       const file = { hecho: localIso(), liga: 'esp.1', equipos };
       triggerDownload(new Blob([JSON.stringify(file, null, 1)], { type: 'application/json' }), 'laliga.json');
       const n = equipos.reduce((sum, t) => sum + t.jugadores.length, 0);
-      showToast(`laliga.json: ${equipos.length} equipos y ${n} jugadores${missing.length ? ` (faltan ${missing.join(', ')})` : ''}. Súbelo a la carpeta caras del repo.`, missing.length ? 'error' : 'success', true);
+      showToast(`laliga.json: ${equipos.length} equipos y ${n} jugadores${missing.length ? ` (faltan ${missing.join(', ')}${problem ? ` · API-Football: ${problem}` : ''})` : ''}. Súbelo a la carpeta caras del repo.`, missing.length ? 'error' : 'success', true);
     } catch (e) {
       showToast(`Caras para el robot: ${e.api ? `API-Football: ${e.message}` : e.message}`, 'error', true);
     } finally {
