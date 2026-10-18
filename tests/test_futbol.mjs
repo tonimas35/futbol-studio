@@ -1035,8 +1035,10 @@ try {
       await c.addInitScript(() => { window.fsFacesPace = 0; });
       await c.route(`${base}/caras/**`, (r) => (r.request().url().endsWith('/laliga.json') ? r.fulfill(json(JSON.stringify(saved)))
         : r.fulfill({ status: 200, contentType: 'image/png', body: readFileSync(join(FIX, 'af-cara.png')) })));
-      await c.route(/site\.api\.espn\.com\/.*\/esp\.1\/teams$/, (r) => r.fulfill(json(JSON.stringify({ sports: [{ leagues: [{ teams: [
-        { team: { id: '86', displayName: 'Real Madrid' } }, { team: { id: '83', displayName: 'Barcelona' } }, { team: { id: '244', displayName: 'Real Betis' } }] }] }] }))));
+      // Los equipos, de la clasificación de LaLiga (la lista /teams de ESPN no lleva CORS: el navegador no la deja leer)
+      await c.route(/site\.api\.espn\.com\/.*\/esp\.1\/standings$/, (r) => r.fulfill(json(JSON.stringify({ children: [{ standings: { entries: [
+        { team: { id: '86', displayName: 'Real Madrid' } }, { team: { id: '83', displayName: 'Barcelona' } }, { team: { id: '244', displayName: 'Real Betis' } }] } }] }))));
+      await c.route(/site\.api\.espn\.com\/.*\/teams$/, (r) => r.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
       await c.route('https://v3.football.api-sports.io/**', (r) => {
         const u = new URL(r.request().url());
         asked.push(`${u.pathname.slice(1)}?${u.searchParams}`);

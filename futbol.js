@@ -1440,7 +1440,7 @@
     return Object.keys(players).length ? { players, local: true } : null;
   }
 
-  // «Caras para el robot»: los equipos de LaLiga de ESPN, su id en API-Football (de los partidos
+  // «Caras para el robot»: los equipos de LaLiga de ESPN (de su clasificación), su id en API-Football (de los partidos
   // de LaLiga de ayer, hoy y mañana, que es lo que deja el plan gratis; los que no jueguen, por su
   // nombre) y la plantilla de cada uno. Unas 25 peticiones, despacio (el plan gratis deja 10 por
   // minuto). Lo que ya hubiera en el repo se mantiene si ahora no sale.
@@ -1470,8 +1470,10 @@
     };
     try {
       say('los equipos de LaLiga…');
-      const espn = ((await espnFetch('/esp.1/teams'))?.sports?.[0]?.leagues?.[0]?.teams || []).map(x => x.team)
-        .map(t => ({ espn: String(t.id), nombre: t.displayName || t.name || '' })).filter(t => t.espn && t.nombre);
+      // De la clasificación: la lista de equipos de ESPN (/teams) no deja leerla desde el navegador
+      const table = await espnFetch('/esp.1/standings', ESPN_TABLES);
+      const espn = (table.children || [table]).flatMap(g => g.standings?.entries || []).map(e => e.team || {})
+        .map(t => ({ espn: String(t.id || ''), nombre: t.displayName || t.name || '' })).filter(t => t.espn && t.nombre);
       if (!espn.length) throw new Error('ESPN no da los equipos de LaLiga');
       const afTeams = new Map();
       for (const d of [-1, 0, 1]) {
