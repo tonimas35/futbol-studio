@@ -706,6 +706,27 @@ try {
       'y el vigía hace de reloj: mira cada 10 minutos, lanza el piloto y, al acabar su vuelta, la siguiente');
   }
 
+  // ── La clasificación al día: al pitido final, ESPN aún no ha contado el partido en la tabla ──
+  {
+    const { ctx: ct, page: pt } = await open({ before: async (c) => {
+      await c.route(/\/summary\?event=401915414$/, (r) => {
+        const data = JSON.parse(readFileSync(join(FIX, 'sum-401915414.json')));
+        const set = (e, v) => e.stats.forEach((s) => { if ((s.name || s.type) in v) s.value = v[s.name || s.type]; });
+        for (const e of data.standings.groups.flatMap((g) => g.standings.entries)) {
+          if (String(e.id) === '86') set(e, { gamesPlayed: 1, points: 3, pointDifferential: 1 });
+          if (String(e.id) === '104') set(e, { gamesPlayed: 1, points: 1, pointDifferential: 0 });
+        }
+        return r.fulfill(json(JSON.stringify(data)));
+      });
+    } });
+    await pickLeague(pt, 'uefa.champions');
+    await pickDate(pt, '2026-10-14');
+    await generate(pt, '401915414');
+    const me = await pt.$$eval('#slide-tabla .row.me', (rs) => rs.map((r) => [...r.querySelectorAll('span')].map((s) => s.textContent.trim()).join(' ')));
+    check(me.join(' | ') === '8 Real Madrid 2 +2 6 | 25 Roma 2 -1 1', `la tabla cuenta el partido que ESPN aún no tenía, cada uno en su sitio (${me.join(' | ')})`);
+    await ct.close();
+  }
+
   // ── Previa: con un partido sin empezar, un vídeo con cómo llegan, el cara a cara y sus goleadores ──
   // (datos reales de ESPN del Real Madrid–Sevilla del 18-10-2026, movido al 29-11 para no pisar otras pruebas)
   {

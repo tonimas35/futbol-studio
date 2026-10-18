@@ -1272,6 +1272,7 @@
     return out;
   }
 
+  // El dato y, de paso, la clasificación al día (con los calendarios de los dos equipos)
   async function loadDato(m) {
     if (!m.season || m.status.state !== 'post' || !m.home.id || !m.away.id) return null;
     const [home, away, players] = await Promise.all([
@@ -1279,11 +1280,41 @@
       teamHistory(m, 'away', HIST_FROM),
       scorerFacts(m).catch(() => []),
     ]);
-    return pickFacts([
-      ...(home ? [...teamFacts(m, 'home', home), ...h2hFacts(m, home)] : []),
-      ...(away ? teamFacts(m, 'away', away) : []),
-      ...players,
-    ]);
+    return {
+      table: tableWithMatch(m, { home, away }),
+      facts: pickFacts([
+        ...(home ? [...teamFacts(m, 'home', home), ...h2hFacts(m, home)] : []),
+        ...(away ? teamFacts(m, 'away', away) : []),
+        ...players,
+      ]),
+    };
+  }
+
+  // La clasificación de ESPN tarda un rato en contar el partido que acaba de terminar (al pitido
+  // final, el Celta seguía con 8 puntos después de ganar). Si a un equipo le falta justo ese (lleva
+  // un partido menos que los de esta competición en su calendario), se le suma y sube o baja a su
+  // sitio (por delante de los que tengan los mismos puntos y diferencia de goles); los demás, en el
+  // orden de ESPN, y los colores de las zonas, en su puesto. null: ya estaba al día.
+  function tableWithMatch(m, hist) {
+    const rows = m.standings;
+    if (!rows?.length) return null;
+    const out = rows.map(r => ({ ...r }));
+    const moved = [];
+    for (const side of ['home', 'away']) {
+      const played = (hist[side] || []).filter(g => g.lg === m.league && g.s === m.season).length;
+      const r = out.find(x => x.id === m[side].id);
+      if (!r || r.gp == null || r.gp !== played - 1) continue;
+      const gf = m[side].score, ga = m[side === 'home' ? 'away' : 'home'].score;
+      Object.assign(r, { gp: r.gp + 1, pts: (r.pts ?? 0) + (gf > ga ? 3 : gf === ga ? 1 : 0), gd: r.gd == null ? null : r.gd + gf - ga });
+      moved.push(out.splice(out.indexOf(r), 1)[0]);
+    }
+    if (!moved.length) return null;
+    const zones = rows.map(r => r.zone);
+    for (const r of moved) {
+      const i = out.findIndex(x => (x.pts ?? 0) < r.pts || ((x.pts ?? 0) === r.pts && (x.gd ?? 0) <= (r.gd ?? 0)));
+      out.splice(i < 0 ? out.length : i, 0, r);
+    }
+    return out.map((r, i) => ({ ...r, rank: i + 1, zone: zones[i] }));
   }
 
   // ----------------------------------------------------------
@@ -2993,7 +3024,9 @@
   async function findDato(m) {
     const slow = setTimeout(() => showToast('Buscando el dato en el historial de los dos equipos…', '', true), 1200);
     try {
-      return await Promise.race([loadDato(m), new Promise(resolve => setTimeout(() => resolve(null), DATO_WAIT))]);
+      const got = await Promise.race([loadDato(m), new Promise(resolve => setTimeout(() => resolve(null), DATO_WAIT))]);
+      if (got?.table) m.standings = got.table;
+      return got ? got.facts : null;
     } catch (e) {
       console.warn('El dato:', e);
       return null;
