@@ -1421,11 +1421,19 @@
   const savedSquads = () => (facesJob ||= location.protocol === 'file:' ? Promise.resolve(null)
     : fetch(FACES_FILE, { cache: 'no-cache' }).then(r => (r.ok ? r.json() : null)).catch(() => null));
   const lastWord = (s) => plain(String(s || '').trim().split(/\s+/).pop());
-  // El de la plantilla con el mismo apellido (y, si hay dos, el mismo dorsal). Sin apellido igual,
-  // nada: mejor sin cara que con la de otro.
+  // El de la plantilla con el mismo apellido (y, si hay dos, el mismo dorsal). Si no, con el mismo
+  // nombre y el apellido de uno dentro del nombre del otro («Pau Cubarsí» y «Pau Cubarsí Paredes»,
+  // «Fermín López» y «Fermín»), si es el único. Si no, nada: mejor sin cara que con la de otro.
+  const nameWords = (s) => String(s || '').trim().split(/\s+/).map(plain).filter(Boolean);
   function squadPlayer(squad, p) {
     const same = squad.filter(x => lastWord(x.nombre) === lastWord(p.name));
-    return same.length > 1 ? same.find(x => String(x.dorsal) === String(p.jersey)) || null : same[0] || null;
+    if (same.length) return same.length > 1 ? same.find(x => String(x.dorsal) === String(p.jersey)) || null : same[0];
+    const mine = nameWords(p.name);
+    const near = squad.filter(x => {
+      const theirs = nameWords(x.nombre);
+      return theirs[0] === mine[0] && (theirs.includes(lastWord(p.name)) || mine.includes(lastWord(x.nombre)));
+    });
+    return near.length === 1 ? near[0] : null;
   }
   async function localFaces(m) {
     const data = await savedSquads();
