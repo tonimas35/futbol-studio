@@ -469,7 +469,7 @@
       music: { energy: 'full', drop: BAR },
       cues: [
         { t: 0, kind: 'riser', dur: BAR, vel: 0.8 },
-        ...ticks(BEAT, BAR, 0.8),
+        { t: BEAT, kind: 'hit', vel: 0.8 },
         { t: BAR, kind: 'impact', vel: 1 },
         { t: BAR + 2 * BEAT, kind: 'slam' },
       ],
@@ -489,16 +489,18 @@
           const labelY = h.top + (top ? 330 : 190);
           logo(ctx, h.logo, M + 50, labelY - 30, 100);
           text(ctx, up(h.side.name), M + 122, labelY, ANTON(fit(ctx, up(h.side.name), ANTON, 76, W - 2 * M - 122)), st.fg);
-          // Los goles suben y el del ganador da un golpe al llegar.
-          const p = easeOut(prog(t, BEAT, BAR - BEAT));
-          const pop = h.side.won ? 1 + 0.08 * Math.sin(Math.PI * prog(t, BAR, 0.3)) : 1;
+          // El resultado de verdad desde el primer fotograma (sin contar desde 0: TikTok puede coger
+          // cualquier fotograma de portada y saldría un 0-0 que no fue). Cae con un golpe y el del
+          // ganador da otro al llegar el ritmo.
+          const drop = 1 + 0.35 * (1 - easeOut(prog(t, BEAT, 0.3)));
+          const pop = (h.side.won ? 1 + 0.08 * Math.sin(Math.PI * prog(t, BAR, 0.3)) : 1) * drop;
           const baseY = h.top + (top ? 760 : 620);
           ctx.save();
           ctx.translate(M, baseY);
           ctx.scale(pop, pop);
           ctx.shadowColor = 'rgba(0,0,0,.3)';
           ctx.shadowBlur = 40;
-          text(ctx, countText(h.side.score, p), 0, 0, ANTON(380), st.fg);
+          text(ctx, String(h.side.score), 0, 0, ANTON(380), st.fg);
           ctx.restore();
           // Los goleadores, a la derecha del número, en cuanto ha llegado.
           ctx.font = ANTON(380);
