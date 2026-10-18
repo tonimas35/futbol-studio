@@ -3449,6 +3449,16 @@
     return { ...st, night: nightInk(st), glow: glowOf(st) };
   };
 
+  // El dato de la portada del vídeo, que diga de quién: la frase si es corta («El Barcelona
+  // encadena 6 victorias seguidas»); si no (el gancho sale en 3 líneas como mucho), el equipo y el
+  // dato («Roma: 14 partidos sin perder… hasta hoy»). Si has retocado la slide, lo que pusiste.
+  function datoHook(m, dato) {
+    const big = writtenText('#slide-dato .dt-big') || dato.big, unit = writtenText('#slide-dato .dt-unit') || dato.unit;
+    if (slideEdited('dato')) return `${big} ${unit}`;
+    const said = dato.hook || dato.spoken.replace(/\.$/, '');
+    return said.length <= 60 ? said : `${m[dato.side] ? `${m[dato.side].short}: ` : ''}${big} ${unit}`;
+  }
+
   function videoData(m) {
     const { winner } = sides(m);
     const team = (side) => {
@@ -3489,7 +3499,7 @@
       // El gancho de los primeros segundos (es también la portada del vídeo): «El dato» a medias,
       // como en la portada del carrusel, o el titular
       hook: pol && (pol.strong || !dato) ? { tag: L('Polémica', 'Controversy'), text: pol.line }
-        : dato ? { tag: L('El dato', 'The stat'), text: `${writtenText('#slide-dato .dt-big') || dato.big} ${writtenText('#slide-dato .dt-unit') || dato.unit}` }
+        : dato ? { tag: L('El dato', 'The stat'), text: datoHook(m, dato) }
         : { tag: live(m) ? L('En juego', 'Live') : L('Final', 'Full time'), text: writtenText('#slide-portada .head h1') || headline(m) },
       polemica: pol && { ...pol, style: teamStyle(m[pol.side]) },
       goals: timeline.map(e => ({
