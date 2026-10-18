@@ -878,7 +878,45 @@
     // ─── Clasificación (la del grupo de los dos equipos, si hay) ───
     addStandings(m, sum.standings?.groups || []);
     resolveClash(m);
+    m.prev = previaOf(sum, m);
     return m;
+  }
+
+  // Lo de la previa, del resumen de ESPN de un partido sin empezar: cómo llegan (sus últimos 5
+  // partidos oficiales, sin amistosos), el cara a cara (los últimos 5 entre ellos) y el que más
+  // marca de cada uno esta temporada.
+  function previaOf(sum, m) {
+    const sideOf = (id) => (String(id) === m.home.id ? 'home' : String(id) === m.away.id ? 'away' : null);
+    const forma = { home: [], away: [] };
+    for (const t of sum.lastFiveGames || []) {
+      const side = sideOf(t.team?.id);
+      if (!side) continue;
+      forma[side] = (t.events || []).filter(e => !/friendly/i.test(`${e.leagueName || ''} ${e.leagueAbbreviation || ''}`) && e.gameResult)
+        .map(e => {
+          const home = e.atVs === 'vs';
+          const [mine, theirs] = home ? [e.homeTeamScore, e.awayTeamScore] : [e.awayTeamScore, e.homeTeamScore];
+          return { res: e.gameResult, score: `${mine}-${theirs}`, home, opp: e.opponent?.abbreviation || e.opponent?.displayName || '', date: e.gameDate };
+        })
+        .sort((a, b) => Date.parse(a.date) - Date.parse(b.date)).slice(-5);
+    }
+    const series = (sum.seasonseries || []).find(x => /head/i.test(x.type || '')) || null;
+    const games = (series?.events || []).filter(e => e.statusType?.completed || e.status === 'post').map(e => {
+      const cs = e.competitors || [];
+      const h = cs.find(c => c.homeAway === 'home') || {}, a = cs.find(c => c.homeAway === 'away') || {};
+      const name = (c) => (sideOf(c.team?.id) ? m[sideOf(c.team.id)].short : c.team?.displayName || c.team?.abbreviation || '');
+      const winner = h.winner ? sideOf(h.team?.id) : a.winner ? sideOf(a.team?.id) : null;
+      return { date: e.date, homeName: name(h), awayName: name(a), homeScore: h.score ?? '', awayScore: a.score ?? '', winner };
+    }).sort((x, y) => Date.parse(y.date) - Date.parse(x.date)).slice(0, 5);
+    const leader = (side) => {
+      const t = (sum.leaders || []).find(x => sideOf(x.team?.id) === side);
+      const top = (t?.leaders || []).find(x => /goal/i.test(x.name || ''))?.leaders?.[0];
+      if (!top?.athlete) return null;
+      const nums = Object.fromEntries([...String(top.displayValue || '').matchAll(/(\w+):\s*(\d+)/g)].map(([, k, v]) => [k.toLowerCase(), Number(v)]));
+      const goals = nums.goals ?? num(top.value);
+      if (!goals) return null;
+      return { name: top.athlete.displayName || '', last: top.athlete.lastName || '', goals, games: nums.matches ?? null };
+    };
+    return { forma, h2h: games, goleadores: { home: leader('home'), away: leader('away') } };
   }
 
   // La clasificación del grupo con más de los equipos que se buscan (ids). groups: los del
@@ -2862,7 +2900,7 @@
     const ph = gamePhase(game);
     const name = `<strong>${esc(game.home.name)}</strong> – <strong>${esc(game.away.name)}</strong> · ${fmtDate(game.date)}`;
     const note = {
-      pre: `Aún no ha empezado (${statusLabel(game)}): vuelve cuando acabe.`,
+      pre: `Aún no ha empezado (${statusLabel(game)}): puedes crear su previa (un vídeo con cómo llegan y el cara a cara) o volver cuando acabe.`,
       off: `${statusLabel(game)}: no hay partido que contar.`,
       live: `Se está jugando (${statusLabel(game)}): si lo generas ahora, las slides cuentan el marcador de este momento.`,
     }[ph];
@@ -2873,6 +2911,7 @@
   function updateGenerateBtn() {
     const g = state.selectedGame;
     document.getElementById('generateBtn').disabled = !!state.generating || !g || !['final', 'live'].includes(gamePhase(g));
+    document.getElementById('previaBtn').hidden = !g || gamePhase(g) !== 'pre';
   }
 
   // ----------------------------------------------------------
@@ -2896,6 +2935,7 @@
       match.af = af.data;
       if (seq !== genSeq) return;
       state.rendered = match;
+      state.previa = null;
       state.jugadorId = null;
       renderSlides(match);
       resetVideo();
@@ -3528,6 +3568,153 @@
       await navigator.share({ files: [videoFile] });
     } catch (e) {
       if (e.name !== 'AbortError') showToast(`No se pudo compartir: ${e.message}`, 'error');
+    }
+  }
+
+  // ----------------------------------------------------------
+  // PREVIA · de un partido sin empezar: un vídeo con cómo llegan los dos, el cara a cara, sus
+  // goleadores y la clasificación, y la descripción para TikTok. El robot la hace 3 horas antes de
+  // los partidos grandes (?previa=liga/id).
+  // ----------------------------------------------------------
+  const kickoffOf = (m) => {
+    const d = asDate(m.date);
+    const hhmm = d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    const days = Math.round((asDate(localIso(0, d)) - asDate(localIso())) / 86400e3);
+    const when = days === 0 ? L('Hoy', 'Today') : days === 1 ? L('Mañana', 'Tomorrow')
+      : d.toLocaleDateString(outLocale(), { weekday: 'long', day: 'numeric', month: 'long' });
+    return { when, hhmm };
+  };
+  // Lo que se cuenta del cara a cara: los ganados por cada uno y los empates
+  function h2hCount(m) {
+    const g = m.prev?.h2h || [];
+    const home = g.filter(x => x.winner === 'home').length, away = g.filter(x => x.winner === 'away').length;
+    return { home, away, draws: g.length - home - away, n: g.length };
+  }
+  // El gancho de la previa: el cara a cara si uno los gana todos; si no, cómo llega el que mejor llega
+  function previaHook(m) {
+    const h = h2hCount(m);
+    for (const side of ['home', 'away']) {
+      if (h.n >= 3 && h[side] === h.n) return L(`${cap(theTeam(m[side]))} ganó los ${h.n} últimos`, `${m[side].short} won the last ${h.n}`);
+    }
+    const wins = (side) => (m.prev?.forma[side] || []).filter(x => x.res === 'W').length;
+    const best = wins('home') >= wins('away') ? 'home' : 'away';
+    const n = (m.prev?.forma[best] || []).length;
+    if (n && wins(best) >= 4) return L(`${cap(theTeam(m[best]))} llega con ${wins(best)} victorias en ${n}`, `${m[best].short}: ${wins(best)} wins in ${n}`);
+    return `${m.home.short} – ${m.away.short}`;
+  }
+  function previaData(m) {
+    const team = (side) => {
+      const t = m[side];
+      return { name: t.name, short: t.short, abbr: t.abbr, score: '', logo: t.logo, style: videoStyle(t), won: false, lost: false, lines: [] };
+    };
+    const k = kickoffOf(m);
+    const h = h2hCount(m);
+    const tbl = (m.standings?.length || 0) >= 4 ? tableRows(m, 11) : null;
+    const scorer = (side) => {
+      const p = m.prev?.goleadores[side];
+      if (!p) return null;
+      const first = p.last && p.name.endsWith(p.last) ? p.name.slice(0, -p.last.length).trim() : '';
+      return {
+        first, last: p.last || p.name, goals: p.goals,
+        unit: p.goals === 1 ? L('gol', 'goal') : L('goles', 'goals'),
+        games: p.games ? L(`en ${p.games} partidos`, `in ${p.games} games`) : '',
+      };
+    };
+    const monthYear = (iso) => asDate(iso).toLocaleDateString(outLocale(), { month: 'short', year: 'numeric' });
+    return {
+      kind: 'previa',
+      home: team('home'), away: team('away'),
+      lang: state.lang, dark: dark(),
+      comp: [compName(m.league), phaseOut(m.phase), legLabel(m)].filter(Boolean).join(' · '),
+      date: asDate(m.date).toLocaleDateString(outLocale(), { day: 'numeric', month: 'long', year: 'numeric' }),
+      introLine: `${k.when} · ${k.hhmm}`.toLocaleUpperCase('es'),
+      hook: { tag: L('Previa', 'Preview'), text: previaHook(m) },
+      forma: m.prev?.forma,
+      h2h: h.n ? {
+        home: h.home, away: h.away, draws: h.draws,
+        label: L(`Los últimos ${h.n} partidos`, `Last ${h.n} meetings`),
+        games: m.prev.h2h.map(g => ({ ...g, date: monthYear(g.date) })),
+      } : null,
+      goleadores: { home: scorer('home'), away: scorer('away') },
+      table: tbl && {
+        title: L(`Así llegan en ${tableName(m)}`, `${tableName(m)} table`),
+        rows: tbl.map(r => r && {
+          rank: r.rank, pts: r.pts, logo: r.logo,
+          name: r.id === m.home.id ? m.home.short : r.id === m.away.id ? m.away.short : r.name,
+          me: r.id === m.home.id ? 'home' : r.id === m.away.id ? 'away' : null,
+        }),
+      },
+      closing: { question: L('¿Quién gana?', 'Who wins?'), style: teamStyle(m.home), side: 'home', photo: null },
+      sign: state.sign,
+      brand: state.brandLogo || null,
+      t: {
+        forma: L('CÓMO LLEGAN', 'FORM'), h2h: L('CARA A CARA', 'HEAD TO HEAD'), draws: L('EMPATES', 'DRAWS'),
+        scorers: L('SUS GOLEADORES', 'TOP SCORERS'),
+        comments: L('TE LEO EN COMENTARIOS', 'LET ME KNOW IN THE COMMENTS'),
+        follow: L('Sígueme para más fútbol', 'Follow for more football'),
+      },
+    };
+  }
+  function previaCaption(m) {
+    const k = kickoffOf(m);
+    const rec = (side) => {
+      const f = m.prev?.forma[side] || [];
+      const c = (r) => f.filter(x => x.res === r).length;
+      return f.length ? `${m[side].short} ${c('W')}${L('G', 'W')} ${c('D')}${L('E', 'D')} ${c('L')}${L('P', 'L')}` : '';
+    };
+    const h = h2hCount(m);
+    const tags = [L('futbol', 'football'), TT_COMP[m.league] || hashtag(compOf(m.league).tag),
+      ...[m.home, m.away].map(t => TT_TEAM[t.id] || hashtag(t.name)),
+      ...(isEn() ? ['soccer', 'sportsontiktok', 'fyp'] : ['previa', 'deportesentiktok', 'parati'])];
+    return [
+      `🔥 ${L('PREVIA', 'PREVIEW')} · ${m.home.short} – ${m.away.short}`,
+      `⏰ ${k.when}, ${k.hhmm} · ${compName(m.league)}`,
+      [rec('home'), rec('away')].every(Boolean) && `📊 ${L('Últimos 5', 'Last 5')}: ${rec('home')} · ${rec('away')}`,
+      h.n && `🆚 ${L(`Últimos ${h.n} cara a cara`, `Last ${h.n} meetings`)}: ${m.home.short} ${h.home}, ${L('empates', 'draws')} ${h.draws}, ${m.away.short} ${h.away}`,
+      `${L('¿Quién gana?', 'Who wins?')} 👇`,
+      [...new Set(tags)].map(t => `#${t}`).join(' '),
+    ].filter(Boolean).join('\n');
+  }
+
+  async function makePrevia(game = state.selectedGame) {
+    if (!game || videoBusy || !window.StudioVideo) return;
+    const btn = document.getElementById('previaBtn');
+    const label = btn.querySelector('.label');
+    videoBusy = true;
+    updateVideoBtn();
+    btn.classList.add('btn-loading');
+    try {
+      const m = await fetchMatch(game);
+      const out = await window.StudioVideo.render(previaData(m), (p, stage) => {
+        label.textContent = stage || `Creando la previa… ${Math.round(p * 100)}%`;
+      }, { ...videoOptions(), captions: false, script: null });
+      resetVideo();
+      videoUrl = URL.createObjectURL(out.blob);
+      document.getElementById('videoPreview').src = videoUrl;
+      const dl = document.getElementById('videoDlBtn');
+      dl.href = videoUrl;
+      dl.download = `futbol-${stamp(m)}-previa.${out.ext}`;
+      videoFile = new File([out.blob], dl.download, { type: out.blob.type });
+      document.getElementById('videoShareBtn').hidden = !(navigator.canShare && navigator.canShare({ files: [videoFile] }));
+      document.getElementById('audioDlBtn').hidden = true;
+      document.getElementById('videoMeta').textContent = `Previa de ${m.home.short} – ${m.away.short}.`;
+      const box = document.getElementById('videoOut');
+      box.dataset.title = `${L('Previa', 'Preview')} · ${m.home.short} – ${m.away.short}`;
+      box.hidden = false;
+      state.previa = { id: m.id };
+      document.getElementById('captionText').value = previaCaption(m);
+      document.getElementById('captionBox').hidden = false;
+      captionEdited = false;
+      box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      showToast(out.note || 'Previa lista · revísala y compártela', out.note ? '' : 'success');
+    } catch (e) {
+      console.error('Previa:', e);
+      showToast(`No se pudo crear la previa: ${e.message}`, 'error');
+    } finally {
+      videoBusy = false;
+      label.textContent = 'Crear previa (vídeo)';
+      btn.classList.remove('btn-loading');
+      updateVideoBtn();
     }
   }
 
@@ -4619,12 +4806,13 @@ ${inside.length ? `\n${L('Desliza para ver', 'Swipe for')} ${listEs(inside)}.\n`
   function updateCaption(force = false) {
     const box = document.getElementById('captionBox');
     const m = state.rendered;
-    box.hidden = !m;
-    if (!m || (captionEdited && !force)) return;
+    box.hidden = !m && !state.previa;
+    if (!m || state.previa || (captionEdited && !force)) return;
     document.getElementById('captionText').value = tiktokCaption(m);
     captionEdited = false;
   }
-  const captionNow = () => (state.rendered ? document.getElementById('captionText').value || tiktokCaption(state.rendered) : '');
+  const captionNow = () => (state.previa ? document.getElementById('captionText').value
+    : state.rendered ? document.getElementById('captionText').value || tiktokCaption(state.rendered) : '');
   async function copyCaption() {
     try {
       await navigator.clipboard.writeText(captionNow());
@@ -5109,13 +5297,14 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
   // competición, busca el partido, genera el carrusel y crea el vídeo. Es el enlace del aviso
   // al móvil cuando acaba un partido.
   async function openFromLink(params) {
-    const [league, id] = (params.get('partido') || '').split('/');
+    const previa = params.has('previa');
+    const [league, id] = (params.get(previa ? 'previa' : 'partido') || '').split('/');
     if (!COMP[league] || !/^\d+$/.test(id || '')) return false;
     // Que al recargar (o volver a abrir la pestaña) no lo repita.
     history.replaceState(null, '', location.pathname);
     const day = /^\d{4}-\d{2}-\d{2}$/.test(params.get('dia') || '') ? params.get('dia') : null;
     markLeague(league);
-    for (const iso of day ? [day] : [localIso(), localIso(-1)]) {
+    for (const iso of day ? [day] : previa ? [localIso(), localIso(1)] : [localIso(), localIso(-1)]) {
       await goToDate(iso);
       if (state.games.some(g => g.id === id)) break;
     }
@@ -5123,7 +5312,12 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
       showToast('ESPN no da ese partido ni hoy ni ayer', 'error');
       return true;
     }
-    await generateAll(id);
+    if (previa) {
+      selectGame(id);
+      await makePrevia();
+    } else {
+      await generateAll(id);
+    }
     return true;
   }
 
@@ -5133,7 +5327,7 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
   // móvil. Es el enlace del aviso que llega con ntfy. Los vídeos se quedan unos días.
   async function openRobotVideo(params) {
     const id = params.get('video') || '';
-    if (!/^\d+$/.test(id)) return false;
+    if (!/^\d+(-previa)?$/.test(id)) return false;
     history.replaceState(null, '', location.pathname);
     const $ = (x) => document.getElementById(x);
     $('robotBox').hidden = false;
@@ -5378,6 +5572,7 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
     // El vídeo: guion, voz, volumen
     document.getElementById('videoBtn').addEventListener('click', makeVideo);
     document.getElementById('videoShareBtn').addEventListener('click', shareVideo);
+    document.getElementById('previaBtn').addEventListener('click', () => makePrevia());
     document.getElementById('scriptLines').addEventListener('input', onScriptInput);
     document.getElementById('scriptResetBtn').addEventListener('click', resetScript);
     ['musicVol', 'videoMusic', 'videoIntro', 'videoSubs'].forEach(id => document.getElementById(id).addEventListener('input', mixChanged));
@@ -5406,7 +5601,7 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
 
     const params = new URLSearchParams(location.search);
     if (params.has('video')) openRobotVideo(params);
-    if (params.has('partido')) {
+    if (params.has('partido') || params.has('previa')) {
       openFromLink(params).then(done => { if (!done) { loadGames(today); restoreDraft(); } });
     } else {
       loadGames(today);

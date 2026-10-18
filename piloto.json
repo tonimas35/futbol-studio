@@ -3,5 +3,10 @@
   "competiciones": ["esp.1", "esp.copa_del_rey", "esp.super_cup", "uefa.champions", "uefa.europa", "uefa.europa.conf", "uefa.super_cup"],
   "ntfy": "jornada90-40dc7171c6b9c5a9",
   "web": "https://tonimas35.github.io/futbol-studio/",
-  "diasEnLaWeb": 3
+  "diasEnLaWeb": 3,
+  "previas": {
+    "equipos": ["86", "83", "1068"],
+    "competiciones": ["uefa.champions"],
+    "horasAntes": 3
+  }
 }

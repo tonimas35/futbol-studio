@@ -69,6 +69,36 @@ function pick(boards, done, local, test) {
   return out;
 }
 
+// «Real Madrid – Sevilla», para la previa.
+export const vsLine = (e) => {
+  const cs = e.competitions?.[0]?.competitors || [];
+  const name = (c) => c?.team?.shortDisplayName || c?.team?.displayName || '?';
+  return `${name(cs.find(c => c.homeAway === 'home') || cs[0])} – ${name(cs.find(c => c.homeAway === 'away') || cs[1])}`;
+};
+
+// Las previas: los partidos grandes (los de los equipos de piloto.json, en cualquier competición,
+// y en las competiciones de piloto.json, los de equipos de tu liga) que empiezan dentro de las
+// horas de antes que diga (3), y aún no tienen previa. Nada si faltan menos de 10 minutos.
+export function findPrevias(boards, now, done, local = null, cfg = CONFIG.previas) {
+  if (!cfg) return [];
+  const out = [];
+  const seen = new Set();
+  for (const { league, day, data } of boards) {
+    for (const e of data?.events || []) {
+      const left = Date.parse(e.date) - now;
+      if (e.status?.type?.state !== 'pre' || seen.has(e.id) || done.has(`${e.id}-previa`)) continue;
+      if (!(left > 10 * 60e3 && left <= (cfg.horasAntes || 3) * 3600e3)) continue;
+      const ids = (e.competitions?.[0]?.competitors || []).map(c => String(c.team?.id));
+      const big = ids.some(id => (cfg.equipos || []).includes(id))
+        || ((cfg.competiciones || []).includes(league) && (!local || ids.some(id => local.has(id))));
+      if (!big) continue;
+      seen.add(e.id);
+      out.push({ kind: 'previa', league, id: e.id, day, title: vsLine(e) });
+    }
+  }
+  return out;
+}
+
 // Los acabados hace poco: los que hay que hacer ya.
 export function findFinished(boards, now, done, local = null) {
   return pick(boards, done, local, e => e.status?.type?.state === 'post' && e.status.type.completed && now - Date.parse(e.date) < RECENT);
@@ -99,26 +129,29 @@ async function releaseAssets() {
 
 async function buscar() {
   // A mano (workflow_dispatch): un partido concreto, aunque ya tenga vídeo.
+  // Con «previa:» delante, su previa.
   const forced = (process.env.PARTIDO || '').trim();
   if (forced) {
-    const [league, id] = forced.split('/');
-    if (!league || !/^\d+$/.test(id || '')) throw new Error(`Partido no válido: ${forced} (tiene que ser liga/id, p. ej. esp.1/401882846)`);
+    const previa = /^previa:/i.test(forced);
+    const [league, id] = forced.replace(/^previa:/i, '').split('/');
+    if (!league || !/^\d+$/.test(id || '')) throw new Error(`Partido no válido: ${forced} (tiene que ser liga/id, p. ej. esp.1/401882846, o previa:esp.1/401882846)`);
     const day = /^\d{4}-\d{2}-\d{2}$/.test(process.env.DIA || '') ? process.env.DIA : madridIso(Date.now());
-    output('partidos', JSON.stringify([{ league, id, day, title: forced }]));
+    output('partidos', JSON.stringify([{ kind: previa ? 'previa' : 'final', league, id, day, title: `${league}/${id}` }]));
     return;
   }
-  const { found, near } = await scan();
+  const { found, near, previas } = await scan();
   console.log(found.length ? `Acabados: ${found.map(f => f.title).join(' · ')}`
     : near.length ? `Por el final: ${near.map(f => f.title).join(' · ')}` : 'Ningún partido acabado sin vídeo');
-  output('partidos', JSON.stringify(found));
-  output('cerca', String(!found.length && near.length > 0));
+  if (previas.length) console.log(`Previas: ${previas.map(f => f.title).join(' · ')}`);
+  output('partidos', JSON.stringify([...found, ...previas]));
+  output('cerca', String(!found.length && !previas.length && near.length > 0));
 }
 
 // Los marcadores de hoy (y, de madrugada, de ayer): los acabados sin vídeo y los que van por el final.
 async function scan(ctx = {}) {
   const now = Date.now();
   const days = [...new Set([madridIso(now), madridIso(now - 6 * 3600e3)])];
-  ctx.done ??= new Set((await releaseAssets()).map(a => a.name.match(/^(\d+)\.mp4$/)?.[1]).filter(Boolean));
+  ctx.done ??= new Set((await releaseAssets()).map(a => a.name.match(/^(\d+(?:-previa)?)\.mp4$/)?.[1]).filter(Boolean));
   if (!ctx.local) {
     const teams = await getJson(`${ESPN}/${CONFIG.liga}/teams`);
     const ids = (teams?.sports?.[0]?.leagues?.[0]?.teams || []).map(t => String(t.team?.id));
@@ -127,7 +160,11 @@ async function scan(ctx = {}) {
   const boards = await Promise.all(CONFIG.competiciones.flatMap(league => days.map(async day => ({
     league, day, data: await getJson(`${ESPN}/${league}/scoreboard?dates=${day.replaceAll('-', '')}`),
   }))));
-  return { found: findFinished(boards, now, ctx.done, ctx.local), near: findNearEnd(boards, now, ctx.done, ctx.local) };
+  return {
+    found: findFinished(boards, now, ctx.done, ctx.local),
+    near: findNearEnd(boards, now, ctx.done, ctx.local),
+    previas: findPrevias(boards, now, ctx.done, ctx.local),
+  };
 }
 
 // Con un partido por el final: mira ESPN cada 30 segundos (con el navegador y ffmpeg ya preparados)
@@ -179,23 +216,26 @@ export async function makeVideo(browser, base, p, dir) {
     page.on('console', m => { if (/error|warn/.test(m.type())) console.warn(`  consola: ${m.text()}`); });
     page.on('requestfailed', r => { if (!r.url().startsWith('blob:')) console.warn(`  sin respuesta: ${r.url()} (${r.failure()?.errorText})`); });
     page.on('response', r => { if (r.status() >= 400) console.warn(`  ${r.status()}: ${r.url()}`); });
-    await page.goto(`${base}/?partido=${p.league}/${p.id}&dia=${p.day}`);
+    const previa = p.kind === 'previa';
+    const file = previa ? `${p.id}-previa` : p.id;
+    await page.goto(`${base}/?${previa ? 'previa' : 'partido'}=${p.league}/${p.id}&dia=${p.day}`);
     await page.waitForFunction(() => !document.getElementById('videoOut').hidden
       || /No se pudo|no da ese partido/.test(document.getElementById('toast').textContent), null, { timeout: 20 * 60e3 });
     if (await page.$eval('#videoOut', el => el.hidden)) throw new Error(await page.textContent('#toast'));
     const caption = await page.inputValue('#captionText');
-    const title = (await page.textContent('#renderedInfo')).split(' · ')[0] || p.title;
+    const title = previa ? await page.$eval('#videoOut', el => el.dataset.title || '') || `Previa · ${p.title}`
+      : (await page.textContent('#renderedInfo')).split(' · ')[0] || p.title;
     const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#videoDlBtn')]);
-    const raw = join(dir, `${p.id}-raw.mp4`);
+    const raw = join(dir, `${file}-raw.mp4`);
     await dl.saveAs(raw);
     // H.264 (el Chrome de Linux puede sacar VP9, que en el iPhone se ve negro) y listo para empezar
     // a verse antes de bajarlo entero
     execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', raw, '-c:v', 'libx264', '-profile:v', 'high', '-level', '4.0', '-pix_fmt', 'yuv420p',
-      '-preset', 'medium', '-crf', '18', '-movflags', '+faststart', '-c:a', 'aac', '-b:a', '192k', join(dir, `${p.id}.mp4`)]);
-    writeFileSync(join(dir, `${p.id}.json`), JSON.stringify({
-      id: p.id, league: p.league, day: p.day, title, caption, file: dl.suggestedFilename(), made: new Date().toISOString(),
+      '-preset', 'medium', '-crf', '18', '-movflags', '+faststart', '-c:a', 'aac', '-b:a', '192k', join(dir, `${file}.mp4`)]);
+    writeFileSync(join(dir, `${file}.json`), JSON.stringify({
+      id: file, league: p.league, day: p.day, title, caption, file: dl.suggestedFilename(), made: new Date().toISOString(),
     }, null, 2));
-    return { id: p.id, title, caption };
+    return { id: file, kind: p.kind || 'final', title, caption };
   } finally {
     await ctx.close();
   }
@@ -221,7 +261,7 @@ async function video() {
     console.log(`Vídeo: ${p.title} (${p.league}/${p.id})`);
     try {
       const v = await makeVideo(browser, base, p, dir);
-      gh('release', 'upload', RELEASE, join(dir, `${p.id}.mp4`), join(dir, `${p.id}.json`), '--clobber');
+      gh('release', 'upload', RELEASE, join(dir, `${v.id}.mp4`), join(dir, `${v.id}.json`), '--clobber');
       made.push(v);
       console.log(`  hecho: ${v.title}`);
     } catch (e) {
@@ -253,7 +293,7 @@ async function web(dir) {
 export function notice(v, topic, web, webOk = true) {
   const url = webOk ? `${web}?video=${v.id}` : `https://github.com/${repo()}/releases/download/${RELEASE}/${v.id}.mp4`;
   return {
-    topic, title: `⚽ ${v.title}`, message: v.caption || 'Tu vídeo está listo', click: url, tags: ['movie_camera'], priority: 4,
+    topic, title: `${v.kind === 'previa' ? '🔥' : '⚽'} ${v.title}`, message: v.caption || 'Tu vídeo está listo', click: url, tags: ['movie_camera'], priority: 4,
     actions: [{ action: 'view', label: 'Abrir el vídeo', url }],
   };
 }
