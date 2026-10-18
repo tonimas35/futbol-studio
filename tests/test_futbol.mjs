@@ -368,9 +368,9 @@ try {
   check(/^futbol-roma-rma-2026-10-14-short\.(mp4|webm)$/.test(video.name || ''), `vídeo: ${video.name} (${video.toast})`);
   check(video.duration > 39.4 && video.duration < 40.6, `dura unos 40 s: apertura, 7 escenas, el cierre y la de tu logo (${video.duration?.toFixed(1)} s)`);
   check(video.meta === 'Lleva música urbana, subtítulos y la apertura con los escudos.', `con los subtítulos encendidos, lleva todo (${video.meta})`);
-  // La portada del vídeo dice de quién es el dato (la frase es larga: el equipo y el dato)
+  // La portada del vídeo dice de quién es el dato, no solo «14 partidos sin perder… hasta hoy»
   const hook = await page.evaluate(() => window.__videoData?.hook);
-  check(hook?.tag === 'El dato' && hook.text === 'Roma: 14 partidos sin perder… hasta hoy', `la portada del vídeo dice de quién es el dato (${hook?.tag} · ${hook?.text})`);
+  check(hook?.tag === 'El dato' && hook.text === 'Se acaba la racha de la Roma: 14 partidos sin perder', `la portada del vídeo dice de quién es el dato (${hook?.tag} · ${hook?.text})`);
   await page.click('.lang-opt[data-music="epica"]');
   check(await page.isHidden('#mixPlayer') && await page.isVisible('#mixResetBtn'), 'al cambiar a la épica, la mezcla se rehace y sale «↺ Por defecto»');
   await page.click('#mixPreviewBtn');
