@@ -623,6 +623,8 @@ try {
     check(n.topic === 'tema' && n.title === '⚽ Deportivo 1-0 Levante' && n.message === '⚽ Final · Depor 1-0 Levante'
       && n.click === 'https://tonimas35.github.io/futbol-studio/?video=401882844' && n.actions[0].url === n.click,
       `y el aviso al móvil lleva el resultado, la descripción y el enlace al vídeo (${n.click})`);
+    check(pl.notice({ id: '401882844', title: 'x' }, 'tema', 'https://tonimas35.github.io/futbol-studio/', false).click === 'https://github.com/tonimas35/futbol-studio/releases/download/videos/401882844.mp4',
+      'y si la web no se ha podido publicar, el vídeo tal cual');
     const cfg = JSON.parse(readFileSync(join(REPO, 'piloto.json')));
     const wf = readFileSync(join(REPO, '.github/workflows/piloto.yml'), 'utf8');
     check(cfg.liga === 'esp.1' && cfg.competiciones.includes('uefa.champions') && /cron: '3-59\/10 11-23 \* \* \*'/.test(wf),

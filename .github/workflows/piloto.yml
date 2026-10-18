@@ -68,8 +68,10 @@ jobs:
       pages: write
       id-token: write
 
+  # También si la web ha fallado (GitHub Pages sin activar): entonces el aviso lleva el vídeo tal cual
   avisar:
     needs: [video, web]
+    if: always() && needs.video.outputs.hechos != '' && needs.video.outputs.hechos != '[]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -81,5 +83,6 @@ jobs:
       - name: Avisar al móvil
         env:
           HECHOS: ${{ needs.video.outputs.hechos }}
+          WEB: ${{ needs.web.result }}
           NTFY_TOPIC: ${{ vars.NTFY_TOPIC }}
         run: node tools/piloto.mjs avisar

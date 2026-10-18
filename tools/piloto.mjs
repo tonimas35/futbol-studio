@@ -203,9 +203,10 @@ async function web(dir) {
   console.log(`En la web: ${names.length} archivos de vídeos`);
 }
 
-// El aviso al móvil: el resultado y, al tocarlo, el vídeo listo para compartir.
-export function notice(v, topic, web) {
-  const url = `${web}?video=${v.id}`;
+// El aviso al móvil: el resultado y, al tocarlo, el vídeo listo para compartir. Si la web no se ha
+// podido publicar (GitHub Pages sin activar), el vídeo tal cual, desde la release.
+export function notice(v, topic, web, webOk = true) {
+  const url = webOk ? `${web}?video=${v.id}` : `https://github.com/${repo()}/releases/download/${RELEASE}/${v.id}.mp4`;
   return {
     topic, title: `⚽ ${v.title}`, message: v.caption || 'Tu vídeo está listo', click: url, tags: ['movie_camera'], priority: 4,
     actions: [{ action: 'view', label: 'Abrir el vídeo', url }],
@@ -216,7 +217,7 @@ async function avisar() {
   const made = JSON.parse(process.env.HECHOS || '[]');
   const topic = process.env.NTFY_TOPIC || CONFIG.ntfy;
   for (const v of made) {
-    const res = await fetch('https://ntfy.sh', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(notice(v, topic, CONFIG.web)) });
+    const res = await fetch('https://ntfy.sh', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(notice(v, topic, CONFIG.web, process.env.WEB !== 'failure')) });
     console.log(`Aviso: ${v.title} (${res.status})`);
   }
 }
