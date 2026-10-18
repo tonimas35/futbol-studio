@@ -4598,10 +4598,12 @@ ${inside.length ? `\n${L('Desliza para ver', 'Swipe for')} ${listEs(inside)}.\n`
   function tiktokCaption(m) {
     const dato = slideDefs().some(d => d.id === 'dato') ? datoFacts(m)[0] : null;
     const score = `${m.home.short} ${m.home.score}-${m.away.score} ${m.away.short}${pensWon(m) ? ` (${m.home.shootout}-${m.away.shootout} ${L('pen.', 'pens')})` : ''}`;
-    // «4 años después» solo no dice de qué: esos datos llevan su frase corta, con quién y dónde (si
-    // no has retocado la slide)
+    // El número y su unidad solos («4 años después», «12 victorias seguidas») no dicen de quién: va la
+    // frase corta de los «primera vez desde…» o, si no, la frase dicha del dato («El Barça encadena 12
+    // victorias seguidas»). Si has retocado la slide, lo que pusiste.
+    const said = dato && (dato.hook || dato.spoken.replace(/\.$/, ''));
     const hook = dato
-      ? `🤯 ${cap(dato.hook && !slideEdited('dato') ? dato.hook : `${writtenText('#slide-dato .dt-big') || dato.big} ${writtenText('#slide-dato .dt-unit') || dato.unit}`)}`
+      ? `🤯 ${cap(said && !slideEdited('dato') ? said : `${writtenText('#slide-dato .dt-big') || dato.big} ${writtenText('#slide-dato .dt-unit') || dato.unit}`)}`
       : `⚽ ${writtenText('#slide-portada .head h1') || headline(m)}`;
     const best = bestPlayer(m);
     const rating = best ? afRating(m, best) : null;
