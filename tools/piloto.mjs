@@ -129,14 +129,16 @@ export function serve() {
 // carrusel y el vídeo con lo que tenga el Studio por defecto (sin música, la firma y el logo de
 // Jornada90). Luego, a H.264 para el iPhone y TikTok.
 export async function makeVideo(browser, base, p, dir) {
-  const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: 'es-ES', timezoneId: 'Europe/Madrid', acceptDownloads: true });
+  // Como un Chrome normal: ESPN contesta 403 (y sin CORS) al «HeadlessChrome» del modo sin ventana
+  const userAgent = `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${browser.version()} Safari/537.36`;
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: 'es-ES', timezoneId: 'Europe/Madrid', acceptDownloads: true, userAgent });
   try {
     const page = await ctx.newPage();
     page.on('dialog', d => d.accept());
     // Lo que falle dentro, en el registro de GitHub Actions
     page.on('pageerror', e => console.warn(`  error en la página: ${e.message}`));
     page.on('console', m => { if (/error|warn/.test(m.type())) console.warn(`  consola: ${m.text()}`); });
-    page.on('requestfailed', r => console.warn(`  sin respuesta: ${r.url()} (${r.failure()?.errorText})`));
+    page.on('requestfailed', r => { if (!r.url().startsWith('blob:')) console.warn(`  sin respuesta: ${r.url()} (${r.failure()?.errorText})`); });
     page.on('response', r => { if (r.status() >= 400) console.warn(`  ${r.status()}: ${r.url()}`); });
     await page.goto(`${base}/?partido=${p.league}/${p.id}&dia=${p.day}`);
     await page.waitForFunction(() => !document.getElementById('videoOut').hidden
