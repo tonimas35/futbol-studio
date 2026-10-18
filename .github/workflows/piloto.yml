@@ -3,8 +3,9 @@ name: Piloto automático
 # Cada 10 minutos en las horas de partidos (de 11 a 23 h UTC): mira ESPN y, cuando acaba un partido
 # de tus competiciones (piloto.json), hace el vídeo con el Studio, lo publica en la web y te avisa
 # al móvil con ntfy. Si alguno va por el final, se queda vigilándolo cada 30 segundos para avisar
-# a los 3 o 4 minutos del pitido final. Y 3 horas antes de los partidos grandes, su previa. A mano
-# (Run workflow), hace el de un partido concreto.
+# a los 3 o 4 minutos del pitido final. Y 3 horas antes de los partidos grandes, su previa; y al
+# acabar la jornada de LaLiga, su resumen en fotos. A mano (Run workflow), hace el de un partido
+# concreto.
 # Ver tools/piloto.mjs.
 on:
   schedule:
@@ -12,7 +13,7 @@ on:
   workflow_dispatch:
     inputs:
       partido:
-        description: 'Un partido concreto: liga/id de ESPN (p. ej. esp.1/401882846), o previa:liga/id para su previa. Vacío: los que acaben'
+        description: 'Un partido concreto: liga/id de ESPN (p. ej. esp.1/401882846), previa:liga/id para su previa o jornada:esp.1 para el resumen de la jornada. Vacío: los que acaben'
         required: false
       dia:
         description: 'Su día (AAAA-MM-DD), si no es de hoy'

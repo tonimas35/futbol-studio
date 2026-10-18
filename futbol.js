@@ -4671,8 +4671,17 @@
       ctx.fillStyle = shade;
       ctx.fillRect(0, dy, 1080, pad);
     };
+    // Abajo, la última fila, salvo que sea un remate de color (la raya lima del pie de las hojas
+    // claras): entonces, el fondo de justo encima
+    const mean = (y) => {
+      const px = slide.getContext('2d').getImageData(0, y, 1080, 1).data;
+      const sum = [0, 0, 0];
+      for (let i = 0; i < px.length; i += 4) { sum[0] += px[i]; sum[1] += px[i + 1]; sum[2] += px[i + 2]; }
+      return sum.map(v => v / 1080);
+    };
+    const [a, b] = [mean(1347), mean(1318)];
     band(2, 0, pad, 0);
-    band(1347, pad + 1350, pad + 1350, 1920);
+    band(a.reduce((d, v, i) => d + Math.abs(v - b[i]), 0) > 60 ? 1318 : 1347, pad + 1350, pad + 1350, 1920);
     ctx.drawImage(slide, 0, pad);
     return out;
   }
@@ -5321,29 +5330,52 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
     return true;
   }
 
+  // ?jornada=esp.1&dia=2026-10-19: el resumen de la jornada de ese día (sin dia, la de hoy). Lo usa
+  // el robot cuando acaba el último partido de la jornada de tu liga.
+  async function openJornadaLink(params) {
+    const league = params.get('jornada');
+    if (!COMP[league]) return false;
+    history.replaceState(null, '', location.pathname);
+    markLeague(league);
+    await goToDate(/^\d{4}-\d{2}-\d{2}$/.test(params.get('dia') || '') ? params.get('dia') : localIso());
+    await generateJornada();
+    return true;
+  }
+
   // ─── Piloto automático: el vídeo que ha hecho el robot al pitido final ───
   // ?video=401882846 abre v/401882846.mp4 y su descripción (v/401882846.json), que el robot
   // (.github/workflows/piloto.yml) deja en esta misma web, listo para compartirlo a TikTok desde el
-  // móvil. Es el enlace del aviso que llega con ntfy. Los vídeos se quedan unos días.
+  // móvil. Es el enlace del aviso que llega con ntfy. Los vídeos se quedan unos días. Con el resumen
+  // de la jornada (?video=jornada-esp-1-2026-10-16), sus fotos (las que diga el .json).
   async function openRobotVideo(params) {
     const id = params.get('video') || '';
-    if (!/^\d+(-previa)?$/.test(id)) return false;
+    if (!/^(\d+(-previa)?|jornada-[a-z0-9-]+)$/.test(id)) return false;
     history.replaceState(null, '', location.pathname);
     const $ = (x) => document.getElementById(x);
     $('robotBox').hidden = false;
     $('robotClose').addEventListener('click', () => { $('robotBox').hidden = true; });
     try {
-      const get = (ext, as) => fetch(`v/${id}.${ext}`).then(r => {
-        if (!r.ok) throw new Error(`v/${id}.${ext}: ${r.status}`);
+      const get = (name, as) => fetch(`v/${name}`).then(r => {
+        if (!r.ok) throw new Error(`v/${name}: ${r.status}`);
         return r[as]();
       });
-      const [info, blob] = await Promise.all([get('json', 'json'), get('mp4', 'blob')]);
-      const file = new File([blob], info.file || `jornada90-${id}.mp4`, { type: 'video/mp4' });
-      const url = URL.createObjectURL(blob);
-      $('robotTitle').textContent = info.title || 'Tu vídeo';
-      Object.assign($('robotVideo'), { src: url, hidden: false });
-      $('robotVideo').play().catch(() => {});
-      Object.assign($('robotDl'), { href: url, download: file.name, hidden: false });
+      const info = await get(`${id}.json`, 'json');
+      const photos = (info.images || []).filter(n => /^[\w.-]+\.png$/.test(n));
+      const blobs = await Promise.all(photos.length ? photos.map(n => get(n, 'blob')) : [get(`${id}.mp4`, 'blob')]);
+      const files = photos.length ? blobs.map((b, i) => new File([b], photos[i], { type: 'image/png' }))
+        : [new File([blobs[0]], info.file || `jornada90-${id}.mp4`, { type: 'video/mp4' })];
+      $('robotTitle').textContent = info.title || (photos.length ? 'Tus fotos' : 'Tu vídeo');
+      if (photos.length) {
+        $('robotPhotos').innerHTML = files.map((f, i) => `<img src="${URL.createObjectURL(f)}" alt="Foto ${i + 1}"/>`).join('');
+        $('robotPhotos').hidden = false;
+        $('robotShare').textContent = `Compartir ${files.length} fotos`;
+        $('robotHint').textContent = 'Se copia sola al compartir: en TikTok, mantén pulsado el texto y pega. Van en orden, con la portada primero. Para guardarlas, mantén pulsada cada foto.';
+      } else {
+        const url = URL.createObjectURL(blobs[0]);
+        Object.assign($('robotVideo'), { src: url, hidden: false });
+        $('robotVideo').play().catch(() => {});
+        Object.assign($('robotDl'), { href: url, download: files[0].name, hidden: false });
+      }
       $('robotCaption').value = info.caption || '';
       $('robotCaptionBox').hidden = !info.caption;
       const caption = () => $('robotCaption').value;
@@ -5356,12 +5388,12 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
           showToast('Selecciónala y cópiala a mano: este navegador no deja copiar solo', 'error');
         }
       });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      if (navigator.canShare && navigator.canShare({ files })) {
         $('robotShare').hidden = false;
         $('robotShare').addEventListener('click', async () => {
           navigator.clipboard?.writeText(caption()).catch(() => {});
           try {
-            await navigator.share({ files: [file] });
+            await navigator.share({ files });
           } catch (e) {
             if (e.name !== 'AbortError') showToast(`No se pudo compartir: ${e.message}`, 'error');
           }
@@ -5369,7 +5401,8 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
       }
     } catch (e) {
       console.warn('Piloto automático:', e);
-      $('robotTitle').textContent = 'Este vídeo ya no está: se guardan unos días. Hazlo en el Studio.';
+      $('robotTitle').textContent = /^jornada-/.test(id) ? 'Estas fotos ya no están: se guardan unos días. Hazlas en el Studio.'
+        : 'Este vídeo ya no está: se guardan unos días. Hazlo en el Studio.';
     }
     return true;
   }
@@ -5601,8 +5634,9 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
 
     const params = new URLSearchParams(location.search);
     if (params.has('video')) openRobotVideo(params);
-    if (params.has('partido') || params.has('previa')) {
-      openFromLink(params).then(done => { if (!done) { loadGames(today); restoreDraft(); } });
+    const link = params.has('jornada') ? openJornadaLink : params.has('partido') || params.has('previa') ? openFromLink : null;
+    if (link) {
+      link(params).then(done => { if (!done) { loadGames(today); restoreDraft(); } });
     } else {
       loadGames(today);
       restoreDraft();

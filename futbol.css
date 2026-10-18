@@ -1359,6 +1359,9 @@ body.zoom-open { overflow: hidden; }
 .robot-title { margin: 0 0 14px; font-family: var(--display); font-weight: 400; font-size: 34px; line-height: 1.05; text-transform: uppercase; }
 .robot-video { display: block; width: 100%; max-height: 62vh; aspect-ratio: 9 / 16; object-fit: contain; background: #000; border-radius: var(--radius); }
 .robot-video[hidden] { display: none; }
+.robot-photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.robot-photos[hidden] { display: none; }
+.robot-photos img { display: block; width: 100%; aspect-ratio: 9 / 16; object-fit: cover; background: #000; border-radius: 8px; }
 .robot-actions { display: flex; gap: 10px; margin-top: 14px; }
 .robot-actions .btn { flex: 1; }
 .robot-close { display: block; width: 100%; margin-top: 16px; padding: 12px; border: 0; background: none; color: var(--mute); font: 600 15px var(--body); text-decoration: underline; cursor: pointer; }
