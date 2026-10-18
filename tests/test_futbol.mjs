@@ -706,6 +706,27 @@ try {
       'y el vigía hace de reloj: mira cada 10 minutos, lanza el piloto y, al acabar su vuelta, la siguiente');
   }
 
+  // ── La clasificación al día: al pitido final, ESPN aún no ha contado el partido en la tabla ──
+  {
+    const { ctx: ct, page: pt } = await open({ before: async (c) => {
+      await c.route(/\/summary\?event=401915414$/, (r) => {
+        const data = JSON.parse(readFileSync(join(FIX, 'sum-401915414.json')));
+        const set = (e, v) => e.stats.forEach((s) => { if ((s.name || s.type) in v) s.value = v[s.name || s.type]; });
+        for (const e of data.standings.groups.flatMap((g) => g.standings.entries)) {
+          if (String(e.id) === '86') set(e, { gamesPlayed: 1, points: 3, pointDifferential: 1 });
+          if (String(e.id) === '104') set(e, { gamesPlayed: 1, points: 1, pointDifferential: 0 });
+        }
+        return r.fulfill(json(JSON.stringify(data)));
+      });
+    } });
+    await pickLeague(pt, 'uefa.champions');
+    await pickDate(pt, '2026-10-14');
+    await generate(pt, '401915414');
+    const me = await pt.$$eval('#slide-tabla .row.me', (rs) => rs.map((r) => [...r.querySelectorAll('span')].map((s) => s.textContent.trim()).join(' ')));
+    check(me.join(' | ') === '8 Real Madrid 2 +2 6 | 25 Roma 2 -1 1', `la tabla cuenta el partido que ESPN aún no tenía, cada uno en su sitio (${me.join(' | ')})`);
+    await ct.close();
+  }
+
   // ── Previa: con un partido sin empezar, un vídeo con cómo llegan, el cara a cara y sus goleadores ──
   // (datos reales de ESPN del Real Madrid–Sevilla del 18-10-2026, movido al 29-11 para no pisar otras pruebas)
   {
@@ -723,7 +744,7 @@ try {
     check(pv.title === 'Previa · Real Madrid – Sevilla' && pv.dl === 'futbol-rma-sev-2026-11-29-previa.mp4' && pv.box,
       `la previa en vídeo (${pv.title} · ${pv.dl})`);
     check(pv.caption[0] === '🔥 PREVIA · Real Madrid – Sevilla' && pv.caption[1] === '⏰ Hoy, 21:00 · LaLiga'
-      && pv.caption[2] === '📊 Últimos 5: Real Madrid 4G 0E 1P · Sevilla 2G 1E 1P'
+      && pv.caption[2] === '📊 Cómo llegan: Real Madrid 4G 0E 1P · Sevilla 2G 1E 1P'
       && pv.caption[3] === '🆚 Últimos 5 cara a cara: Real Madrid 5, empates 0, Sevilla 0' && pv.caption[5] === '#futbol #laliga #realmadrid #sevilla #previa',
       `y su descripción: la hora, cómo llegan (sin amistosos) y el cara a cara (${pv.caption.slice(0, 4).join(' | ')})`);
     await cp.close();
