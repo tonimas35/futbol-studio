@@ -693,7 +693,7 @@ try {
       `con su aviso («${nj.title}»)`);
     const cfg = JSON.parse(readFileSync(join(REPO, 'piloto.json')));
     const wf = readFileSync(join(REPO, '.github/workflows/piloto.yml'), 'utf8');
-    check(cfg.liga === 'esp.1' && cfg.competiciones.includes('uefa.champions') && cfg.previas.equipos.includes('86') && cfg.previas.horasAntes === 3 && /cron: '3-59\/10 11-23 \* \* \*'/.test(wf) && /tools\/piloto\.mjs esperar/.test(wf),
+    check(cfg.liga === 'esp.1' && cfg.competiciones.includes('uefa.champions') && cfg.previas.equipos.includes('86') && cfg.previas.horasAntes === 3 && /cron: '3,13,23,33,43,53 11-23 \* \* \*'/.test(wf) && /tools\/piloto\.mjs esperar/.test(wf),
       'cada 10 minutos en las horas de partidos (y cada 30 segundos al final de uno), con LaLiga y las copas y competiciones europeas');
   }
 
