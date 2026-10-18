@@ -345,6 +345,9 @@ try {
   // cacheados por el tamaño de la pantalla, que cambia con la cámara) el iPhone se quedaba sin
   // memoria y Safari cerraba la página.
   await page.evaluate(() => {
+    // Lo que le llega al vídeo (para ver la portada)
+    const render = window.StudioVideo.render;
+    window.StudioVideo.render = (data, ...rest) => { window.__videoData = data; return render(data, ...rest); };
     window.__canvases = 0;
     const orig = document.createElement.bind(document);
     document.createElement = (tag, ...rest) => {
@@ -365,6 +368,9 @@ try {
   check(/^futbol-roma-rma-2026-10-14-short\.(mp4|webm)$/.test(video.name || ''), `vídeo: ${video.name} (${video.toast})`);
   check(video.duration > 39.4 && video.duration < 40.6, `dura unos 40 s: apertura, 7 escenas, el cierre y la de tu logo (${video.duration?.toFixed(1)} s)`);
   check(video.meta === 'Lleva música urbana, subtítulos y la apertura con los escudos.', `con los subtítulos encendidos, lleva todo (${video.meta})`);
+  // La portada del vídeo dice de quién es el dato (la frase es larga: el equipo y el dato)
+  const hook = await page.evaluate(() => window.__videoData?.hook);
+  check(hook?.tag === 'El dato' && hook.text === 'Roma: 14 partidos sin perder… hasta hoy', `la portada del vídeo dice de quién es el dato (${hook?.tag} · ${hook?.text})`);
   await page.click('.lang-opt[data-music="epica"]');
   check(await page.isHidden('#mixPlayer') && await page.isVisible('#mixResetBtn'), 'al cambiar a la épica, la mezcla se rehace y sale «↺ Por defecto»');
   await page.click('#mixPreviewBtn');
