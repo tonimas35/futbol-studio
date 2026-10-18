@@ -777,6 +777,27 @@ try {
     await cj.close();
   }
 
+  // ── La polémica: el gol del Betis que anuló el VAR, de la narración de ESPN (datos reales del
+  // Betis 2-5 Barça del 17-10-2026, movidos al 22-11 para no pisar otras pruebas) ──
+  {
+    const { ctx: cq, page: pq } = await open();
+    await pickDate(pq, '2026-11-22');
+    await generate(pq, '401882846');
+    await pq.waitForSelector('#scriptLines .script-line', { timeout: 15000 }).catch(() => {});
+    const pol = await pq.evaluate(() => ({
+      caption: document.getElementById('captionText').value.split('\n'),
+      q: document.querySelector('#slide-cierre .q')?.textContent,
+      scenes: [...document.querySelectorAll('#scriptLines .script-line')].map((l) => l.dataset.scene),
+      line: document.querySelector('#scriptLines textarea[data-scene="polemica"]')?.value,
+    }));
+    check(pol.caption[0] === '😱 El VAR le anula un gol al Betis · Betis 2-5 Barcelona' && pol.caption[2] === '¿Bien anulado el gol del Betis? 👇'
+      && pol.q === '¿Bien anulado el gol del Betis?',
+      `la polémica: el gancho y la pregunta de la descripción y del cierre (${pol.caption[0]} | ${pol.q})`);
+    check(pol.scenes[1] === 'polemica' && pol.line === 'El VAR le anula un gol al Betis en el 43, con 1-2.',
+      `y su escena en el vídeo, tras el marcador, con el minuto y cómo iba (${pol.line})`);
+    await cq.close();
+  }
+
   // ── Resumen de la jornada: todos los resultados, lo destacado y la clasificación ──
   {
     const { ctx: c8, page: p8 } = await open();

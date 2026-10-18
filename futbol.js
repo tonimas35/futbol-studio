@@ -879,7 +879,42 @@
     addStandings(m, sum.standings?.groups || []);
     resolveClash(m);
     m.prev = previaOf(sum, m);
+    m.polemica = polemicaOf(sum, m);
     return m;
+  }
+
+  // LA POLÉMICA · lo que más se va a discutir del partido, de la narración de ESPN (la misma que
+  // trae los goles, gratis): un gol que anula el VAR, un penalti que el VAR da o quita, una
+  // amarilla que el VAR cambia por roja o una roja directa. La primera de esa lista que haya (y si
+  // hay varias del mismo tipo, la última), con cómo iba el marcador en ese momento.
+  const POLEMICAS = ['var-gol', 'var-penalti', 'var-no-penalti', 'var-roja', 'roja'];
+  function polemicaOf(sum, m) {
+    const comps = sum.header?.competitions?.[0]?.competitors || [];
+    const sideOf = (name) => {
+      const c = name && comps.find(x => [x.team?.displayName, x.team?.shortDisplayName, x.team?.name].includes(name));
+      return c ? (c.homeAway === 'away' ? 'away' : 'home') : null;
+    };
+    const found = [];
+    for (const c of sum.commentary || []) {
+      const p = c.play || {}, txt = c.text || '';
+      const kind = String(p.type?.id) === '175' || /^GOAL OVERTURNED BY VAR/i.test(txt) ? 'var-gol'
+        : /^VAR Decision: Penalty/i.test(txt) ? 'var-penalti'
+          : /^VAR Decision: No Penalty/i.test(txt) ? 'var-no-penalti'
+            : /^VAR Decision: Card upgraded/i.test(txt) ? 'var-roja'
+              : String(p.type?.id) === '93' && !/second yellow/i.test(txt) ? 'roja' : null;
+      const side = sideOf(p.team?.displayName);
+      if (!kind || !side) continue;
+      found.push({
+        kind, side, who: p.participants?.[0]?.athlete?.displayName || '', violent: /violent conduct/i.test(txt),
+        min: c.time?.displayValue || p.clock?.displayValue || '', clock: p.clock?.value ?? c.time?.value ?? 0,
+      });
+    }
+    const x = found.sort((a, b) => POLEMICAS.indexOf(a.kind) - POLEMICAS.indexOf(b.kind) || b.clock - a.clock)[0];
+    if (!x) return null;
+    // El marcador de ese momento: los goles de antes (o del mismo minuto)
+    const goals = (sum.keyEvents || []).filter(e => e.scoringPlay && !e.shootout && (e.clock?.value ?? 0) <= x.clock);
+    x.score = ['home', 'away'].map(s => goals.filter(e => String(e.team?.id) === m[s].id).length);
+    return x;
   }
 
   // Lo de la previa, del resumen de ESPN de un partido sin empezar: cómo llegan (sus últimos 5
@@ -2570,7 +2605,7 @@
   // 8 · CIERRE · la pregunta para los comentarios y tu firma
   // ----------------------------------------------------------
   const closingQuestion = (m) => (live(m) ? L('¿Cómo acaba?', 'How will it end?')
-    : sides(m).draw && !pensWon(m) ? L('¿Quién mereció ganar?', 'Who deserved to win?') : L('¿Quién fue el mejor del partido?', 'Who was your player of the match?'));
+    : polemicaText(m)?.question || (sides(m).draw && !pensWon(m) ? L('¿Quién mereció ganar?', 'Who deserved to win?') : L('¿Quién fue el mejor del partido?', 'Who was your player of the match?')));
 
   function tplCierre(m) {
     const { winner } = sides(m);
@@ -3377,6 +3412,33 @@
   const listEs = (xs) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} ${L('y', 'and')} ${xs[xs.length - 1]}` : xs[0] || '');
   // «al Real Madrid», «a la Roma», «a España»
   const toTeam = (t) => (article(t) === 'el ' ? `al ${t.short}` : `a ${article(t)}${t.short}`);
+
+  // Lo que se dice de la polémica: el gancho («El VAR le anula un gol al Betis»), el título de su
+  // escena, la frase del guion y la pregunta para los comentarios, que se entiende sola («¿Bien
+  // anulado el gol del Betis?»). strong: las del VAR, que mandan sobre «El dato» en el gancho.
+  function polemicaText(m, x = m.polemica) {
+    if (!x) return null;
+    const t = m[x.side], who = x.who || t.short;
+    const [line, title, question] = {
+      'var-gol': [L(`El VAR le anula un gol ${toTeam(t)}`, `VAR rules out a ${t.short} goal`), L('Gol anulado por el VAR', 'Goal ruled out by VAR'),
+        L(`¿Bien anulado el gol ${ofTeam(t)}?`, `Right call on the ${t.short} goal?`)],
+      'var-penalti': [L(`El VAR le da un penalti ${toTeam(t)}`, `VAR gives ${t.short} a penalty`), L('Penalti tras revisar el VAR', 'Penalty after VAR review'),
+        L(`¿Era penalti a favor ${ofTeam(t)}?`, `Was it a penalty for ${t.short}?`)],
+      'var-no-penalti': [L(`El VAR le quita un penalti ${toTeam(t)}`, `VAR takes a penalty away from ${t.short}`), L('El VAR quita el penalti', 'Penalty overturned by VAR'),
+        L(`¿Era penalti a favor ${ofTeam(t)}?`, `Was it a penalty for ${t.short}?`)],
+      'var-roja': [L(`El VAR cambia la amarilla por roja a ${who}`, `VAR upgrades ${who}'s yellow to red`), L('Roja tras revisar el VAR', 'Red card after VAR review'),
+        L(`¿Era roja para ${who}?`, `Was it a red for ${who}?`)],
+      roja: [L(`Roja directa a ${who}${x.violent ? ' por conducta violenta' : ''}`, `Straight red for ${who}${x.violent ? ' for violent conduct' : ''}`), L('Roja directa', 'Straight red'),
+        L(`¿Era roja para ${who}?`, `Was it a red for ${who}?`)],
+    }[x.kind];
+    const [h, a] = x.score;
+    const minute = x.min.replace(/'/g, '');
+    return {
+      line, title, question, who: x.who, min: x.min, side: x.side, strong: x.kind !== 'roja',
+      scoreLine: `${m.home.short} ${h}-${a} ${m.away.short}`,
+      sentence: L(`${line} en el ${minute.replace('+', ' más ')}, con ${h}-${a}.`, `${line} on ${minute.replace('+', ' plus ')} minutes, at ${h}-${a}.`),
+    };
+  }
   const extraTime = (m, evs) => m.status.period > 2 || /AET|EXTRA|PEN/.test(m.status.name) || evs.some(e => e.min.period > 2);
 
   // Los colores de un equipo para el vídeo, con los del fondo oscuro: night (puntos y líneas)
@@ -3407,6 +3469,7 @@
     const closingSide = winner || 'home';
     const dato = slideDefs().some(x => x.id === 'dato') ? datoFacts(m)[0] : null;
     const h = h2hCount(m);
+    const pol = polemicaText(m);
     return {
       home: team('home'),
       away: team('away'),
@@ -3424,9 +3487,10 @@
       headline: writtenText('#slide-portada .head h1') || headline(m),
       // El gancho de los primeros segundos (es también la portada del vídeo): «El dato» a medias,
       // como en la portada del carrusel, o el titular
-      hook: dato
-        ? { tag: L('El dato', 'The stat'), text: `${writtenText('#slide-dato .dt-big') || dato.big} ${writtenText('#slide-dato .dt-unit') || dato.unit}` }
+      hook: pol && (pol.strong || !dato) ? { tag: L('Polémica', 'Controversy'), text: pol.line }
+        : dato ? { tag: L('El dato', 'The stat'), text: `${writtenText('#slide-dato .dt-big') || dato.big} ${writtenText('#slide-dato .dt-unit') || dato.unit}` }
         : { tag: live(m) ? L('En juego', 'Live') : L('Final', 'Full time'), text: writtenText('#slide-portada .head h1') || headline(m) },
+      polemica: pol && { ...pol, style: teamStyle(m[pol.side]) },
       goals: timeline.map(e => ({
         side: e.side, min: e.min.label, t: e.min.t, kind: e.kind, name: e.name, how: e.how, score: e.score || null,
         tiny: !!e.tiny, out: e.out || '', style: videoStyle(m[e.side]),
@@ -3485,7 +3549,7 @@
         goal: L('GOL', 'GOAL'), onTarget: L('A PUERTA', 'ON TARGET'), offTarget: L('FUERA O BLOQUEADO', 'OFF TARGET OR BLOCKED'),
         player: L('JUGADOR', 'PLAYER'), ofMatch: L(' DEL PARTIDO', ' OF THE MATCH'),
         stats: L('ESTADÍSTICAS', 'STATS'),
-        dato: L('EL DATO', 'THE STAT'),
+        dato: L('EL DATO', 'THE STAT'), polemica: L('LA POLÉMICA', 'THE CONTROVERSY'), atTheTime: L('ASÍ IBA', 'AT THE TIME'),
         forma: L('CÓMO LLEGABAN', 'FORM COMING IN'), h2h: L('CARA A CARA', 'HEAD TO HEAD'), draws: L('EMPATES', 'DRAWS'), wdl: L(['G', 'E', 'P'], ['W', 'D', 'L']),
         halftime: L('DESCANSO', 'HALF-TIME'), extraTime: L('PRÓRROGA', 'EXTRA TIME'), now: L('AHORA', 'NOW'), fullTime: L('FINAL', 'FULL TIME'),
         onPens: L('EN LOS PENALTIS', 'ON PENALTIES'),
@@ -3736,7 +3800,7 @@
   const SCENE_NAMES = {
     score: 'Marcador', dato: 'El dato', goals: 'Los goles', tiros: 'Mapa de tiros', jugador: 'Jugador del partido',
     stats: 'Estadísticas', tabla: 'Clasificación', outro: 'Cierre',
-    stats2: 'Más estadísticas', forma: 'Cómo llegaban', h2h: 'Cara a cara',
+    stats2: 'Más estadísticas', forma: 'Cómo llegaban', h2h: 'Cara a cara', polemica: 'La polémica',
   };
   const NUM_WORDS = ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco'];
   const ORDINALS = ['', 'primero', 'segundo', 'tercero', 'cuarto', 'quinto', 'sexto', 'séptimo', 'octavo', 'noveno', 'décimo'];
@@ -3770,6 +3834,7 @@
     }
     const script = { score, outro: d.closing.question };
     if (d.dato) script.dato = d.dato.sentence;
+    if (d.polemica) script.polemica = d.polemica.sentence;
     const goals = d.goals.filter(e => e.kind === 'goal');
     if (d.goals.length) {
       const tally = new Map();
@@ -3852,6 +3917,7 @@
     }
     const script = { score, outro: d.closing.question };
     if (d.dato) script.dato = d.dato.sentence;
+    if (d.polemica) script.polemica = d.polemica.sentence;
 
     const goals = d.goals.filter(e => e.kind === 'goal');
     if (d.goals.length) {
@@ -4849,7 +4915,8 @@ ${inside.length ? `\n${L('Desliza para ver', 'Swipe for')} ${listEs(inside)}.\n`
     // frase corta de los «primera vez desde…» o, si no, la frase dicha del dato («El Barça encadena 12
     // victorias seguidas»). Si has retocado la slide, lo que pusiste.
     const said = dato && (dato.hook || dato.spoken.replace(/\.$/, ''));
-    const hook = dato
+    const pol = polemicaText(m);
+    const hook = pol && (pol.strong || !dato) ? `😱 ${pol.line}` : dato
       ? `🤯 ${cap(said && !slideEdited('dato') ? said : `${writtenText('#slide-dato .dt-big') || dato.big} ${writtenText('#slide-dato .dt-unit') || dato.unit}`)}`
       : `⚽ ${writtenText('#slide-portada .head h1') || headline(m)}`;
     const best = bestPlayer(m);
