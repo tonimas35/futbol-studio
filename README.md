@@ -2,7 +2,7 @@
 
 Mi herramienta para hacer contenido de fútbol: eliges competición, día y partido, y sale un carrusel de hasta 9 slides (1080×1350) para Instagram o TikTok y un vídeo short con música y subtítulos, con los datos de ESPN. Se retoca en la propia página y se descarga en PNG, ZIP o MP4.
 
-Es solo para mí: no es una web publicada. Se abre en el navegador desde el propio ordenador.
+Es solo para mí. Se usa en la web (https://tonimas35.github.io/futbol-studio/, también en el móvil) o abriendo `index.html` en el ordenador. Con el **piloto automático**, el vídeo de cada partido de LaLiga se hace solo al pitido final y llega al móvil.
 
 ## Cómo abrirlo
 
@@ -12,21 +12,17 @@ Es solo para mí: no es una web publicada. Se abre en el navegador desde el prop
 
 Para tener la última versión, vuelve a descargarlo o haz `git pull`. Para el móvil, ver «En el móvil». El borrador, la firma y la competición se guardan en ese navegador.
 
-## En el móvil
+## En el móvil: la web
 
-En el móvil hace falta abrirlo desde una web con HTTPS (sin ella, el navegador bloquea el micrófono, el vídeo, compartir y copiar). Se publica gratis en Netlify, que sí permite uso comercial, y el repo sigue privado:
+El Studio está publicado en **https://tonimas35.github.io/futbol-studio/** (GitHub Pages: gratis y sin límite de publicaciones porque el repo es público). En el móvil, abre esa dirección y **Compartir → Añadir a pantalla de inicio**: sale con su icono. Hace falta HTTPS para el vídeo, compartir y copiar, y GitHub Pages lo tiene.
 
-1. En [app.netlify.com](https://app.netlify.com), entra con GitHub.
-2. **Add new site → Import an existing project → GitHub** y elige `futbol-studio` (si no sale, «Configure the Netlify app on GitHub» y dale acceso a ese repo).
-3. Deja todo como viene (lo lee de `netlify.toml`) y pulsa **Deploy**.
-4. En **Site configuration → Change site name**, ponle un nombre: queda en `https://<nombre>.netlify.app`.
-5. En el móvil, abre esa dirección y **Compartir → Añadir a pantalla de inicio**: sale con su icono.
+**Cuándo se publica:** con cada cambio que entra en `main` y cada vez que el piloto automático hace un vídeo (`.github/workflows/web.yml`; tarda un par de minutos). Solo se publica la página: ni las pruebas ni este README. La dirección no sale en buscadores (`noindex`), pero quien la tenga puede abrirla; dentro no hay nada privado (los datos son de ESPN y tus borradores, tu clave y tu firma se quedan en tu navegador). Lo que hagas en el móvil se guarda en el móvil, y lo del ordenador, en el ordenador; y cada dirección guarda lo suyo (en la de Netlify, lo de Netlify).
 
-**Cuándo se publica (y los créditos de Netlify):** el plan gratis de Netlify da 300 créditos al mes y cada publicación en la web gasta 15 (unas 20 al mes); al acabarlos, Netlify para **todas** las webs del equipo hasta el mes siguiente. Por eso un cambio que entra en `main` **no** se publica solo: solo cuando el mensaje del commit lleva `[publicar]` (la regla `ignore` de `netlify.toml`). Así se juntan varios cambios en una sola publicación. Las vistas previas de cada PR (`deploy-preview-N--<nombre>.netlify.app`) no gastan y salen siempre, para probar antes. Para publicar lo que ya está en `main` sin cambiar nada: en Netlify, **Deploys → Trigger deploy** (también gasta 15). Solo se publica la página (`netlify.toml` copia sus archivos): ni las pruebas ni este README. La dirección no sale en buscadores (`noindex`), pero quien la tenga puede abrirla; dentro no hay nada privado (los datos son de ESPN y tus borradores se quedan en tu navegador). Lo que hagas en el móvil se guarda en el móvil, y lo del ordenador, en el ordenador.
+**Netlify (la dirección de antes, `studio-toni.netlify.app`):** se queda como estaba y no se publica nada más ahí: el plan gratis da 300 créditos al mes, cada publicación gasta 15 y al acabarlos se paran **todas** las webs del equipo. Solo se publica si el mensaje del commit en `main` lleva `[publicar]` (la regla `ignore` de `netlify.toml`). Las vistas previas de cada PR (`deploy-preview-N--studio-toni.netlify.app`) no gastan y siguen saliendo, para probar antes de mergear.
 
 ## Las notas de los jugadores (API-Football)
 
-En la web de Netlify, el Studio añade la nota de cada jugador y su cara, de [API-Football](https://www.api-football.com):
+En la web, el Studio añade la nota de cada jugador y su cara, de [API-Football](https://www.api-football.com):
 
 - **«Las notas»:** una slide nueva, tras el jugador del partido, con los que han jugado de cada equipo, de mejor a peor nota, con su cara y la nota en color (verde, amarillo, naranja o rojo). El de la nota más alta, marcado.
 - **Jugador del partido:** el de la nota más alta, con «Nota 8,9» como primer número (también en el vídeo y el guion: «un 8,9 de nota»). Si no hay foto grande, su cara en un retrato redondo con el escudo y, debajo, lo que más destaca de su partido (pases, duelos ganados, regates, entradas…).
@@ -35,7 +31,7 @@ En la web de Netlify, el Studio añade la nota de cada jugador y su cara, de [AP
 - A quien no tiene foto, API-Football le da una silueta gris: el Studio la detecta y pone el dorsal con los colores del equipo.
 - En el pie de foto, la nota del jugador del partido; en «Para tu IA», las 5 mejores de cada equipo.
 
-Cómo se conecta: pega tu clave en **«Tu clave de API-Football»** (Paso 2; está en dashboard.api-football.com → Profile → API-KEY). Se guarda solo en ese navegador, así que en cada móvil u ordenador se pone una vez, y el Studio pide los datos desde ahí, directamente a API-Football. **No pasa por Netlify a propósito:** las funciones de Netlify son AWS Lambda, con IPs compartidas, y API-Football suspende las cuentas que piden desde ellas (le pasó a la tuya el primer día). Cada partido gasta 2 peticiones (los partidos del día y los jugadores de ese partido; si lo rehaces, se reutilizan); el plan gratis da 100 al día y solo deja los partidos de ayer, hoy y mañana (para uno más antiguo, el carrusel sale sin notas y el aviso lo dice).
+Cómo se conecta: pega tu clave en **«Tu clave de API-Football»** (Paso 2; está en dashboard.api-football.com → Profile → API-KEY). Se guarda solo en ese navegador, así que en cada móvil u ordenador se pone una vez, y el Studio pide los datos desde ahí, directamente a API-Football. **No pasa por ningún servidor a propósito:** API-Football suspende las cuentas que piden desde IPs compartidas (las funciones de Netlify, que son AWS Lambda, o GitHub Actions); le pasó a la tuya el primer día. Por eso el piloto automático hace sus vídeos sin notas. Cada partido gasta 2 peticiones (los partidos del día y los jugadores de ese partido; si lo rehaces, se reutilizan); el plan gratis da 100 al día y solo deja los partidos de ayer, hoy y mañana (para uno más antiguo, el carrusel sale sin notas y el aviso lo dice).
 
 El partido se busca por la hora (±30 minutos), el resultado y los nombres de los equipos; los jugadores se emparejan por el dorsal (o, si no, por el apellido). Si API-Football no deja (el plan no incluye esa temporada, se acabaron las peticiones del día…), el carrusel sale igual, sin notas, y el aviso dice lo que ha contestado. Sin clave, todo igual, sin notas.
 
@@ -50,17 +46,20 @@ Arriba del todo, «Los partidos de hoy»: eliges qué competiciones vigilar (las
 
 ### Al pitido final: un enlace que lo hace todo
 
-`https://studio-toni.netlify.app/?partido=esp.1/401882846` abre el Studio, elige la competición, busca el partido (hoy o ayer; si es de otro día, `&dia=2026-10-17`), genera el carrusel y crea el vídeo, con la descripción para TikTok escrita. El número es el del partido en ESPN (sale en la dirección de su ficha). Es el enlace que lleva el aviso al móvil. Al abrirlo se borra de la barra, para que recargar no lo repita.
+`https://tonimas35.github.io/futbol-studio/?partido=esp.1/401882846` abre el Studio, elige la competición, busca el partido (hoy o ayer; si es de otro día, `&dia=2026-10-17`), genera el carrusel y crea el vídeo, con la descripción para TikTok escrita. El número es el del partido en ESPN (sale en la dirección de su ficha). Al abrirlo se borra de la barra, para que recargar no lo repita.
 
-### Aviso al móvil al acabar un partido (sin tener el Studio abierto)
+## Piloto automático: el vídeo hecho y en el móvil al pitido final
 
-La función de Netlify `pitido-final` mira ESPN cada 5 minutos, de 13:00 a 01:59 en España (las horas de los partidos de Europa: cada ejecución gasta un poco de créditos), y, cuando acaba un partido de tus competiciones, manda un aviso con [ntfy](https://ntfy.sh) («Final: Real Betis 1-2 Barcelona · LaLiga»). Al tocarlo se abre el enlace de arriba y el Studio lo genera todo. Para activarlo:
+Sin abrir el Studio: cuando acaba un partido, un robot hace el vídeo y te llega un aviso al móvil. Lo tocas, **Compartir vídeo** y a TikTok (la descripción se copia sola: mantén pulsado y pega).
 
-1. Instala la app **ntfy** (Android o iPhone; gratis y sin cuenta) y suscríbete a un tema con un nombre largo y raro (que no adivine nadie: quien lo sepa puede leer y mandar avisos a ese tema).
-2. En Netlify, **Project configuration → Environment variables**, crea `NTFY_TOPIC` con ese mismo nombre.
-3. Opcional: `AVISOS_LIGAS` con las competiciones que quieres (códigos de ESPN separados por comas; por defecto `esp.1,uefa.champions,esp.copa_del_rey`).
+- **Qué partidos:** los de LaLiga y, en la Copa, la Supercopa y las competiciones europeas, los que juega un equipo de LaLiga (`piloto.json`). Solo los que empezaron hace menos de 5 horas, y uno por partido.
+- **Cómo:** GitHub Actions (`.github/workflows/piloto.yml`, gratis en un repo público) mira ESPN cada 10 minutos de 11 a 23 h UTC (de 13:00 a 01:00 en España; en invierno, de 12:00 a 00:00). GitHub a veces lo retrasa unos minutos. Abre el Studio en un Chrome con el enlace del pitido final (`tools/piloto.mjs`), con lo de por defecto (sin música, la firma y el logo de Jornada90, en español y claro), lo pasa a H.264 (el del iPhone) y lo deja en la web (`v/<id>.mp4`, con su descripción en `v/<id>.json`). Te avisa con [ntfy](https://ntfy.sh) («⚽ Real Madrid 2-1 Sevilla» y la descripción); el aviso abre `?video=<id>`: el vídeo, «Compartir vídeo», «Descargar» y la descripción para copiar.
+- **Sin notas:** desde los servidores de GitHub, API-Football suspendería la cuenta. Si las quieres, hazlo en el Studio como siempre.
+- **La portada:** el primer fotograma ya lleva el resultado (el gancho y, debajo, «REAL MADRID 2-1 SEVILLA» en verde), que es la portada que pone TikTok si no eliges otra.
+- **Dónde se guardan:** en la release `videos` del repo (se borran solos a los 7 días; en la web están los de los últimos 3).
+- **A mano:** en GitHub, **Actions → Piloto automático → Run workflow**, con el partido (`liga/id`, p. ej. `esp.1/401882846`) y, si no es de hoy, su día: lo hace (o lo rehace) y avisa.
 
-Sin `NTFY_TOPIC` no hace nada. No guarda nada: para no avisar dos veces mira los avisos que ya hay en el tema, y solo avisa de partidos que empezaron hace menos de 5 horas.
+**Para recibir los avisos:** instala la app **ntfy** (gratis y sin cuenta) y suscríbete al tema `jornada90-40dc7171c6b9c5a9` (el de `piloto.json`). El tema está en el repo, que es público: quien lo lea podría suscribirse (solo vería tus vídeos, que son para publicar) o mandarte avisos. Para cambiarlo sin que salga en el repo, pon otro en **Settings → Secrets and variables → Actions → Variables** como `NTFY_TOPIC`.
 
 ## En inglés
 
@@ -177,8 +176,11 @@ El partido en 30 a 40 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
 | `audio.js` | La música y los efectos del vídeo |
 | `futbol.css` | La interfaz y las slides (`.fc`); el grano de las slides va dentro, en base64, para que la descarga funcione abriendo el archivo |
 | `manifest.webmanifest`, `apple-touch-icon.png`, `icon-*.png` | El nombre y el icono al añadirlo a la pantalla de inicio del móvil |
-| `netlify.toml` | Cómo se publica en Netlify (solo los archivos de la página) y dónde está la función |
-| `netlify/functions/pitido-final.mjs` | La función de Netlify que avisa al móvil (ntfy) cuando acaba un partido |
+| `netlify.toml` | La dirección de antes en Netlify y las vistas previas de las PR (solo los archivos de la página) |
+| `piloto.json` | El piloto automático: qué competiciones, el tema de ntfy y la dirección de la web |
+| `tools/piloto.mjs` | El robot del piloto automático: busca los partidos acabados, hace el vídeo con el Studio, lo deja en la web y avisa |
+| `.github/workflows/piloto.yml` | Lanza el robot cada 10 minutos en las horas de partidos (o a mano) |
+| `.github/workflows/web.yml` | Publica el Studio y los vídeos del robot en GitHub Pages |
 | `tests/` | Las pruebas y los datos de ESPN que usan |
 
 ## Pruebas
@@ -193,7 +195,7 @@ El partido en 30 a 40 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
   - el Lech-Leverkusen de la Europa League (la clasificación, pedida aparte);
   - el Osnabrück-Bayern de la Copa de Alemania (un apellido con «ß»).
 
-  Prueba las notas de API-Football (la slide, los líderes del partido, las caras en los onces, el jugador del partido por nota y el aviso si el plan no deja), «El dato» (la racha que se acaba, el cara a cara, el pie de foto, el guion y que el historial guardado no se vuelva a pedir), la versión en inglés (slides, guion, jornada y que se recuerde), el modo en directo (un partido que pasa de en juego a acabado: el aviso y generarlo a un clic, con el vídeo), el enlace del pitido final (`?partido=`: lo genera todo solo, y si el partido no está, lo dice) y la función que avisa al móvil (uno por partido, sin repetir y no de los de hace horas), el resumen de la jornada, tu logo, las competiciones y sus logos, la lista, las 9 slides, el minuto a minuto sin solapes, la firma, el jugador del partido, el borrador, el ZIP, el 9:16, compartir, el vídeo (guion, la mezcla y el MP4), «Para tu IA» (copiar y pegar), un partido en juego, uno con pocos datos, las eliminatorias (campeón, global, quién pasa), saltar a un día con partidos, el móvil y el Studio abierto como archivo (generar, descargar y recuperar el borrador).
+  Prueba las notas de API-Football (la slide, los líderes del partido, las caras en los onces, el jugador del partido por nota y el aviso si el plan no deja), «El dato» (la racha que se acaba, el cara a cara, el pie de foto, el guion y que el historial guardado no se vuelva a pedir), la versión en inglés (slides, guion, jornada y que se recuerde), el modo en directo (un partido que pasa de en juego a acabado: el aviso y generarlo a un clic, con el vídeo), el enlace del pitido final (`?partido=`: lo genera todo solo, y si el partido no está, lo dice) el piloto automático (qué partidos hace: uno por partido, sin repetir, no los de hace horas y fuera de LaLiga solo los de sus equipos; el aviso al móvil; y la página del aviso: el vídeo con su descripción, compartir, cerrar y si ya no está), el resumen de la jornada, tu logo, las competiciones y sus logos, la lista, las 9 slides, el minuto a minuto sin solapes, la firma, el jugador del partido, el borrador, el ZIP, el 9:16, compartir, el vídeo (guion, la mezcla y el MP4), «Para tu IA» (copiar y pegar), un partido en juego, uno con pocos datos, las eliminatorias (campeón, global, quién pasa), saltar a un día con partidos, el móvil y el Studio abierto como archivo (generar, descargar y recuperar el borrador).
 
 Corre sola en cada push y PR (`.github/workflows/tests.yml`). En local:
 

@@ -24,10 +24,33 @@
     rel="stylesheet"
   />
 
-  <link rel="stylesheet" href="futbol.css?v=16" />
+  <link rel="stylesheet" href="futbol.css?v=17" />
 </head>
 
 <body>
+
+  <!-- Piloto automático: el vídeo que hace el robot al pitido final (?video=ID, el enlace del aviso
+       al móvil), listo para compartirlo a TikTok -->
+  <div class="robot" id="robotBox" hidden>
+    <div class="robot-card" role="dialog" aria-labelledby="robotTitle">
+      <p class="robot-eyebrow">Piloto automático</p>
+      <h2 class="robot-title" id="robotTitle">Cargando el vídeo…</h2>
+      <video class="robot-video" id="robotVideo" playsinline muted loop controls hidden></video>
+      <div class="robot-actions">
+        <button class="btn btn-primary" id="robotShare" type="button" hidden>Compartir vídeo</button>
+        <a class="btn btn-ghost" id="robotDl" hidden>Descargar</a>
+      </div>
+      <div class="caption-box" id="robotCaptionBox" hidden>
+        <div class="caption-head">
+          <span>Descripción para TikTok</span>
+          <button class="btn btn-ghost" id="robotCopy" type="button">Copiar</button>
+        </div>
+        <textarea id="robotCaption" rows="5" spellcheck="false" aria-label="Descripción para TikTok"></textarea>
+        <small>Se copia sola al compartir: en TikTok, mantén pulsado el texto y pega. Elige de portada el primer fotograma, que ya lleva el resultado.</small>
+      </div>
+      <button class="robot-close" id="robotClose" type="button">Cerrar y abrir el Studio</button>
+    </div>
+  </div>
 
   <!-- Herramienta personal: se abre en el navegador con doble clic en este archivo. -->
   <main class="studio-main">
@@ -305,7 +328,7 @@
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 
   <script src="audio.js?v=3"></script>
-  <script src="video.js?v=15"></script>
-  <script src="futbol.js?v=26"></script>
+  <script src="video.js?v=16"></script>
+  <script src="futbol.js?v=27"></script>
 </body>
 </html>
