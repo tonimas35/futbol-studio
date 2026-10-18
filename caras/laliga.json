@@ -1,0 +1,3456 @@
+{
+ "hecho": "2026-10-18",
+ "liga": "esp.1",
+ "equipos": [
+  {
+   "espn": "83",
+   "af": 529,
+   "nombre": "Barcelona",
+   "jugadores": [
+    {
+     "id": 543468,
+     "nombre": "Eder Aller",
+     "dorsal": 1
+    },
+    {
+     "id": 182718,
+     "nombre": "Joan García",
+     "dorsal": 1
+    },
+    {
+     "id": 1305,
+     "nombre": "D. Livaković",
+     "dorsal": 25
+    },
+    {
+     "id": 639167,
+     "nombre": "I. Rodriguez",
+     "dorsal": 35
+    },
+    {
+     "id": 851,
+     "nombre": "W. Szczęsny",
+     "dorsal": 13
+    },
+    {
+     "id": 161928,
+     "nombre": "Alejandro Balde",
+     "dorsal": 3
+    },
+    {
+     "id": 855,
+     "nombre": "João Cancelo",
+     "dorsal": 2
+    },
+    {
+     "id": 2282,
+     "nombre": "A. Christensen",
+     "dorsal": 15
+    },
+    {
+     "id": 396623,
+     "nombre": "Pau Cubarsí Paredes",
+     "dorsal": 5
+    },
+    {
+     "id": 568001,
+     "nombre": "X. Espart",
+     "dorsal": 12
+    },
+    {
+     "id": 619,
+     "nombre": "Eric García",
+     "dorsal": 24
+    },
+    {
+     "id": 1257,
+     "nombre": "J. Koundé",
+     "dorsal": 23
+    },
+    {
+     "id": 181701,
+     "nombre": "Gerard Martín",
+     "dorsal": 18
+    },
+    {
+     "id": 570752,
+     "nombre": "J. Pesquer",
+     "dorsal": 33
+    },
+    {
+     "id": 433396,
+     "nombre": "Marc Bernal",
+     "dorsal": 22
+    },
+    {
+     "id": 478610,
+     "nombre": "M. Catovic",
+     "dorsal": 35
+    },
+    {
+     "id": 574799,
+     "nombre": "B. Farinas",
+     "dorsal": 4
+    },
+    {
+     "id": 340626,
+     "nombre": "Fermín",
+     "dorsal": 7
+    },
+    {
+     "id": 296667,
+     "nombre": "Gavi",
+     "dorsal": 6
+    },
+    {
+     "id": 568002,
+     "nombre": "O. Goren",
+     "dorsal": 16
+    },
+    {
+     "id": 1323,
+     "nombre": "Dani Olmo",
+     "dorsal": 20
+    },
+    {
+     "id": 133609,
+     "nombre": "Pedri",
+     "dorsal": 8
+    },
+    {
+     "id": 44,
+     "nombre": "Rodri",
+     "dorsal": 16
+    },
+    {
+     "id": 568143,
+     "nombre": "E. Tunkara",
+     "dorsal": 18
+    },
+    {
+     "id": 538,
+     "nombre": "F. de Jong",
+     "dorsal": 21
+    },
+    {
+     "id": 550547,
+     "nombre": "H. Abdelkarim",
+     "dorsal": 29
+    },
+    {
+     "id": 7334,
+     "nombre": "K. Adeyemi",
+     "dorsal": 14
+    },
+    {
+     "id": 338958,
+     "nombre": "R. Bardghji",
+     "dorsal": 19
+    },
+    {
+     "id": 426446,
+     "nombre": "J. Bisiwu",
+     "dorsal": 74
+    },
+    {
+     "id": 643,
+     "nombre": "Gabriel Jesus",
+     "dorsal": 9
+    },
+    {
+     "id": 138787,
+     "nombre": "A. Gordon",
+     "dorsal": 17
+    },
+    {
+     "id": 386828,
+     "nombre": "Lamine Yamal",
+     "dorsal": 10
+    },
+    {
+     "id": 1496,
+     "nombre": "Raphinha",
+     "dorsal": 11
+    }
+   ]
+  },
+  {
+   "espn": "1068",
+   "af": 530,
+   "nombre": "Atlético Madrid",
+   "jugadores": [
+    {
+     "id": 393198,
+     "nombre": "Salvador Esquivel",
+     "dorsal": 25
+    },
+    {
+     "id": 2465,
+     "nombre": "J. Musso",
+     "dorsal": 1
+    },
+    {
+     "id": 402280,
+     "nombre": "A. Yaakobishvili",
+     "dorsal": 4
+    },
+    {
+     "id": 548790,
+     "nombre": "J. Castillo",
+     "dorsal": 46
+    },
+    {
+     "id": 313383,
+     "nombre": "O. Vargas",
+     "dorsal": 3
+    },
+    {
+     "id": 548707,
+     "nombre": "M. Llorente",
+     "dorsal": 10
+    },
+    {
+     "id": 491091,
+     "nombre": "Sergio Esteban",
+     "dorsal": 9
+    },
+    {
+     "id": 29,
+     "nombre": "Jan Oblak",
+     "dorsal": 13
+    },
+    {
+     "id": 563,
+     "nombre": "Alejandro Grimaldo",
+     "dorsal": 22
+    },
+    {
+     "id": 30776,
+     "nombre": "Cristian Romero",
+     "dorsal": 21
+    },
+    {
+     "id": 386869,
+     "nombre": "Daniel Martinez Moreno",
+     "dorsal": 30
+    },
+    {
+     "id": 30399,
+     "nombre": "Dávid Hancko",
+     "dorsal": 17
+    },
+    {
+     "id": 753,
+     "nombre": "Marcos Llorente",
+     "dorsal": 14
+    },
+    {
+     "id": 295793,
+     "nombre": "Marc Pubill",
+     "dorsal": 18
+    },
+    {
+     "id": 47301,
+     "nombre": "Robin Le Normand",
+     "dorsal": 24
+    },
+    {
+     "id": 133185,
+     "nombre": "Johnny Cardoso",
+     "dorsal": 5
+    },
+    {
+     "id": 927,
+     "nombre": "Lee Kang-In",
+     "dorsal": 7
+    },
+    {
+     "id": 6009,
+     "nombre": "Julián Álvarez",
+     "dorsal": 19
+    },
+    {
+     "id": 8489,
+     "nombre": "Jonathan David",
+     "dorsal": 15
+    },
+    {
+     "id": 50,
+     "nombre": "Koke",
+     "dorsal": 6
+    },
+    {
+     "id": 7712,
+     "nombre": "Morten Hjulmand",
+     "dorsal": 23
+    },
+    {
+     "id": 336594,
+     "nombre": "Pablo Barrios Rivas",
+     "dorsal": 8
+    },
+    {
+     "id": 341371,
+     "nombre": "Rodrigo Mendoza",
+     "dorsal": 4
+    },
+    {
+     "id": 18767,
+     "nombre": "Ademola Lookman",
+     "dorsal": 11
+    },
+    {
+     "id": 182219,
+     "nombre": "Alejandro Baena Rodríguez",
+     "dorsal": 10
+    },
+    {
+     "id": 8492,
+     "nombre": "Alexander Sørloth",
+     "dorsal": 9
+    },
+    {
+     "id": 183948,
+     "nombre": "Arnau Ortiz",
+     "dorsal": 16
+    },
+    {
+     "id": 323935,
+     "nombre": "Giuliano Simeone Baldini",
+     "dorsal": 20
+    }
+   ]
+  },
+  {
+   "espn": "244",
+   "af": 543,
+   "nombre": "Real Betis",
+   "jugadores": [
+    {
+     "id": 122956,
+     "nombre": "Diego Conde",
+     "dorsal": 13
+    },
+    {
+     "id": 456619,
+     "nombre": "Manu González",
+     "dorsal": 31
+    },
+    {
+     "id": 46990,
+     "nombre": "Álvaro Vallés",
+     "dorsal": 1
+    },
+    {
+     "id": 602558,
+     "nombre": "A. de Pablo",
+     "dorsal": 40
+    },
+    {
+     "id": 1561,
+     "nombre": "Marc Bartra",
+     "dorsal": 5
+    },
+    {
+     "id": 1439,
+     "nombre": "Héctor Bellerín",
+     "dorsal": 2
+    },
+    {
+     "id": 610742,
+     "nombre": "C. De Roa",
+     "dorsal": 3
+    },
+    {
+     "id": 1564,
+     "nombre": "Junior Firpo",
+     "dorsal": 23
+    },
+    {
+     "id": 736,
+     "nombre": "Fran García",
+     "dorsal": 11
+    },
+    {
+     "id": 355004,
+     "nombre": "V. Gómez",
+     "dorsal": 16
+    },
+    {
+     "id": 47302,
+     "nombre": "Diego Llorente",
+     "dorsal": 3
+    },
+    {
+     "id": 195100,
+     "nombre": "Natan",
+     "dorsal": 4
+    },
+    {
+     "id": 334574,
+     "nombre": "Ángel Ortiz",
+     "dorsal": 12
+    },
+    {
+     "id": 316519,
+     "nombre": "F. Bernal",
+     "dorsal": 6
+    },
+    {
+     "id": 748,
+     "nombre": "Dani Ceballos",
+     "dorsal": 25
+    },
+    {
+     "id": 450714,
+     "nombre": "Ivan Corralejo",
+     "dorsal": 10
+    },
+    {
+     "id": 300885,
+     "nombre": "N. Deossa",
+     "dorsal": 18
+    },
+    {
+     "id": 750,
+     "nombre": "Álvaro Fidalgo",
+     "dorsal": 15
+    },
+    {
+     "id": 1697,
+     "nombre": "Pablo Fornals",
+     "dorsal": 8
+    },
+    {
+     "id": 745,
+     "nombre": "Isco",
+     "dorsal": 22
+    },
+    {
+     "id": 1578,
+     "nombre": "G. Lo Celso",
+     "dorsal": 20
+    },
+    {
+     "id": 47341,
+     "nombre": "Marc Roca",
+     "dorsal": 21
+    },
+    {
+     "id": 9971,
+     "nombre": "Antony",
+     "dorsal": 7
+    },
+    {
+     "id": 181421,
+     "nombre": "A. Ezzalzouli",
+     "dorsal": 10
+    },
+    {
+     "id": 47582,
+     "nombre": "C. Hernández",
+     "dorsal": 9
+    },
+    {
+     "id": 128985,
+     "nombre": "Iker Losada",
+     "dorsal": 14
+    },
+    {
+     "id": 544644,
+     "nombre": "J. A. Morante",
+     "dorsal": 27
+    },
+    {
+     "id": 149551,
+     "nombre": "T. Parrott",
+     "dorsal": 19
+    },
+    {
+     "id": 136117,
+     "nombre": "Rodrigo Riquelme",
+     "dorsal": 17
+    },
+    {
+     "id": 47119,
+     "nombre": "Aitor Ruibal",
+     "dorsal": 24
+    }
+   ]
+  },
+  {
+   "espn": "86",
+   "af": 541,
+   "nombre": "Real Madrid",
+   "jugadores": [
+    {
+     "id": 730,
+     "nombre": "T. Courtois",
+     "dorsal": 1
+    },
+    {
+     "id": 47400,
+     "nombre": "A. Lunin",
+     "dorsal": 13
+    },
+    {
+     "id": 386872,
+     "nombre": "Sergio Mestre",
+     "dorsal": 26
+    },
+    {
+     "id": 494060,
+     "nombre": "Javier Navarro",
+     "dorsal": 13
+    },
+    {
+     "id": 460594,
+     "nombre": "I. Voloshyn",
+     "dorsal": 13
+    },
+    {
+     "id": 451355,
+     "nombre": "Diego Aguado",
+     "dorsal": 3
+    },
+    {
+     "id": 283,
+     "nombre": "T. Alexander-Arnold",
+     "dorsal": 12
+    },
+    {
+     "id": 341640,
+     "nombre": "Raúl Asencio",
+     "dorsal": 2
+    },
+    {
+     "id": 284300,
+     "nombre": "Álvaro Fernández",
+     "dorsal": 18
+    },
+    {
+     "id": 47380,
+     "nombre": "Marc Cucurella",
+     "dorsal": 17
+    },
+    {
+     "id": 226,
+     "nombre": "D. Dumfries",
+     "dorsal": 24
+    },
+    {
+     "id": 372,
+     "nombre": "Éder Militão",
+     "dorsal": 3
+    },
+    {
+     "id": 561032,
+     "nombre": "L. Fati",
+     "dorsal": 23
+    },
+    {
+     "id": 443595,
+     "nombre": "Jesús Fortea",
+     "dorsal": 2
+    },
+    {
+     "id": 361497,
+     "nombre": "D. Huijsen",
+     "dorsal": 4
+    },
+    {
+     "id": 1145,
+     "nombre": "I. Konaté",
+     "dorsal": 16
+    },
+    {
+     "id": 561033,
+     "nombre": "J. Martinez",
+     "dorsal": 5
+    },
+    {
+     "id": 653,
+     "nombre": "F. Mendy",
+     "dorsal": 23
+    },
+    {
+     "id": 456014,
+     "nombre": "Mario Rivas",
+     "dorsal": 4
+    },
+    {
+     "id": 2285,
+     "nombre": "A. Rüdiger",
+     "dorsal": 22
+    },
+    {
+     "id": 129718,
+     "nombre": "J. Bellingham",
+     "dorsal": 5
+    },
+    {
+     "id": 2207,
+     "nombre": "E. Camavinga",
+     "dorsal": 6
+    },
+    {
+     "id": 560905,
+     "nombre": "J. Cestero Sancho",
+     "dorsal": 6
+    },
+    {
+     "id": 744,
+     "nombre": "Brahim Díaz",
+     "dorsal": 21
+    },
+    {
+     "id": 291964,
+     "nombre": "A. Güler",
+     "dorsal": 15
+    },
+    {
+     "id": 518384,
+     "nombre": "Sergio Martínez",
+     "dorsal": 16
+    },
+    {
+     "id": 509470,
+     "nombre": "Thiago Pitarch",
+     "dorsal": 27
+    },
+    {
+     "id": 636,
+     "nombre": "Bernardo Silva",
+     "dorsal": 20
+    },
+    {
+     "id": 1271,
+     "nombre": "A. Tchouaméni",
+     "dorsal": 14
+    },
+    {
+     "id": 756,
+     "nombre": "F. Valverde",
+     "dorsal": 8
+    },
+    {
+     "id": 548685,
+     "nombre": "A. Ciria",
+     "dorsal": 11
+    },
+    {
+     "id": 513776,
+     "nombre": "Y. Diomande",
+     "dorsal": 25
+    },
+    {
+     "id": 377122,
+     "nombre": "Endrick",
+     "dorsal": 9
+    },
+    {
+     "id": 450497,
+     "nombre": "Carlos Espí",
+     "dorsal": 19
+    },
+    {
+     "id": 308998,
+     "nombre": "Ávaro Leiva",
+     "dorsal": 11
+    },
+    {
+     "id": 278,
+     "nombre": "Kylian Mbappé",
+     "dorsal": 10
+    },
+    {
+     "id": 762,
+     "nombre": "Vinícius Júnior",
+     "dorsal": 7
+    },
+    {
+     "id": 441497,
+     "nombre": "Daniel Yañez",
+     "dorsal": 7
+    }
+   ]
+  },
+  {
+   "espn": "89",
+   "af": 548,
+   "nombre": "Real Sociedad",
+   "jugadores": [
+    {
+     "id": 431160,
+     "nombre": "T. Folgado",
+     "dorsal": 13
+    },
+    {
+     "id": 337843,
+     "nombre": "Aitor Fraga",
+     "dorsal": 1
+    },
+    {
+     "id": 189832,
+     "nombre": "Unai Marrero",
+     "dorsal": 13
+    },
+    {
+     "id": 47269,
+     "nombre": "Álex Remiro",
+     "dorsal": 1
+    },
+    {
+     "id": 199044,
+     "nombre": "J. Aramburu",
+     "dorsal": 2
+    },
+    {
+     "id": 349063,
+     "nombre": "Luken Beitia",
+     "dorsal": 34
+    },
+    {
+     "id": 386859,
+     "nombre": "Héctor Fort",
+     "dorsal": 22
+    },
+    {
+     "id": 23,
+     "nombre": "Sergio Gómez",
+     "dorsal": 17
+    },
+    {
+     "id": 410841,
+     "nombre": "K. Kita",
+     "dorsal": 5
+    },
+    {
+     "id": 405073,
+     "nombre": "Jon Martín",
+     "dorsal": 6
+    },
+    {
+     "id": 47303,
+     "nombre": "Aihen Muñoz",
+     "dorsal": 3
+    },
+    {
+     "id": 182546,
+     "nombre": "Jon Pacheco",
+     "dorsal": 16
+    },
+    {
+     "id": 381599,
+     "nombre": "Rupérez",
+     "dorsal": 22
+    },
+    {
+     "id": 276184,
+     "nombre": "M. Sarr",
+     "dorsal": 19
+    },
+    {
+     "id": 47314,
+     "nombre": "Zubeldia",
+     "dorsal": 5
+    },
+    {
+     "id": 469672,
+     "nombre": "Ibai Aguirre",
+     "dorsal": 8
+    },
+    {
+     "id": 287654,
+     "nombre": "Jon Gorrotxategi",
+     "dorsal": 4
+    },
+    {
+     "id": 2449,
+     "nombre": "Y. Herrera",
+     "dorsal": 21
+    },
+    {
+     "id": 353634,
+     "nombre": "A. Lebarbier",
+     "dorsal": 6
+    },
+    {
+     "id": 290106,
+     "nombre": "Pablo Marín",
+     "dorsal": 15
+    },
+    {
+     "id": 930,
+     "nombre": "Carlos Soler",
+     "dorsal": 18
+    },
+    {
+     "id": 7332,
+     "nombre": "L. Sučić",
+     "dorsal": 24
+    },
+    {
+     "id": 183744,
+     "nombre": "Beñat Turrientes",
+     "dorsal": 8
+    },
+    {
+     "id": 268960,
+     "nombre": "A. Zakharyan",
+     "dorsal": 23
+    },
+    {
+     "id": 445881,
+     "nombre": "Lander Astiazarán",
+     "dorsal": 17
+    },
+    {
+     "id": 47317,
+     "nombre": "Barrenetxea",
+     "dorsal": 7
+    },
+    {
+     "id": 403561,
+     "nombre": "Gorka Carrera",
+     "dorsal": 27
+    },
+    {
+     "id": 412738,
+     "nombre": "Dani Díaz",
+     "dorsal": 7
+    },
+    {
+     "id": 925,
+     "nombre": "Gonçalo Guedes",
+     "dorsal": 11
+    },
+    {
+     "id": 32862,
+     "nombre": "T. Kubo",
+     "dorsal": 14
+    },
+    {
+     "id": 449063,
+     "nombre": "Alex Garcia",
+     "dorsal": 29
+    },
+    {
+     "id": 387139,
+     "nombre": "J. Ochieng",
+     "dorsal": 12
+    },
+    {
+     "id": 61774,
+     "nombre": "O. Óskarsson",
+     "dorsal": 9
+    },
+    {
+     "id": 47323,
+     "nombre": "Mikel Oyarzabal",
+     "dorsal": 10
+    }
+   ]
+  },
+  {
+   "espn": "243",
+   "af": 536,
+   "nombre": "Sevilla",
+   "jugadores": [
+    {
+     "id": 396475,
+     "nombre": "Fran González",
+     "dorsal": 13
+    },
+    {
+     "id": 548843,
+     "nombre": "L. Luchino",
+     "dorsal": 25
+    },
+    {
+     "id": 290686,
+     "nombre": "Rafael Romero",
+     "dorsal": 33
+    },
+    {
+     "id": 557,
+     "nombre": "O. Vlachodimos",
+     "dorsal": 1
+    },
+    {
+     "id": 41208,
+     "nombre": "Fábio Cardoso",
+     "dorsal": 15
+    },
+    {
+     "id": 195923,
+     "nombre": "José Ángel Carmona",
+     "dorsal": 22
+    },
+    {
+     "id": 338902,
+     "nombre": "Andrés Castrín",
+     "dorsal": 5
+    },
+    {
+     "id": 386870,
+     "nombre": "Julio Díaz del Romo",
+     "dorsal": 3
+    },
+    {
+     "id": 433,
+     "nombre": "Marcão",
+     "dorsal": 23
+    },
+    {
+     "id": 546857,
+     "nombre": "I. Munoz",
+     "dorsal": 34
+    },
+    {
+     "id": 297311,
+     "nombre": "Kike Salas",
+     "dorsal": 4
+    },
+    {
+     "id": 174927,
+     "nombre": "A. Sangante",
+     "dorsal": 12
+    },
+    {
+     "id": 11421,
+     "nombre": "G. Suazo",
+     "dorsal": 17
+    },
+    {
+     "id": 21004,
+     "nombre": "L. Agoumé",
+     "dorsal": 6
+    },
+    {
+     "id": 443593,
+     "nombre": "Eduardo Altozano Agudo",
+     "dorsal": 39
+    },
+    {
+     "id": 331607,
+     "nombre": "Manu Bueno",
+     "dorsal": 14
+    },
+    {
+     "id": 22254,
+     "nombre": "Y. Fofana",
+     "dorsal": 24
+    },
+    {
+     "id": 546882,
+     "nombre": "N. Guillen",
+     "dorsal": 27
+    },
+    {
+     "id": 104821,
+     "nombre": "Jon Guridi",
+     "dorsal": 18
+    },
+    {
+     "id": 119742,
+     "nombre": "Juan Iglesias",
+     "dorsal": 2
+    },
+    {
+     "id": 119795,
+     "nombre": "G. Kochorashvili",
+     "dorsal": 8
+    },
+    {
+     "id": 48471,
+     "nombre": "R. Vargas",
+     "dorsal": 11
+    },
+    {
+     "id": 548686,
+     "nombre": "M. Castillo",
+     "dorsal": 26
+    },
+    {
+     "id": 135749,
+     "nombre": "Félix Correia",
+     "dorsal": 20
+    },
+    {
+     "id": 39121,
+     "nombre": "C. Ejuke",
+     "dorsal": 21
+    },
+    {
+     "id": 119213,
+     "nombre": "Alfon González",
+     "dorsal": 7
+    },
+    {
+     "id": 162126,
+     "nombre": "Peque Fernández",
+     "dorsal": 10
+    },
+    {
+     "id": 185398,
+     "nombre": "Isaac",
+     "dorsal": 16
+    },
+    {
+     "id": 438263,
+     "nombre": "Miguel Ángel",
+     "dorsal": 30
+    },
+    {
+     "id": 386270,
+     "nombre": "Ibrahima Sow",
+     "dorsal": 37
+    },
+    {
+     "id": 322560,
+     "nombre": "L. Stassin",
+     "dorsal": 19
+    },
+    {
+     "id": 327536,
+     "nombre": "R. Ure",
+     "dorsal": 9
+    }
+   ]
+  },
+  {
+   "espn": "96",
+   "af": 542,
+   "nombre": "Alavés",
+   "jugadores": [
+    {
+     "id": 163060,
+     "nombre": "A. Giménez",
+     "dorsal": 13
+    },
+    {
+     "id": 47353,
+     "nombre": "Sivera",
+     "dorsal": 1
+    },
+    {
+     "id": 377215,
+     "nombre": "G. Swiderski",
+     "dorsal": 31
+    },
+    {
+     "id": 18740,
+     "nombre": "Jonny",
+     "dorsal": 17
+    },
+    {
+     "id": 106759,
+     "nombre": "V. Koski",
+     "dorsal": 16
+    },
+    {
+     "id": 162170,
+     "nombre": "Hugo Novoa",
+     "dorsal": 12
+    },
+    {
+     "id": 6233,
+     "nombre": "N. Tenaglia",
+     "dorsal": 14
+    },
+    {
+     "id": 311071,
+     "nombre": "N. Valentini",
+     "dorsal": 2
+    },
+    {
+     "id": 361384,
+     "nombre": "Yusi",
+     "dorsal": 3
+    },
+    {
+     "id": 143,
+     "nombre": "Carles Aleñá",
+     "dorsal": 10
+    },
+    {
+     "id": 162686,
+     "nombre": "Antonio Blanco",
+     "dorsal": 8
+    },
+    {
+     "id": 297973,
+     "nombre": "Selu Diallo",
+     "dorsal": 24
+    },
+    {
+     "id": 47309,
+     "nombre": "Guevara",
+     "dorsal": 6
+    },
+    {
+     "id": 139001,
+     "nombre": "Pablo Ibáñez",
+     "dorsal": 19
+    },
+    {
+     "id": 6085,
+     "nombre": "C. Benavídez",
+     "dorsal": 23
+    },
+    {
+     "id": 332645,
+     "nombre": "Mikel Rodríguez",
+     "dorsal": 18
+    },
+    {
+     "id": 1461,
+     "nombre": "Denis Suárez",
+     "dorsal": 4
+    },
+    {
+     "id": 608,
+     "nombre": "L. Boyé",
+     "dorsal": 15
+    },
+    {
+     "id": 760,
+     "nombre": "M. Díaz",
+     "dorsal": 9
+    },
+    {
+     "id": 330440,
+     "nombre": "Aitor Mañas",
+     "dorsal": 20
+    },
+    {
+     "id": 47181,
+     "nombre": "Toni Martínez",
+     "dorsal": 11
+    },
+    {
+     "id": 331369,
+     "nombre": "Angel Pérez",
+     "dorsal": 7
+    },
+    {
+     "id": 183751,
+     "nombre": "A. Rebbach",
+     "dorsal": 21
+    },
+    {
+     "id": 192434,
+     "nombre": "Miguel Rodríguez",
+     "dorsal": 22
+    }
+   ]
+  },
+  {
+   "espn": "85",
+   "af": 538,
+   "nombre": "Celta Vigo",
+   "jugadores": [
+    {
+     "id": 50132,
+     "nombre": "A. Bayındır",
+     "dorsal": 1
+    },
+    {
+     "id": 286623,
+     "nombre": "Coke Carrillo",
+     "dorsal": 1
+    },
+    {
+     "id": 30765,
+     "nombre": "I. Radu",
+     "dorsal": 13
+    },
+    {
+     "id": 47427,
+     "nombre": "Iván Villar",
+     "dorsal": 25
+    },
+    {
+     "id": 2278,
+     "nombre": "Marcos Alonso",
+     "dorsal": 3
+    },
+    {
+     "id": 51535,
+     "nombre": "S. Cáceres",
+     "dorsal": 21
+    },
+    {
+     "id": 157988,
+     "nombre": "Sergio Carreira",
+     "dorsal": 5
+    },
+    {
+     "id": 437776,
+     "nombre": "A. Faye",
+     "dorsal": 4
+    },
+    {
+     "id": 47566,
+     "nombre": "Javi Galán",
+     "dorsal": 22
+    },
+    {
+     "id": 329722,
+     "nombre": "Yoel Lago",
+     "dorsal": 18
+    },
+    {
+     "id": 284057,
+     "nombre": "Joel López",
+     "dorsal": 18
+    },
+    {
+     "id": 182661,
+     "nombre": "Álvaro Núñez",
+     "dorsal": 15
+    },
+    {
+     "id": 585415,
+     "nombre": "K. Ribes",
+     "dorsal": 3
+    },
+    {
+     "id": 384135,
+     "nombre": "Javi Rodríguez",
+     "dorsal": 20
+    },
+    {
+     "id": 179955,
+     "nombre": "Javi Rueda",
+     "dorsal": 17
+    },
+    {
+     "id": 47988,
+     "nombre": "C. Starfelt",
+     "dorsal": 2
+    },
+    {
+     "id": 481678,
+     "nombre": "Andrés Antañón",
+     "dorsal": 28
+    },
+    {
+     "id": 560930,
+     "nombre": "H. Burcio",
+     "dorsal": 30
+    },
+    {
+     "id": 382947,
+     "nombre": "H. Cuenca",
+     "dorsal": 17
+    },
+    {
+     "id": 46711,
+     "nombre": "Aleix Febas",
+     "dorsal": 14
+    },
+    {
+     "id": 554286,
+     "nombre": "O. Marcos",
+     "dorsal": 10
+    },
+    {
+     "id": 162123,
+     "nombre": "I. Moriba",
+     "dorsal": 6
+    },
+    {
+     "id": 333502,
+     "nombre": "Miguel Román",
+     "dorsal": 8
+    },
+    {
+     "id": 329720,
+     "nombre": "Hugo Álvarez",
+     "dorsal": 23
+    },
+    {
+     "id": 462992,
+     "nombre": "Ángel Arcos",
+     "dorsal": 31
+    },
+    {
+     "id": 47445,
+     "nombre": "Iago Aspas",
+     "dorsal": 10
+    },
+    {
+     "id": 272543,
+     "nombre": "C. Driouech",
+     "dorsal": 24
+    },
+    {
+     "id": 320517,
+     "nombre": "Pablo Durán",
+     "dorsal": 11
+    },
+    {
+     "id": 351913,
+     "nombre": "J. El Abdellaoui",
+     "dorsal": 39
+    },
+    {
+     "id": 161875,
+     "nombre": "Hugo González",
+     "dorsal": 16
+    },
+    {
+     "id": 47348,
+     "nombre": "Borja Iglesias",
+     "dorsal": 7
+    },
+    {
+     "id": 122734,
+     "nombre": "Ferran Jutglà",
+     "dorsal": 9
+    },
+    {
+     "id": 560932,
+     "nombre": "G. Miller",
+     "dorsal": 35
+    },
+    {
+     "id": 269163,
+     "nombre": "W. Swedberg",
+     "dorsal": 19
+    }
+   ]
+  },
+  {
+   "espn": "90",
+   "af": 544,
+   "nombre": "Deportivo",
+   "jugadores": [
+    {
+     "id": 47016,
+     "nombre": "Álvaro Fernández",
+     "dorsal": 25
+    },
+    {
+     "id": 105015,
+     "nombre": "Germán Parreño",
+     "dorsal": 1
+    },
+    {
+     "id": 179139,
+     "nombre": "Leo Román",
+     "dorsal": 13
+    },
+    {
+     "id": 162122,
+     "nombre": "Adrià Alti",
+     "dorsal": 2
+    },
+    {
+     "id": 227,
+     "nombre": "Angeliño",
+     "dorsal": 17
+    },
+    {
+     "id": 299763,
+     "nombre": "Dani Barcia",
+     "dorsal": 5
+    },
+    {
+     "id": 162695,
+     "nombre": "Arnau Comas",
+     "dorsal": 3
+    },
+    {
+     "id": 497393,
+     "nombre": "B. Ede",
+     "dorsal": 22
+    },
+    {
+     "id": 551380,
+     "nombre": "S. Fernandez",
+     "dorsal": 4
+    },
+    {
+     "id": 568237,
+     "nombre": "F. Fons",
+     "dorsal": 15
+    },
+    {
+     "id": 31,
+     "nombre": "J. Giménez",
+     "dorsal": 20
+    },
+    {
+     "id": 47190,
+     "nombre": "Miguel Loureiro",
+     "dorsal": 15
+    },
+    {
+     "id": 47360,
+     "nombre": "Ximo Navarro",
+     "dorsal": 23
+    },
+    {
+     "id": 319512,
+     "nombre": "L. Noubi",
+     "dorsal": 4
+    },
+    {
+     "id": 127025,
+     "nombre": "G. Quagliata",
+     "dorsal": 12
+    },
+    {
+     "id": 576357,
+     "nombre": "Q. Teijo",
+     "dorsal": 2
+    },
+    {
+     "id": 346865,
+     "nombre": "L. Amatucci",
+     "dorsal": 16
+    },
+    {
+     "id": 354754,
+     "nombre": "Jonathan Asp Jensen",
+     "dorsal": 18
+    },
+    {
+     "id": 628615,
+     "nombre": "Noé",
+     "dorsal": 37
+    },
+    {
+     "id": 329728,
+     "nombre": "Marc Casadó",
+     "dorsal": 6
+    },
+    {
+     "id": 107210,
+     "nombre": "Riki Rodríguez",
+     "dorsal": 14
+    },
+    {
+     "id": 161965,
+     "nombre": "Mario Soriano",
+     "dorsal": 21
+    },
+    {
+     "id": 182988,
+     "nombre": "Diego Villares",
+     "dorsal": 8
+    },
+    {
+     "id": 1465,
+     "nombre": "P. Aubameyang",
+     "dorsal": 7
+    },
+    {
+     "id": 188445,
+     "nombre": "Luismi Cruz",
+     "dorsal": 19
+    },
+    {
+     "id": 37616,
+     "nombre": "Z. Eddahchouri",
+     "dorsal": 9
+    },
+    {
+     "id": 678043,
+     "nombre": "Alvaro Fraga",
+     "dorsal": 25
+    },
+    {
+     "id": 295880,
+     "nombre": "Peke",
+     "dorsal": 10
+    },
+    {
+     "id": 335720,
+     "nombre": "David Mella",
+     "dorsal": 11
+    },
+    {
+     "id": 574733,
+     "nombre": "B. Nsongo",
+     "dorsal": 32
+    },
+    {
+     "id": 354868,
+     "nombre": "Martín Ochoa",
+     "dorsal": 31
+    },
+    {
+     "id": 400904,
+     "nombre": "Kevin Sánchez",
+     "dorsal": 33
+    },
+    {
+     "id": 18753,
+     "nombre": "Adama Traoré",
+     "dorsal": 24
+    }
+   ]
+  },
+  {
+   "espn": "97",
+   "af": 727,
+   "nombre": "Osasuna",
+   "jugadores": [
+    {
+     "id": 585235,
+     "nombre": "M. Bermejo",
+     "dorsal": 32
+    },
+    {
+     "id": 47448,
+     "nombre": "Aitor Fernández",
+     "dorsal": 13
+    },
+    {
+     "id": 46646,
+     "nombre": "Sergio Herrera",
+     "dorsal": 1
+    },
+    {
+     "id": 400901,
+     "nombre": "Rafa Fernández",
+     "dorsal": 31
+    },
+    {
+     "id": 279822,
+     "nombre": "F. Boyomo",
+     "dorsal": 22
+    },
+    {
+     "id": 181259,
+     "nombre": "Abel Bretones",
+     "dorsal": 23
+    },
+    {
+     "id": 47533,
+     "nombre": "Catena",
+     "dorsal": 24
+    },
+    {
+     "id": 182592,
+     "nombre": "Jorge Herrando",
+     "dorsal": 5
+    },
+    {
+     "id": 18867,
+     "nombre": "Diego Rico",
+     "dorsal": 15
+    },
+    {
+     "id": 21701,
+     "nombre": "V. Rosier",
+     "dorsal": 19
+    },
+    {
+     "id": 560924,
+     "nombre": "U. Santos",
+     "dorsal": 35
+    },
+    {
+     "id": 428586,
+     "nombre": "R. Yeboah",
+     "dorsal": 48
+    },
+    {
+     "id": 429553,
+     "nombre": "Mauro Echegoyen",
+     "dorsal": 26
+    },
+    {
+     "id": 46662,
+     "nombre": "Moncayola",
+     "dorsal": 7
+    },
+    {
+     "id": 182621,
+     "nombre": "Iker Muñoz",
+     "dorsal": 8
+    },
+    {
+     "id": 67939,
+     "nombre": "Aimar Oroz",
+     "dorsal": 10
+    },
+    {
+     "id": 381197,
+     "nombre": "Asier Osambela",
+     "dorsal": 29
+    },
+    {
+     "id": 1825,
+     "nombre": "Lucas Torró",
+     "dorsal": 6
+    },
+    {
+     "id": 421044,
+     "nombre": "Íñigo Arguibide",
+     "dorsal": 27
+    },
+    {
+     "id": 46667,
+     "nombre": "Kike Barja",
+     "dorsal": 11
+    },
+    {
+     "id": 484459,
+     "nombre": "Asier Bonel",
+     "dorsal": 30
+    },
+    {
+     "id": 46746,
+     "nombre": "A. Budimir",
+     "dorsal": 17
+    },
+    {
+     "id": 2214,
+     "nombre": "R. Del Castillo",
+     "dorsal": 20
+    },
+    {
+     "id": 183931,
+     "nombre": "Jonathan Dubasin",
+     "dorsal": 21
+    },
+    {
+     "id": 146751,
+     "nombre": "Raúl García",
+     "dorsal": 9
+    },
+    {
+     "id": 46658,
+     "nombre": "Rubén García",
+     "dorsal": 14
+    },
+    {
+     "id": 47574,
+     "nombre": "Moi Gómez",
+     "dorsal": 16
+    },
+    {
+     "id": 264470,
+     "nombre": "Raul Moro",
+     "dorsal": 18
+    }
+   ]
+  },
+  {
+   "espn": "93",
+   "af": 531,
+   "nombre": "Athletic Club",
+   "jugadores": [
+    {
+     "id": 312468,
+     "nombre": "Álex Padilla",
+     "dorsal": 13
+    },
+    {
+     "id": 437637,
+     "nombre": "Mikel Santos",
+     "dorsal": 13
+    },
+    {
+     "id": 47270,
+     "nombre": "Unai Simón",
+     "dorsal": 1
+    },
+    {
+     "id": 47271,
+     "nombre": "Yeray",
+     "dorsal": 5
+    },
+    {
+     "id": 182181,
+     "nombre": "Jesús Areso",
+     "dorsal": 12
+    },
+    {
+     "id": 47273,
+     "nombre": "Yuri",
+     "dorsal": 17
+    },
+    {
+     "id": 332305,
+     "nombre": "Unai Eguíluz",
+     "dorsal": 13
+    },
+    {
+     "id": 622,
+     "nombre": "Aymeric Laporte",
+     "dorsal": 14
+    },
+    {
+     "id": 344838,
+     "nombre": "J. Louis-Jean",
+     "dorsal": 31
+    },
+    {
+     "id": 407677,
+     "nombre": "Iker Monreal",
+     "dorsal": 5
+    },
+    {
+     "id": 183849,
+     "nombre": "Aitor Paredes",
+     "dorsal": 4
+    },
+    {
+     "id": 332309,
+     "nombre": "Alejandro Rego",
+     "dorsal": 20
+    },
+    {
+     "id": 313025,
+     "nombre": "Hugo Rincón",
+     "dorsal": 15
+    },
+    {
+     "id": 47278,
+     "nombre": "Dani Vivian",
+     "dorsal": 3
+    },
+    {
+     "id": 437643,
+     "nombre": "Peio Canales",
+     "dorsal": 28
+    },
+    {
+     "id": 332307,
+     "nombre": "Beñat Gerenabarrena",
+     "dorsal": 24
+    },
+    {
+     "id": 383780,
+     "nombre": "Mikel Jauregizar",
+     "dorsal": 18
+    },
+    {
+     "id": 84086,
+     "nombre": "Robert Navarro",
+     "dorsal": 23
+    },
+    {
+     "id": 182617,
+     "nombre": "Beñat Prados",
+     "dorsal": 6
+    },
+    {
+     "id": 47007,
+     "nombre": "Ruíz de Galarreta",
+     "dorsal": 16
+    },
+    {
+     "id": 128398,
+     "nombre": "Oihan Sancet",
+     "dorsal": 8
+    },
+    {
+     "id": 568156,
+     "nombre": "S. Sanchez",
+     "dorsal": 16
+    },
+    {
+     "id": 30510,
+     "nombre": "Álex Berenguer",
+     "dorsal": 7
+    },
+    {
+     "id": 190489,
+     "nombre": "Álvaro Djaló",
+     "dorsal": 25
+    },
+    {
+     "id": 47291,
+     "nombre": "Gorka Guruzeta",
+     "dorsal": 11
+    },
+    {
+     "id": 437644,
+     "nombre": "Asier Hierro",
+     "dorsal": 7
+    },
+    {
+     "id": 567714,
+     "nombre": "C. Mitogo",
+     "dorsal": 22
+    },
+    {
+     "id": 287680,
+     "nombre": "Maroan Sannadi",
+     "dorsal": 21
+    },
+    {
+     "id": 286593,
+     "nombre": "Nico Serrano",
+     "dorsal": 22
+    },
+    {
+     "id": 47294,
+     "nombre": "I. Williams",
+     "dorsal": 9
+    },
+    {
+     "id": 183799,
+     "nombre": "Nico Williams",
+     "dorsal": 10
+    }
+   ]
+  },
+  {
+   "espn": "102",
+   "af": 533,
+   "nombre": "Villarreal",
+   "jugadores": [
+    {
+     "id": 302277,
+     "nombre": "Rubén Gómez",
+     "dorsal": 13
+    },
+    {
+     "id": 1139,
+     "nombre": "P. Gulácsi",
+     "dorsal": 25
+    },
+    {
+     "id": 548871,
+     "nombre": "Y. Kinareykin",
+     "dorsal": 1
+    },
+    {
+     "id": 278619,
+     "nombre": "Luíz Júnior",
+     "dorsal": 1
+    },
+    {
+     "id": 70500,
+     "nombre": "Sergi Cardona",
+     "dorsal": 23
+    },
+    {
+     "id": 561089,
+     "nombre": "E. Chukwuma",
+     "dorsal": 15
+    },
+    {
+     "id": 21997,
+     "nombre": "Logan Costa",
+     "dorsal": 2
+    },
+    {
+     "id": 166,
+     "nombre": "J. Foyth",
+     "dorsal": 8
+    },
+    {
+     "id": 355994,
+     "nombre": "A. Freeman",
+     "dorsal": 3
+    },
+    {
+     "id": 311773,
+     "nombre": "S. Mouriño",
+     "dorsal": 15
+    },
+    {
+     "id": 435552,
+     "nombre": "Pau Navarro",
+     "dorsal": 6
+    },
+    {
+     "id": 548644,
+     "nombre": "E. Pujol",
+     "dorsal": 4
+    },
+    {
+     "id": 184420,
+     "nombre": "Carlos Romero",
+     "dorsal": 20
+    },
+    {
+     "id": 336671,
+     "nombre": "Renato Veiga",
+     "dorsal": 12
+    },
+    {
+     "id": 51016,
+     "nombre": "T. Buchanan",
+     "dorsal": 17
+    },
+    {
+     "id": 47541,
+     "nombre": "Santi Comesaña",
+     "dorsal": 14
+    },
+    {
+     "id": 463280,
+     "nombre": "A. Diatta",
+     "dorsal": 5
+    },
+    {
+     "id": 20696,
+     "nombre": "P. Gueye",
+     "dorsal": 18
+    },
+    {
+     "id": 548734,
+     "nombre": "C. Macia",
+     "dorsal": 16
+    },
+    {
+     "id": 182519,
+     "nombre": "Alberto Moleiro",
+     "dorsal": 10
+    },
+    {
+     "id": 294824,
+     "nombre": "N. Saliba",
+     "dorsal": 24
+    },
+    {
+     "id": 548735,
+     "nombre": "C. Tidiane Thiam",
+     "dorsal": 8
+    },
+    {
+     "id": 290740,
+     "nombre": "Ilias Akhomach",
+     "dorsal": 11
+    },
+    {
+     "id": 616886,
+     "nombre": "N. El Jmili",
+     "dorsal": 27
+    },
+    {
+     "id": 548807,
+     "nombre": "J. A. Gaitan Diaz",
+     "dorsal": 28
+    },
+    {
+     "id": 180496,
+     "nombre": "G. Mikautadze",
+     "dorsal": 9
+    },
+    {
+     "id": 1707,
+     "nombre": "Gerard Moreno",
+     "dorsal": 7
+    },
+    {
+     "id": 351587,
+     "nombre": "T. Oluwaseyi",
+     "dorsal": 21
+    },
+    {
+     "id": 3246,
+     "nombre": "N. Pépé",
+     "dorsal": 19
+    },
+    {
+     "id": 18906,
+     "nombre": "Ayoze Pérez",
+     "dorsal": 22
+    }
+   ]
+  },
+  {
+   "espn": "88",
+   "af": 540,
+   "nombre": "Espanyol",
+   "jugadores": [
+    {
+     "id": 2813,
+     "nombre": "M. Dmitrović",
+     "dorsal": 13
+    },
+    {
+     "id": 182735,
+     "nombre": "Ángel Fortuño",
+     "dorsal": 1
+    },
+    {
+     "id": 461502,
+     "nombre": "Llorenç Serred",
+     "dorsal": 31
+    },
+    {
+     "id": 162585,
+     "nombre": "Pol Tristán",
+     "dorsal": 30
+    },
+    {
+     "id": 47249,
+     "nombre": "L. Cabrera",
+     "dorsal": 6
+    },
+    {
+     "id": 36983,
+     "nombre": "V. Drkušić",
+     "dorsal": 16
+    },
+    {
+     "id": 286601,
+     "nombre": "O. El Hilali",
+     "dorsal": 23
+    },
+    {
+     "id": 47299,
+     "nombre": "Gorosabel",
+     "dorsal": 2
+    },
+    {
+     "id": 375915,
+     "nombre": "Q. Hartman",
+     "dorsal": 3
+    },
+    {
+     "id": 450716,
+     "nombre": "Roger Hinojo",
+     "dorsal": 21
+    },
+    {
+     "id": 585288,
+     "nombre": "J. A. Lopez",
+     "dorsal": 32
+    },
+    {
+     "id": 47277,
+     "nombre": "Unai Núñez",
+     "dorsal": 14
+    },
+    {
+     "id": 282054,
+     "nombre": "C. Riedel",
+     "dorsal": 5
+    },
+    {
+     "id": 438284,
+     "nombre": "Rafel Bauzà",
+     "dorsal": 26
+    },
+    {
+     "id": 286038,
+     "nombre": "Álex Calatrava",
+     "dorsal": 22
+    },
+    {
+     "id": 46799,
+     "nombre": "Edu Expósito",
+     "dorsal": 8
+    },
+    {
+     "id": 415089,
+     "nombre": "Gabriel Moscardo",
+     "dorsal": 20
+    },
+    {
+     "id": 601891,
+     "nombre": "F. Gomez",
+     "dorsal": 28
+    },
+    {
+     "id": 183699,
+     "nombre": "Urko González",
+     "dorsal": 4
+    },
+    {
+     "id": 388495,
+     "nombre": "Javier Hernandez",
+     "dorsal": 28
+    },
+    {
+     "id": 127426,
+     "nombre": "Pol Lozano",
+     "dorsal": 10
+    },
+    {
+     "id": 669869,
+     "nombre": "Cala",
+     "dorsal": null
+    },
+    {
+     "id": 273732,
+     "nombre": "T. Dolan",
+     "dorsal": 24
+    },
+    {
+     "id": 312990,
+     "nombre": "Roberto Fernández",
+     "dorsal": 9
+    },
+    {
+     "id": 347885,
+     "nombre": "Marcos Fernández",
+     "dorsal": 18
+    },
+    {
+     "id": 47396,
+     "nombre": "Kike García",
+     "dorsal": 19
+    },
+    {
+     "id": 182674,
+     "nombre": "Jofre Carreras",
+     "dorsal": 17
+    },
+    {
+     "id": 47398,
+     "nombre": "Pere Milla",
+     "dorsal": 11
+    },
+    {
+     "id": 680896,
+     "nombre": "V. Mullerat",
+     "dorsal": 29
+    },
+    {
+     "id": 47349,
+     "nombre": "Javi Puado",
+     "dorsal": 7
+    },
+    {
+     "id": 286639,
+     "nombre": "Bryan Zaragoza",
+     "dorsal": 15
+    }
+   ]
+  },
+  {
+   "espn": "101",
+   "af": 728,
+   "nombre": "Rayo Vallecano",
+   "jugadores": [
+    {
+     "id": 30441,
+     "nombre": "E. Audero",
+     "dorsal": 25
+    },
+    {
+     "id": 11379,
+     "nombre": "A. Batalla",
+     "dorsal": 13
+    },
+    {
+     "id": 156488,
+     "nombre": "Dani Cárdenas",
+     "dorsal": 1
+    },
+    {
+     "id": 285505,
+     "nombre": "Juanpe",
+     "dorsal": 30
+    },
+    {
+     "id": 478244,
+     "nombre": "Adrián Molina",
+     "dorsal": 30
+    },
+    {
+     "id": 20520,
+     "nombre": "I. Balliu",
+     "dorsal": 20
+    },
+    {
+     "id": 333292,
+     "nombre": "Pelayo Fernández",
+     "dorsal": 22
+    },
+    {
+     "id": 30924,
+     "nombre": "M. Kumbulla",
+     "dorsal": 3
+    },
+    {
+     "id": 18895,
+     "nombre": "F. Lejeune",
+     "dorsal": 24
+    },
+    {
+     "id": 469405,
+     "nombre": "Sergio Lozano",
+     "dorsal": 27
+    },
+    {
+     "id": 1847,
+     "nombre": "Luiz Felipe",
+     "dorsal": 5
+    },
+    {
+     "id": 47329,
+     "nombre": "Adrià Pedrosa",
+     "dorsal": 17
+    },
+    {
+     "id": 1703,
+     "nombre": "A. Rațiu",
+     "dorsal": 2
+    },
+    {
+     "id": 104795,
+     "nombre": "Mujaid Sadick",
+     "dorsal": 15
+    },
+    {
+     "id": 314006,
+     "nombre": "J. Vertrouwd",
+     "dorsal": 33
+    },
+    {
+     "id": 478243,
+     "nombre": "Marco de las Sías",
+     "dorsal": 26
+    },
+    {
+     "id": 619508,
+     "nombre": "I. Alonso Martin",
+     "dorsal": 34
+    },
+    {
+     "id": 439633,
+     "nombre": "Samu Becerra",
+     "dorsal": 28
+    },
+    {
+     "id": 443668,
+     "nombre": "Rayane Belid",
+     "dorsal": 37
+    },
+    {
+     "id": 548809,
+     "nombre": "G. Bouare",
+     "dorsal": 36
+    },
+    {
+     "id": 41552,
+     "nombre": "P. Ciss",
+     "dorsal": 6
+    },
+    {
+     "id": 46887,
+     "nombre": "Pedro Díaz",
+     "dorsal": 4
+    },
+    {
+     "id": 47543,
+     "nombre": "Álvaro García",
+     "dorsal": 18
+    },
+    {
+     "id": 47285,
+     "nombre": "Unai López",
+     "dorsal": 8
+    },
+    {
+     "id": 122657,
+     "nombre": "R. Nteka",
+     "dorsal": 11
+    },
+    {
+     "id": 626805,
+     "nombre": "M. Roman",
+     "dorsal": 31
+    },
+    {
+     "id": 47109,
+     "nombre": "Óscar Valentín",
+     "dorsal": 23
+    },
+    {
+     "id": 91745,
+     "nombre": "Alemão",
+     "dorsal": 9
+    },
+    {
+     "id": 52,
+     "nombre": "Sergio Camello",
+     "dorsal": 10
+    },
+    {
+     "id": 131546,
+     "nombre": "Isi Palazón",
+     "dorsal": 7
+    },
+    {
+     "id": 162931,
+     "nombre": "Fran Pérez",
+     "dorsal": 21
+    },
+    {
+     "id": 2181,
+     "nombre": "G. Tsitaishvili",
+     "dorsal": 14
+    },
+    {
+     "id": 128582,
+     "nombre": "Jorge de Frutos",
+     "dorsal": 19
+    }
+   ]
+  },
+  {
+   "espn": "2922",
+   "af": 546,
+   "nombre": "Getafe",
+   "jugadores": [
+    {
+     "id": 432080,
+     "nombre": "Jorge Benito",
+     "dorsal": 35
+    },
+    {
+     "id": 482071,
+     "nombre": "Diego Ferrer",
+     "dorsal": 35
+    },
+    {
+     "id": 66491,
+     "nombre": "J. Letáček",
+     "dorsal": 1
+    },
+    {
+     "id": 47247,
+     "nombre": "David Soria",
+     "dorsal": 13
+    },
+    {
+     "id": 46813,
+     "nombre": "A. Abqar",
+     "dorsal": 5
+    },
+    {
+     "id": 316516,
+     "nombre": "S. Boselli",
+     "dorsal": 15
+    },
+    {
+     "id": 427182,
+     "nombre": "Curro Burgos",
+     "dorsal": 29
+    },
+    {
+     "id": 733,
+     "nombre": "Dani Carvajal",
+     "dorsal": 2
+    },
+    {
+     "id": 471478,
+     "nombre": "Davinchi",
+     "dorsal": 3
+    },
+    {
+     "id": 47250,
+     "nombre": "D. Dakonam",
+     "dorsal": 2
+    },
+    {
+     "id": 388013,
+     "nombre": "Andrés García",
+     "dorsal": 21
+    },
+    {
+     "id": 407302,
+     "nombre": "M. Hamdoune",
+     "dorsal": 31
+    },
+    {
+     "id": 18794,
+     "nombre": "Kiko Femenía",
+     "dorsal": 17
+    },
+    {
+     "id": 64268,
+     "nombre": "J. Mojica",
+     "dorsal": 22
+    },
+    {
+     "id": 625636,
+     "nombre": "Jorge Montes",
+     "dorsal": 41
+    },
+    {
+     "id": 180927,
+     "nombre": "Z. Romero",
+     "dorsal": 24
+    },
+    {
+     "id": 268728,
+     "nombre": "S. Sazonov",
+     "dorsal": 4
+    },
+    {
+     "id": 484474,
+     "nombre": "J. Valou",
+     "dorsal": 26
+    },
+    {
+     "id": 465838,
+     "nombre": "Alberto Risco",
+     "dorsal": 28
+    },
+    {
+     "id": 162249,
+     "nombre": "Francho Serrano",
+     "dorsal": 16
+    },
+    {
+     "id": 1489,
+     "nombre": "N. Gudelj",
+     "dorsal": 8
+    },
+    {
+     "id": 671625,
+     "nombre": "Alvaro Gutierrez",
+     "dorsal": 33
+    },
+    {
+     "id": 499908,
+     "nombre": "Óscar López",
+     "dorsal": 30
+    },
+    {
+     "id": 669800,
+     "nombre": "Mady Macalou",
+     "dorsal": null
+    },
+    {
+     "id": 24882,
+     "nombre": "O. Mangala",
+     "dorsal": 23
+    },
+    {
+     "id": 343205,
+     "nombre": "Mario Martín",
+     "dorsal": 6
+    },
+    {
+     "id": 345967,
+     "nombre": "Jesús",
+     "dorsal": 34
+    },
+    {
+     "id": 631889,
+     "nombre": "Adrián Riquelme",
+     "dorsal": 44
+    },
+    {
+     "id": 187987,
+     "nombre": "Ramón Terrats",
+     "dorsal": 11
+    },
+    {
+     "id": 403554,
+     "nombre": "Christantus Uche",
+     "dorsal": 12
+    },
+    {
+     "id": 681461,
+     "nombre": "Moha Achraf",
+     "dorsal": 33
+    },
+    {
+     "id": 161590,
+     "nombre": "Iván Azón",
+     "dorsal": 20
+    },
+    {
+     "id": 671518,
+     "nombre": "Ebrahima Drammeh",
+     "dorsal": 27
+    },
+    {
+     "id": 333369,
+     "nombre": "Joselu",
+     "dorsal": 32
+    },
+    {
+     "id": 47472,
+     "nombre": "Borja Mayoral",
+     "dorsal": 9
+    },
+    {
+     "id": 195512,
+     "nombre": "M. Satriano",
+     "dorsal": 10
+    },
+    {
+     "id": 47499,
+     "nombre": "E. Ünal",
+     "dorsal": 19
+    }
+   ]
+  },
+  {
+   "espn": "87",
+   "af": 4665,
+   "nombre": "Racing Santander",
+   "jugadores": [
+    {
+     "id": 183848,
+     "nombre": "Julen Agirrezabala",
+     "dorsal": 13
+    },
+    {
+     "id": 408875,
+     "nombre": "S. Eriksson",
+     "dorsal": 1
+    },
+    {
+     "id": 486135,
+     "nombre": "Laro Gómez",
+     "dorsal": 31
+    },
+    {
+     "id": 343316,
+     "nombre": "J. Belocian",
+     "dorsal": 24
+    },
+    {
+     "id": 452308,
+     "nombre": "Aitor Crespo",
+     "dorsal": 37
+    },
+    {
+     "id": 286595,
+     "nombre": "Facundo González",
+     "dorsal": 16
+    },
+    {
+     "id": 181685,
+     "nombre": "Álvaro Mantilla",
+     "dorsal": 2
+    },
+    {
+     "id": 165713,
+     "nombre": "Manu Hernando",
+     "dorsal": 4
+    },
+    {
+     "id": 25914,
+     "nombre": "Aarón Martín",
+     "dorsal": 3
+    },
+    {
+     "id": 672029,
+     "nombre": "German Mesonero",
+     "dorsal": null
+    },
+    {
+     "id": 415064,
+     "nombre": "Pedro Felipe",
+     "dorsal": 22
+    },
+    {
+     "id": 46734,
+     "nombre": "Pablo Ramón",
+     "dorsal": 5
+    },
+    {
+     "id": 482469,
+     "nombre": "Jorge Salinas",
+     "dorsal": 17
+    },
+    {
+     "id": 584463,
+     "nombre": "C. Sanchez",
+     "dorsal": 30
+    },
+    {
+     "id": 41157,
+     "nombre": "André Almeida",
+     "dorsal": 8
+    },
+    {
+     "id": 1570,
+     "nombre": "Sergio Canales",
+     "dorsal": 20
+    },
+    {
+     "id": 334014,
+     "nombre": "M. Gueye",
+     "dorsal": 14
+    },
+    {
+     "id": 630685,
+     "nombre": "Hugo Martín",
+     "dorsal": 38
+    },
+    {
+     "id": 1700,
+     "nombre": "Iván Martín",
+     "dorsal": 23
+    },
+    {
+     "id": 309388,
+     "nombre": "M. Prati",
+     "dorsal": 18
+    },
+    {
+     "id": 183683,
+     "nombre": "Íñigo Sainz-Maza",
+     "dorsal": 6
+    },
+    {
+     "id": 584008,
+     "nombre": "M. Solorzano Diestro",
+     "dorsal": 44
+    },
+    {
+     "id": 609875,
+     "nombre": "A. Vallecillo",
+     "dorsal": 29
+    },
+    {
+     "id": 184193,
+     "nombre": "Juan Carlos Arana",
+     "dorsal": 9
+    },
+    {
+     "id": 611835,
+     "nombre": "J. Castellanos",
+     "dorsal": 33
+    },
+    {
+     "id": 443163,
+     "nombre": "Pablo García",
+     "dorsal": 15
+    },
+    {
+     "id": 24567,
+     "nombre": "G. Guliashvili",
+     "dorsal": 7
+    },
+    {
+     "id": 441223,
+     "nombre": "Iker Luque",
+     "dorsal": 19
+    },
+    {
+     "id": 47209,
+     "nombre": "Andrés Martín",
+     "dorsal": 11
+    },
+    {
+     "id": 47293,
+     "nombre": "Iñigo Vicente",
+     "dorsal": 10
+    },
+    {
+     "id": 104853,
+     "nombre": "Asier Villalibre",
+     "dorsal": 12
+    },
+    {
+     "id": 457101,
+     "nombre": "M. Zabiri",
+     "dorsal": 21
+    }
+   ]
+  },
+  {
+   "espn": "1538",
+   "af": 539,
+   "nombre": "Levante",
+   "jugadores": [
+    {
+     "id": 286611,
+     "nombre": "Pablo Cuñat",
+     "dorsal": 1
+    },
+    {
+     "id": 674241,
+     "nombre": "I. Galdin",
+     "dorsal": 36
+    },
+    {
+     "id": 2741,
+     "nombre": "M. Ryan",
+     "dorsal": 13
+    },
+    {
+     "id": 408320,
+     "nombre": "Jorge Cabello",
+     "dorsal": 14
+    },
+    {
+     "id": 734,
+     "nombre": "Dela",
+     "dorsal": 4
+    },
+    {
+     "id": 1567,
+     "nombre": "A. Mandi",
+     "dorsal": 2
+    },
+    {
+     "id": 609795,
+     "nombre": "H. Nakoha",
+     "dorsal": 35
+    },
+    {
+     "id": 511971,
+     "nombre": "IfeanyiIfeanyi Ndukwe",
+     "dorsal": 3
+    },
+    {
+     "id": 504605,
+     "nombre": "Nacho Pérez",
+     "dorsal": 29
+    },
+    {
+     "id": 64309,
+     "nombre": "Manu Sánchez",
+     "dorsal": 23
+    },
+    {
+     "id": 1118,
+     "nombre": "J. Toljan",
+     "dorsal": 22
+    },
+    {
+     "id": 161893,
+     "nombre": "E. Bardeli",
+     "dorsal": 18
+    },
+    {
+     "id": 653144,
+     "nombre": "A. Calatrava",
+     "dorsal": 38
+    },
+    {
+     "id": 385383,
+     "nombre": "Dani Cervera",
+     "dorsal": 37
+    },
+    {
+     "id": 463279,
+     "nombre": "Paco Cortés",
+     "dorsal": 27
+    },
+    {
+     "id": 362750,
+     "nombre": "T. Fernández",
+     "dorsal": 24
+    },
+    {
+     "id": 182603,
+     "nombre": "Jon Ander Olasagasti",
+     "dorsal": 8
+    },
+    {
+     "id": 391131,
+     "nombre": "Reque",
+     "dorsal": 6
+    },
+    {
+     "id": 106727,
+     "nombre": "Oriol Rey",
+     "dorsal": 20
+    },
+    {
+     "id": 313651,
+     "nombre": "Hugo Sotelo",
+     "dorsal": 5
+    },
+    {
+     "id": 491103,
+     "nombre": "A. Tape",
+     "dorsal": 16
+    },
+    {
+     "id": 649677,
+     "nombre": "M. Usedo Domingo",
+     "dorsal": 34
+    },
+    {
+     "id": 551227,
+     "nombre": "G. Biladi",
+     "dorsal": 47
+    },
+    {
+     "id": 47225,
+     "nombre": "Brugui",
+     "dorsal": 7
+    },
+    {
+     "id": 520509,
+     "nombre": "J. de Asís",
+     "dorsal": 30
+    },
+    {
+     "id": 378284,
+     "nombre": "Etta Eyong",
+     "dorsal": 21
+    },
+    {
+     "id": 46790,
+     "nombre": "Víctor García",
+     "dorsal": 17
+    },
+    {
+     "id": 482302,
+     "nombre": "Yanis Musuayi",
+     "dorsal": 11
+    },
+    {
+     "id": 301763,
+     "nombre": "P. Ratkov",
+     "dorsal": 10
+    },
+    {
+     "id": 192032,
+     "nombre": "Iván Romero",
+     "dorsal": 9
+    },
+    {
+     "id": 2741,
+     "nombre": "M. Ryan",
+     "dorsal": 13
+    },
+    {
+     "id": 734,
+     "nombre": "Dela",
+     "dorsal": 4
+    },
+    {
+     "id": 1567,
+     "nombre": "A. Mandi",
+     "dorsal": 2
+    },
+    {
+     "id": 511971,
+     "nombre": "IfeanyiIfeanyi Ndukwe",
+     "dorsal": 3
+    },
+    {
+     "id": 504605,
+     "nombre": "Nacho Pérez",
+     "dorsal": 29
+    },
+    {
+     "id": 64309,
+     "nombre": "Manu Sánchez",
+     "dorsal": 23
+    },
+    {
+     "id": 1118,
+     "nombre": "J. Toljan",
+     "dorsal": 22
+    },
+    {
+     "id": 161893,
+     "nombre": "E. Bardeli",
+     "dorsal": 18
+    },
+    {
+     "id": 463279,
+     "nombre": "Paco Cortés",
+     "dorsal": 27
+    },
+    {
+     "id": 362750,
+     "nombre": "T. Fernández",
+     "dorsal": 24
+    },
+    {
+     "id": 182603,
+     "nombre": "Jon Ander Olasagasti",
+     "dorsal": 8
+    },
+    {
+     "id": 391131,
+     "nombre": "Reque",
+     "dorsal": 6
+    },
+    {
+     "id": 106727,
+     "nombre": "Oriol Rey",
+     "dorsal": 20
+    },
+    {
+     "id": 313651,
+     "nombre": "Hugo Sotelo",
+     "dorsal": 5
+    },
+    {
+     "id": 47225,
+     "nombre": "Brugui",
+     "dorsal": 7
+    },
+    {
+     "id": 378284,
+     "nombre": "Etta Eyong",
+     "dorsal": 21
+    },
+    {
+     "id": 46790,
+     "nombre": "Víctor García",
+     "dorsal": 17
+    },
+    {
+     "id": 482302,
+     "nombre": "Yanis Musuayi",
+     "dorsal": 11
+    },
+    {
+     "id": 301763,
+     "nombre": "P. Ratkov",
+     "dorsal": 10
+    },
+    {
+     "id": 192032,
+     "nombre": "Iván Romero",
+     "dorsal": 9
+    }
+   ]
+  },
+  {
+   "espn": "3751",
+   "af": 797,
+   "nombre": "Elche",
+   "jugadores": [
+    {
+     "id": 583971,
+     "nombre": "O. Bosch",
+     "dorsal": 40
+    },
+    {
+     "id": 11346,
+     "nombre": "M. Dituro",
+     "dorsal": 1
+    },
+    {
+     "id": 315604,
+     "nombre": "Alejandro Iturbe",
+     "dorsal": 13
+    },
+    {
+     "id": 671517,
+     "nombre": "Alejandro Ramos",
+     "dorsal": 13
+    },
+    {
+     "id": 669865,
+     "nombre": "Diego Sanchez",
+     "dorsal": null
+    },
+    {
+     "id": 436785,
+     "nombre": "Matia Barzic Gutiérrez",
+     "dorsal": 26
+    },
+    {
+     "id": 47378,
+     "nombre": "Bigas",
+     "dorsal": 6
+    },
+    {
+     "id": 446067,
+     "nombre": "Buba Sangaré",
+     "dorsal": 2
+    },
+    {
+     "id": 162058,
+     "nombre": "Víctor Chust",
+     "dorsal": 23
+    },
+    {
+     "id": 580677,
+     "nombre": "David Delgado",
+     "dorsal": 31
+    },
+    {
+     "id": 8746,
+     "nombre": "Bambo Diaby",
+     "dorsal": 4
+    },
+    {
+     "id": 237206,
+     "nombre": "K. Lomónaco",
+     "dorsal": 15
+    },
+    {
+     "id": 647190,
+     "nombre": "A. Miralles",
+     "dorsal": null
+    },
+    {
+     "id": 315127,
+     "nombre": "R. Revivo",
+     "dorsal": 3
+    },
+    {
+     "id": 199824,
+     "nombre": "Rubén Sánchez",
+     "dorsal": 22
+    },
+    {
+     "id": 187318,
+     "nombre": "Marc Aguado",
+     "dorsal": 8
+    },
+    {
+     "id": 311334,
+     "nombre": "F. Buonanotte",
+     "dorsal": 10
+    },
+    {
+     "id": 18821,
+     "nombre": "G. Diangana",
+     "dorsal": 19
+    },
+    {
+     "id": 637727,
+     "nombre": "Alex Herraiz",
+     "dorsal": 43
+    },
+    {
+     "id": 45,
+     "nombre": "T. Lemar",
+     "dorsal": 18
+    },
+    {
+     "id": 548704,
+     "nombre": "J. Morcillo",
+     "dorsal": 47
+    },
+    {
+     "id": 271580,
+     "nombre": "Martim Neto",
+     "dorsal": 16
+    },
+    {
+     "id": 311345,
+     "nombre": "F. Redondo",
+     "dorsal": 5
+    },
+    {
+     "id": 46982,
+     "nombre": "Gonzalo Villar",
+     "dorsal": 12
+    },
+    {
+     "id": 318592,
+     "nombre": "L. Cepeda",
+     "dorsal": 21
+    },
+    {
+     "id": 448243,
+     "nombre": "Ali Houary",
+     "dorsal": 29
+    },
+    {
+     "id": 46973,
+     "nombre": "Josan",
+     "dorsal": 17
+    },
+    {
+     "id": 184277,
+     "nombre": "Fer Niño",
+     "dorsal": 14
+    },
+    {
+     "id": 358600,
+     "nombre": "A. Osorio",
+     "dorsal": 24
+    },
+    {
+     "id": 669866,
+     "nombre": "Alvaro Padilla",
+     "dorsal": 30
+    },
+    {
+     "id": 561102,
+     "nombre": "J. Piera",
+     "dorsal": 46
+    },
+    {
+     "id": 612,
+     "nombre": "E. Ponce",
+     "dorsal": 9
+    },
+    {
+     "id": 635179,
+     "nombre": "Álex Sánchez",
+     "dorsal": 38
+    },
+    {
+     "id": 284415,
+     "nombre": "Yago Alonso",
+     "dorsal": 7
+    },
+    {
+     "id": 47182,
+     "nombre": "Tete Morente",
+     "dorsal": 20
+    },
+    {
+     "id": 161963,
+     "nombre": "Germán Valera",
+     "dorsal": 11
+    }
+   ]
+  },
+  {
+   "espn": "94",
+   "af": 532,
+   "nombre": "Valencia",
+   "jugadores": [
+    {
+     "id": 401983,
+     "nombre": "Vicent Abril",
+     "dorsal": 28
+    },
+    {
+     "id": 47527,
+     "nombre": "S. Dimitrievski",
+     "dorsal": 1
+    },
+    {
+     "id": 913,
+     "nombre": "Cristian Rivero",
+     "dorsal": 13
+    },
+    {
+     "id": 181582,
+     "nombre": "Copete",
+     "dorsal": 3
+    },
+    {
+     "id": 442188,
+     "nombre": "Iker Córdoba",
+     "dorsal": 36
+    },
+    {
+     "id": 36884,
+     "nombre": "J. de Haas",
+     "dorsal": 12
+    },
+    {
+     "id": 916,
+     "nombre": "M. Diakhaby",
+     "dorsal": 4
+    },
+    {
+     "id": 623732,
+     "nombre": "Joel Fontanet",
+     "dorsal": 40
+    },
+    {
+     "id": 918,
+     "nombre": "José Gayà",
+     "dorsal": 14
+    },
+    {
+     "id": 417560,
+     "nombre": "Marcos Navarro",
+     "dorsal": 41
+    },
+    {
+     "id": 445029,
+     "nombre": "A. Panach",
+     "dorsal": 29
+    },
+    {
+     "id": 315701,
+     "nombre": "Rubo Iranzo",
+     "dorsal": 26
+    },
+    {
+     "id": 333672,
+     "nombre": "César Tárrega",
+     "dorsal": 5
+    },
+    {
+     "id": 162175,
+     "nombre": "Jesús Vázquez",
+     "dorsal": 21
+    },
+    {
+     "id": 41157,
+     "nombre": "André Almeida",
+     "dorsal": 10
+    },
+    {
+     "id": 4458,
+     "nombre": "A. Dieng",
+     "dorsal": 15
+    },
+    {
+     "id": 315699,
+     "nombre": "Javi Guerra",
+     "dorsal": 8
+    },
+    {
+     "id": 621195,
+     "nombre": "M. Martinez",
+     "dorsal": 38
+    },
+    {
+     "id": 47463,
+     "nombre": "Pepelu",
+     "dorsal": 18
+    },
+    {
+     "id": 2476,
+     "nombre": "G. Rodríguez",
+     "dorsal": 2
+    },
+    {
+     "id": 410840,
+     "nombre": "R. Sato",
+     "dorsal": 39
+    },
+    {
+     "id": 48465,
+     "nombre": "F. Ugrinic",
+     "dorsal": 23
+    },
+    {
+     "id": 406045,
+     "nombre": "Aimar Blázquez",
+     "dorsal": 37
+    },
+    {
+     "id": 83,
+     "nombre": "A. Danjuma",
+     "dorsal": 7
+    },
+    {
+     "id": 47264,
+     "nombre": "Hugo Duro",
+     "dorsal": 9
+    },
+    {
+     "id": 162127,
+     "nombre": "Diego López",
+     "dorsal": 16
+    },
+    {
+     "id": 439578,
+     "nombre": "David Otorbi",
+     "dorsal": 27
+    },
+    {
+     "id": 1708,
+     "nombre": "Dani Raba",
+     "dorsal": 19
+    },
+    {
+     "id": 46933,
+     "nombre": "Luis Rioja",
+     "dorsal": 11
+    },
+    {
+     "id": 31406,
+     "nombre": "U. Sadiq",
+     "dorsal": 6
+    },
+    {
+     "id": 26302,
+     "nombre": "Pablo Carmine Maffeo Becerra",
+     "dorsal": 24
+    },
+    {
+     "id": 453834,
+     "nombre": "J. Dura",
+     "dorsal": 38
+    },
+    {
+     "id": 328669,
+     "nombre": "K. van Oevelen",
+     "dorsal": 25
+    },
+    {
+     "id": 19035,
+     "nombre": "Harvey Elliott",
+     "dorsal": 10
+    },
+    {
+     "id": 641317,
+     "nombre": "Aaron Mayol",
+     "dorsal": 33
+    }
+   ]
+  },
+  {
+   "espn": "99",
+   "af": 535,
+   "nombre": "Málaga",
+   "jugadores": [
+    {
+     "id": 286594,
+     "nombre": "Andrés Céspedes",
+     "dorsal": 30
+    },
+    {
+     "id": 46843,
+     "nombre": "Alfonso Herrero",
+     "dorsal": 1
+    },
+    {
+     "id": 344746,
+     "nombre": "Carlos López",
+     "dorsal": 13
+    },
+    {
+     "id": 431921,
+     "nombre": "Adam Aznou Ben Cheikh",
+     "dorsal": 39
+    },
+    {
+     "id": 2039,
+     "nombre": "Juan Berrocal",
+     "dorsal": 25
+    },
+    {
+     "id": 47478,
+     "nombre": "Fernando Calero",
+     "dorsal": 20
+    },
+    {
+     "id": 14470,
+     "nombre": "Einar Galilea",
+     "dorsal": 4
+    },
+    {
+     "id": 394372,
+     "nombre": "Izan Merino",
+     "dorsal": 23
+    },
+    {
+     "id": 185234,
+     "nombre": "Diego Murillo",
+     "dorsal": 16
+    },
+    {
+     "id": 56670,
+     "nombre": "Álex Pastor",
+     "dorsal": 5
+    },
+    {
+     "id": 185096,
+     "nombre": "Puga",
+     "dorsal": 3
+    },
+    {
+     "id": 551403,
+     "nombre": "Rafita",
+     "dorsal": 31
+    },
+    {
+     "id": 316115,
+     "nombre": "Ángel Recio",
+     "dorsal": 15
+    },
+    {
+     "id": 184407,
+     "nombre": "José Salinas",
+     "dorsal": 12
+    },
+    {
+     "id": 669867,
+     "nombre": "Miguel Santaella",
+     "dorsal": 32
+    },
+    {
+     "id": 296695,
+     "nombre": "H. Abaida",
+     "dorsal": 7
+    },
+    {
+     "id": 15797,
+     "nombre": "J. Cajuste",
+     "dorsal": 2
+    },
+    {
+     "id": 162034,
+     "nombre": "Carlos Dotor",
+     "dorsal": 8
+    },
+    {
+     "id": 129056,
+     "nombre": "Ramón Enríquez",
+     "dorsal": 6
+    },
+    {
+     "id": 190253,
+     "nombre": "David Larrubia",
+     "dorsal": 10
+    },
+    {
+     "id": 337523,
+     "nombre": "Dani Lorenzo",
+     "dorsal": 22
+    },
+    {
+     "id": 104949,
+     "nombre": "Pablo Martínez",
+     "dorsal": 18
+    },
+    {
+     "id": 444451,
+     "nombre": "A. Ochoa",
+     "dorsal": 35
+    },
+    {
+     "id": 669868,
+     "nombre": "Joseph Otunenche",
+     "dorsal": 28
+    },
+    {
+     "id": 335221,
+     "nombre": "Rafa Rodríguez",
+     "dorsal": 14
+    },
+    {
+     "id": 376401,
+     "nombre": "Chupe",
+     "dorsal": 9
+    },
+    {
+     "id": 185202,
+     "nombre": "Juan Cruz",
+     "dorsal": 19
+    },
+    {
+     "id": 670695,
+     "nombre": "J. Fernandez",
+     "dorsal": 32
+    },
+    {
+     "id": 671614,
+     "nombre": "Juan Fernandez",
+     "dorsal": null
+    },
+    {
+     "id": 104903,
+     "nombre": "Eneko Jauregi",
+     "dorsal": 17
+    },
+    {
+     "id": 182602,
+     "nombre": "Julen Lobete",
+     "dorsal": 24
+    },
+    {
+     "id": 60,
+     "nombre": "Joaquín Muñoz",
+     "dorsal": 11
+    },
+    {
+     "id": 386850,
+     "nombre": "Adrián Niño Heredia",
+     "dorsal": 21
+    }
+   ]
+  }
+ ]
+}
