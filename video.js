@@ -1515,6 +1515,77 @@
     }
   }
 
+  // La polémica: en el color del equipo al que le tocó, la etiqueta roja, el minuto en grande, qué
+  // pasó y quién, cómo iba el marcador y, al final, la pregunta para los comentarios.
+  const POLEMICA_RED = { acc: '#ff3b3b', on: '#ffffff' };
+  function scenePolemica(d, A) {
+    const x = d.polemica, st = x.style;
+    return {
+      id: 'polemica',
+      dur: 3 * BAR,
+      accent: POLEMICA_RED.acc,
+      music: { energy: 'full' },
+      cues: [{ t: BEAT, kind: 'slam' }, { t: BEAT + 0.4, kind: 'hit', vel: 0.7 }, { t: 2 * BAR, kind: 'hit', vel: 0.9 }],
+      draw(ctx, t) {
+        teamBg(ctx, st);
+        logo(ctx, x.side === 'away' ? A.awayLogo : A.homeLogo, W - 160, 640, 920 * (1 + 0.05 * prog(t, 0, 3 * BAR)), 0.12);
+        const k = easeOut(prog(t, 0.05, 0.4));
+        ctx.save();
+        ctx.globalAlpha = k;
+        ctx.translate((1 - k) * -80, 0);
+        chip(ctx, d.t?.polemica || 'LA POLÉMICA', M, 190, POLEMICA_RED, 52);
+        ctx.restore();
+        // El minuto, de golpe
+        const a = easeBack(prog(t, BEAT, 0.5));
+        if (a > 0) {
+          ctx.save();
+          ctx.translate(M, 640);
+          ctx.scale(a, a);
+          ctx.shadowColor = 'rgba(0,0,0,.25)';
+          ctx.shadowBlur = 40;
+          text(ctx, x.min, 0, 0, ANTON(fit(ctx, x.min, ANTON, 330, W - 2 * M)), st.hl);
+          ctx.restore();
+        }
+        const title = wrap(ctx, up(x.title), ANTON(100), W - 2 * M).slice(0, 2);
+        title.forEach((l, i) => {
+          const e = easeOut(prog(t, BEAT + 0.3 + i * 0.1, 0.4));
+          ctx.save();
+          ctx.globalAlpha = e;
+          ctx.translate((1 - e) * -60, 0);
+          text(ctx, l, M, 780 + i * 108, ANTON(100), st.fg);
+          ctx.restore();
+        });
+        let y = 780 + title.length * 108;
+        const e = easeOut(prog(t, BAR, 0.5));
+        ctx.save();
+        ctx.globalAlpha = e;
+        ctx.translate(0, (1 - e) * 40);
+        if (x.who && !x.title.includes(x.who)) {
+          text(ctx, up(x.who), M, y + 10, BARLOW(fit(ctx, up(x.who), BARLOW, 60, W - 2 * M)), st.fg);
+          y += 80;
+        }
+        text(ctx, d.t?.atTheTime || 'ASÍ IBA', M, y + 70, BARLOW(40), st.fg);
+        text(ctx, up(x.scoreLine), M, y + 160, ANTON(fit(ctx, up(x.scoreLine), ANTON, 84, W - 2 * M)), st.fg);
+        ctx.restore();
+        // La pregunta, en blanco, para que la contesten
+        const q = easeBack(prog(t, 2 * BAR, 0.45));
+        if (q > 0) {
+          const lines = wrap(ctx, up(x.question), ANTON(72), W - 2 * M - 60).slice(0, 2);
+          const h = 60 + lines.length * 82;
+          ctx.save();
+          ctx.translate(M, 1500 - h);
+          ctx.scale(1, Math.min(1, q));
+          ctx.globalAlpha = Math.min(1, q);
+          ctx.fillStyle = '#ffffff';
+          roundRect(ctx, 0, 0, W - 2 * M, h, 18);
+          ctx.fill();
+          lines.forEach((l, i) => text(ctx, l, 30, 100 + i * 82, ANTON(72), '#111111'));
+          ctx.restore();
+        }
+      },
+    };
+  }
+
   // Cómo llegan: los últimos 5 de cada uno (el más reciente arriba), con el resultado y el rival,
   // y abajo la cuenta («4G · 0E · 1P»)
   function scenePrevForma(d, A) {
@@ -1678,6 +1749,7 @@
     const scenes = [
       intro && sceneIntro(d, A),
       sceneScore(d, A),
+      d.polemica && scenePolemica(d, A),
       d.dato && sceneDato(d, A),
       d.goals?.length && sceneGoals(d, A),
       d.shots?.list.length >= 4 && sceneShots(d, A),
@@ -1699,7 +1771,7 @@
   // las de más que leer. La animación va a su ritmo y luego se queda quieta, con la cámara
   // acercándose; el paso a la siguiente, igual que siempre.
   const LONG_MIN = 62;
-  const LONG_FIRST = ['goals', 'tabla', 'h2h', 'forma', 'stats', 'stats2', 'jugador', 'tiros', 'dato', 'score'];
+  const LONG_FIRST = ['goals', 'tabla', 'h2h', 'forma', 'polemica', 'stats', 'stats2', 'jugador', 'tiros', 'dato', 'score'];
   function stretchScenes(scenes) {
     let need = Math.ceil((LONG_MIN - scenes.reduce((sum, sc) => sum + sc.dur, 0)) / BAR);
     const order = LONG_FIRST.map(id => scenes.findIndex(sc => sc.id === id)).filter(i => i >= 0);

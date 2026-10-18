@@ -48,6 +48,27 @@ Arriba del todo, «Los partidos de hoy»: eliges qué competiciones vigilar (las
 
 `https://tonimas35.github.io/futbol-studio/?partido=esp.1/401882846` abre el Studio, elige la competición, busca el partido (hoy o ayer; si es de otro día, `&dia=2026-10-17`), genera el carrusel y crea el vídeo, con la descripción para TikTok escrita. El número es el del partido en ESPN (sale en la dirección de su ficha). Al abrirlo se borra de la barra, para que recargar no lo repita.
 
+## La polémica
+
+Al generar un partido, el Studio busca en la narración de ESPN (la misma que trae los goles, gratis) lo que más se va a discutir. Busca en este orden, y si hay varias del mismo tipo, coge la última:
+
+1. Un gol que **anula el VAR**.
+2. Un **penalti que el VAR da**.
+3. Un **penalti que el VAR quita**.
+4. Una **amarilla que el VAR cambia por roja**.
+5. Una **roja directa**.
+
+Cada polémica sale con su minuto y con cómo iba el marcador. Con ella:
+
+- **La descripción para TikTok empieza por ella:** «😱 El VAR le anula un gol al Betis · Betis 2-5 Barcelona». Las del VAR mandan sobre «El dato»; la roja, solo si no hay dato.
+- **La pregunta del cierre es la suya** y se entiende sola, sin contexto: «¿Bien anulado el gol del Betis?», «¿Era penalti a favor del Elche?», «¿Era roja para Facundo Bernal?». Vale para el carrusel, el vídeo y la descripción. Las polémicas son lo que más comentarios trae.
+- **En el vídeo:**
+  - la apertura (la portada) la cuenta: «POLÉMICA · El VAR le anula un gol al Betis»;
+  - tras el marcador sale la escena **«LA POLÉMICA»**: el minuto en grande, qué pasó, quién, cómo iba («Así iba Betis 1-2 Barcelona») y la pregunta;
+  - su frase va en el guion.
+
+Sin nada de eso, todo sale como siempre. El robot lo hace igual, sin hacer nada.
+
 ## Previa de un partido
 
 Con un partido que aún no ha empezado, en vez de «Generar carrusel» sale **«Crear previa (vídeo)»**: un vídeo de unos 20 segundos para subir antes del partido, con lo de ESPN del propio partido:
