@@ -1,0 +1,81 @@
+name: Vigía
+
+# El reloj del piloto automático. GitHub no lanza el horario de piloto.yml (ni una vuelta desde que
+# existe), así que este vigía hace de reloj: cada 10 minutos mira ESPN como el piloto
+# (`node tools/piloto.mjs buscar`: un partido acabado o por el final, una previa, una jornada) y, si
+# hay algo, lanza el piloto. Cada vuelta dura 5 h 45 min y, al acabar, lanza la siguiente con el
+# token del propio workflow (GitHub deja que un workflow_dispatch arranque otra vuelta). Gratis en
+# un repo público.
+# Para pararlo: Actions → Vigía → «…» → Disable workflow. Para encenderlo: Enable y Run workflow.
+on:
+  workflow_dispatch:
+    inputs:
+      minutos:
+        description: 'Cuánto dura esta vuelta, en minutos (la siguiente, lo normal: 345)'
+        required: false
+        default: '345'
+  # Por si GitHub algún día lo lanza: si la cadena se ha cortado, la vuelve a encender
+  schedule:
+    - cron: '17 5,11,17,23 * * *'
+
+permissions:
+  contents: read
+  actions: write
+
+# Una sola vuelta a la vez: la siguiente espera a que acabe la que la lanza
+concurrency:
+  group: vigia
+  cancel-in-progress: false
+
+jobs:
+  vigilar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - name: La hora de empezar
+        run: echo "INICIO=$(date +%s)" >> "$GITHUB_ENV"
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Cada 10 minutos, mirar ESPN y lanzar el piloto si hay algo
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MINUTOS: ${{ inputs.minutos || '345' }}
+        run: |
+          fin=$(( INICIO + MINUTOS * 60 ))
+          while :; do
+            out=$(mktemp)
+            if GITHUB_OUTPUT="$out" node tools/piloto.mjs buscar; then
+              if grep -qx 'cerca=true' "$out" || ! grep -qx 'partidos=\[\]' "$out"; then
+                # Si ya hay uno esperando turno, ese mirará lo mismo al empezar
+                cola=$(gh run list -R "$GITHUB_REPOSITORY" -w piloto.yml -L 10 --json status \
+                  -q '[.[] | select(.status != "completed" and .status != "in_progress")] | length' || echo error)
+                if [ "$cola" = 0 ]; then
+                  gh workflow run piloto.yml -R "$GITHUB_REPOSITORY" --ref main && echo "→ Piloto lanzado" || echo "No he podido lanzar el piloto"
+                else
+                  echo "El piloto ya tiene una vuelta esperando ($cola)"
+                fi
+              fi
+            else
+              echo "No he podido mirar ESPN: lo intento en 10 minutos"
+            fi
+            rm -f "$out"
+            [ $(( $(date +%s) + 600 )) -lt "$fin" ] || break
+            sleep 600
+          done
+
+      # También si la vigilancia ha fallado (para que la cadena no se corte), pero no si la cancelas.
+      # Nunca antes de 10 minutos desde el inicio: si algo falla nada más empezar, no se lanza sin parar.
+      - name: Pasar el relevo a la siguiente vuelta
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MINUTOS: ${{ inputs.minutos || '345' }}
+        run: |
+          espera=$(( ${INICIO:-$(date +%s)} + (MINUTOS < 10 ? MINUTOS : 10) * 60 - $(date +%s) ))
+          [ "$espera" -le 0 ] || sleep "$espera"
+          gh workflow run vigia.yml -R "$GITHUB_REPOSITORY" --ref main

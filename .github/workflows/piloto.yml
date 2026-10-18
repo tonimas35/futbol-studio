@@ -7,7 +7,8 @@ name: Piloto automático
 # acabar la jornada de LaLiga, su resumen en fotos. A mano (Run workflow), hace el de un partido
 # concreto.
 # Ver tools/piloto.mjs. Los minutos van en lista (3, 13, 23…; no en el minuto 0, el más cargado de
-# GitHub): con «3-59/10» GitHub no lanzaba ninguna.
+# GitHub): con «3-59/10» GitHub no lanzaba ninguna. Tampoco así, de momento: el que lo lanza es el
+# vigía (vigia.yml), cada 10 minutos.
 on:
   schedule:
     - cron: '3,13,23,33,43,53 11-23 * * *'
