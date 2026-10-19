@@ -865,7 +865,8 @@
         if (size < 2 && (side > 0 ? x < 66 : x > 34)) continue;
         // (hasta dónde llega: en un gol, hasta la portería; en un tiro, algo más allá; si no, a su sitio)
         const reach = size === 3 ? 100 : size === 2 ? 8 : 5;
-        const k = { T: timeOf(tm), y, rank: size, target: side > 0 ? Math.min(99, x + reach) : Math.max(1, x - reach), rise: 0.3, decay: 0.5 };
+        // (sube en 0,4 s y se recoge en 0,7: rápida, pero sin tirones)
+        const k = { T: timeOf(tm), y, rank: size, target: side > 0 ? Math.min(99, x + reach) : Math.max(1, x - reach), rise: 0.4, decay: 0.7 };
         const st = size >= 2 && dives.filter(x => (size === 3 ? x.ev : x.post) && Math.abs(x.m - tm) < 1.5).sort((p, q) => Math.abs(p.m - tm) - Math.abs(q.m - tm))[0];
         if (st) k.T = Math.min(k.T, st.dive ?? st.start);
         k.hold = st ? Math.max(0.15, st.end - k.T) : 0.15;

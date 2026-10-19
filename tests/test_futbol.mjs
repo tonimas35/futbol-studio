@@ -421,6 +421,10 @@ try {
   const terr = videoData.territory;
   check(terr?.push.length === 91 && terr.spots.length >= 25 && new Set(terr.spots.map((x) => x[3])).size === 2 && terr.spots.every((x) => x[1] >= 0 && x[1] <= 100),
     `el territorio: ${terr?.spots.length} sucesos con su sitio y quién tenía el balón, y quién empujaba cada minuto`);
+  // Sin tirones de un minuto al siguiente y sin quedarse clavado en ningún rato de diez minutos
+  const pj = Math.max(...terr.push.slice(1).map((v, i) => Math.abs(v - terr.push[i])));
+  const stuck = terr.push.slice(0, -10).some((_, i) => Math.max(...terr.push.slice(i, i + 11)) - Math.min(...terr.push.slice(i, i + 11)) < 3);
+  check(pj <= 15 && !stuck, `y quién empujaba va sin tirones (como mucho ${pj} de un minuto al siguiente) y nunca se queda clavado`);
   const probe = await page.evaluate((d) => window.StudioVideo.probe(d), videoData);
   const shotsOk = probe && probe.filter((x) => x.ok).length, goalsOk = probe && probe.filter((x) => x.goal).every((x) => x.ok);
   check(probe && goalsOk && shotsOk / probe.length >= 0.85, `y en el vídeo cada gol y casi todos los tiros caen en el color de su equipo (${shotsOk} de ${probe?.length})`);
