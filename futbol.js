@@ -3729,7 +3729,7 @@
       pulse: pulseOf(m, extraTime(m, timeline) ? 120 : 90),
       shots: m.shots.length >= 4 ? {
         home: shotTotals(m, 'home'), away: shotTotals(m, 'away'),
-        list: m.shots.map(s => ({ side: s.side, kind: s.kind, x: s.x, y: s.y, x2: s.x2, y2: s.y2 })),
+        list: m.shots.map(s => ({ side: s.side, kind: s.kind, x: s.x, y: s.y, x2: s.x2, y2: s.y2, t: s.t ?? null })),
       } : null,
       jugador: p && {
         first: p.name.endsWith(surname(p)) ? p.name.slice(0, -surname(p).length).trim() : '',
@@ -3737,7 +3737,7 @@
         photo: hasPhoto(p) ? [photoSrc(p)] : null,
         // La cara del retrato de la slide, si se ha quedado (no era la silueta de API-Football)
         face: document.querySelector('#slide-jugador .has-face .portrait img')?.src || null,
-        logo: m[p.side].logo, style: teamStyle(m[p.side]),
+        logo: m[p.side].logo, style: teamStyle(m[p.side]), side: p.side,
         // Los minutos jugados no dicen nada al lado de los goles o los tiros
         stats: keys.filter((s, i) => i < 2 || !/^minuto|^minutes/.test(plain(s.label)))
           .map(s => ({ v: s.text ?? s.v, label: s.label, clean: !!s.clean, rating: !!s.rating })),
@@ -4409,7 +4409,7 @@
       const { home: a, away: b, draws: e } = d.h2h;
       script.h2h = `${d.h2h.label}: ${H.short} ${a}, ${A.short} ${b} and ${e} ${e === 1 ? 'draw' : 'draws'}.`;
     }
-    return script;
+    return matchStory(d, script);
   }
 
   function autoScript(d) {
@@ -4473,7 +4473,15 @@
       const { home: a, away: b, draws: e } = d.h2h;
       script.h2h = `${d.h2h.label}: ${H.short} ${a}, ${A.short} ${b} y ${e ? e === 1 ? 'un empate' : `${e} empates` : 'ningún empate'}.`;
     }
-    return script;
+    return matchStory(d, script);
+  }
+
+  // Con el sitio de los tiros, el vídeo cuenta el partido en una sola escena (los goles, el pulso
+  // y los tiros, en su minuto): su frase junta las tres, en ese orden
+  function matchStory(d, script) {
+    if (!(d.shots?.list.length >= 4)) return script;
+    const story = [script.goals, d.pulse ? script.pulso : script.stats, script.tiros].filter(Boolean).join(' ');
+    return story ? { ...script, goals: story } : script;
   }
 
   // El guion de la previa: cómo llegan, el cara a cara, sus goleadores y la tabla, contado

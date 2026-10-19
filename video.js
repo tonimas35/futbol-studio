@@ -565,58 +565,526 @@
     ctx.restore();
   }
 
-  // 1 · El marcador, que es también la portada: cada equipo en su mitad con su escudo, su nombre y
-  // su número gigante, y cruzando, la cinta con el gancho. Todo desde el primer fotograma (TikTok
-  // puede coger cualquiera de portada) y dos golpes al ritmo.
+  // ============================================================
+  // EL SISTEMA · un solo mundo para todo el vídeo, como el de la selección francesa de LJ Studio:
+  // el fondo negro con la luz de los dos equipos, las placas con las esquinas cortadas (la forma
+  // de Jornada90) y un marcador fijo arriba que no desaparece de escena en escena.
+  // ============================================================
+  const GROUND = '#07090d';
+  function groundBg(ctx, d) {
+    const [bx, by, bw, bh] = bleed(ctx, 0, 0, W, H);
+    ctx.drawImage(layer(`g|${d.home.style.bg}|${d.away.style.bg}`, W, H, (c) => {
+      c.fillStyle = GROUND;
+      c.fillRect(0, 0, W, H);
+      for (const [col, x] of [[d.home.style.bg, -0.1], [d.away.style.bg, 1.1]]) {
+        const r = c.createRadialGradient(x * W, -0.05 * H, 0, x * W, -0.05 * H, W * 1.15);
+        r.addColorStop(0, rgba(col, 0.3));
+        r.addColorStop(0.5, rgba(col, 0.07));
+        r.addColorStop(1, rgba(col, 0));
+        c.fillStyle = r;
+        c.fillRect(0, 0, W, H);
+      }
+      // La trama de un marcador LED, muy suave
+      c.fillStyle = 'rgba(255,255,255,.035)';
+      for (let y = 9; y < H; y += 18) for (let x = 9; x < W; x += 18) c.fillRect(x, y, 2, 2);
+      vignette(c, W, H, 0.4);
+    }), bx, by, bw, bh);
+  }
+  // La placa de Jornada90: un rectángulo con las cuatro esquinas cortadas
+  function plate(ctx, x, y, w, h, c = Math.min(w, h) * 0.22) {
+    ctx.beginPath();
+    ctx.moveTo(x + c, y); ctx.lineTo(x + w - c, y); ctx.lineTo(x + w, y + c); ctx.lineTo(x + w, y + h - c);
+    ctx.lineTo(x + w - c, y + h); ctx.lineTo(x + c, y + h); ctx.lineTo(x, y + h - c); ctx.lineTo(x, y + c);
+    ctx.closePath();
+  }
+  // La del resultado: un hexágono alargado, en punta por los lados
+  function hexPlate(ctx, x, y, w, h, c = h * 0.3) {
+    ctx.beginPath();
+    ctx.moveTo(x + c, y); ctx.lineTo(x + w - c, y); ctx.lineTo(x + w, y + h / 2);
+    ctx.lineTo(x + w - c, y + h); ctx.lineTo(x + c, y + h); ctx.lineTo(x, y + h / 2);
+    ctx.closePath();
+  }
+  // Un color de cada equipo que se lea sobre el fondo negro (el blanco del Madrid, el rojo del
+  // Sevilla…), y distinto del otro
+  const marksDark = (d) => marksOn(d, GROUND);
+
+  // EL MARCADOR FIJO · arriba, en todas las escenas después de la portada: tu logo, los escudos,
+  // las siglas, el resultado en sus dos placas y, debajo, el minuto en LED (o «FINAL»).
+  const BUG = { y: 40, h: 116, sw: 150, gap: 14 };
+  const bugPlates = () => ({
+    home: { x: W / 2 - BUG.gap / 2 - BUG.sw, y: BUG.y + 10, w: BUG.sw, h: BUG.h - 20 },
+    away: { x: W / 2 + BUG.gap / 2, y: BUG.y + 10, w: BUG.sw, h: BUG.h - 20 },
+  });
+  // Una placa del resultado con su número (r: dónde; k: el golpe del número al cambiar)
+  function scorePlate(ctx, r, n, st, k = 1) {
+    hexPlate(ctx, r.x, r.y, r.w, r.h);
+    ctx.fillStyle = st.bg;
+    ctx.fill();
+    ctx.lineWidth = Math.max(3, r.h * 0.05);
+    ctx.strokeStyle = rgba(ACCENT, 0.9);
+    ctx.stroke();
+    const size = Math.min(r.h * 0.86, fit(ctx, String(n), ANTON, r.h * 0.86, r.w * 0.62));
+    ctx.save();
+    ctx.translate(r.x + r.w / 2, r.y + r.h / 2);
+    ctx.scale(k, k);
+    text(ctx, String(n), 0, capHeight(ctx, ANTON(size)) / 2, ANTON(size), st.fg, 'center');
+    ctx.restore();
+  }
+  // b: { score: [local, visitante], clock: «63'» o «FINAL», pop: [golpe del local, del visitante] }
+  function drawBug(ctx, d, A, b, alpha = 1) {
+    if (!b || alpha <= 0) return;
+    const { y, h } = BUG, P = bugPlates();
+    ctx.save();
+    ctx.globalAlpha *= alpha;
+    ctx.shadowColor = 'rgba(0,0,0,.5)';
+    ctx.shadowBlur = 30;
+    plate(ctx, M, y, W - 2 * M, h, 26);
+    ctx.fillStyle = 'rgba(6,8,11,.92)';
+    ctx.fill();
+    ctx.shadowColor = 'transparent';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = rgba(ACCENT, 0.45);
+    ctx.stroke();
+    let x = M + 30;
+    if (A.brandImg) {
+      const k = Math.min(70 / A.brandImg.naturalWidth, 70 / A.brandImg.naturalHeight);
+      ctx.drawImage(A.brandImg, x, y + h / 2 - (A.brandImg.naturalHeight * k) / 2, A.brandImg.naturalWidth * k, A.brandImg.naturalHeight * k);
+      x += 86;
+    }
+    const abbr = (t) => up(t.abbr || t.short.slice(0, 3));
+    logo(ctx, A.homeLogo, x + 36, y + h / 2, 70);
+    text(ctx, abbr(d.home), x + 80, y + h / 2 + 22, ANTON(fit(ctx, abbr(d.home), ANTON, 60, P.home.x - x - 96)), '#ffffff');
+    logo(ctx, A.awayLogo, W - M - 66, y + h / 2, 70);
+    text(ctx, abbr(d.away), W - M - 110, y + h / 2 + 22, ANTON(fit(ctx, abbr(d.away), ANTON, 60, W - M - 126 - (P.away.x + P.away.w))), '#ffffff', 'right');
+    scorePlate(ctx, P.home, b.score[0], d.home.style, 1 + 0.25 * (b.pop?.[0] || 0));
+    scorePlate(ctx, P.away, b.score[1], d.away.style, 1 + 0.25 * (b.pop?.[1] || 0));
+    // El minuto, en una placa debajo
+    const clock = String(b.clock || '');
+    const dot = 9, cw = ledWidth(clock, dot) + 48, cy = y + h + 6;
+    plate(ctx, W / 2 - cw / 2, cy, cw, 7 * dot + 28, 14);
+    ctx.fillStyle = 'rgba(6,8,11,.92)';
+    ctx.fill();
+    ledText(ctx, clock, W / 2, cy + 14, dot, b.final ? '#ffffff' : ACCENT, 'center');
+    ctx.restore();
+  }
+  // El marcador del final (para las escenas de después del partido)
+  const finalBug = (d) => () => ({ score: [d.home.score, d.away.score], clock: d.live ? d.clock : (d.t?.fullTime || 'FINAL'), final: !d.live });
+
+  // 1 · La portada: los dos escudos con su nombre, los dos resultados gigantes en sus placas y,
+  // cruzando, la cinta verde con el gancho. Todo desde el primer fotograma. Al acabar, las dos
+  // placas vuelan a su sitio en el marcador de arriba, que ya no se va.
   function sceneScore(d, A, intro = false) {
     const winner = d.home.won ? d.home : d.away.won ? d.away : null;
-    const halves = [{ side: d.home, logo: A.homeLogo, x: 0 }, { side: d.away, logo: A.awayLogo, x: W / 2 }];
-    // Con la apertura del aviso, el gancho ya va en la tarjeta: en la cinta, el titular
     const hook = up((!intro && d.hook?.text) || d.headline);
     const pulse = (t, at) => Math.sin(Math.PI * prog(t, at, 0.3));
+    const dur = 2 * BAR, FLY = 0.45;
+    const big = { home: { x: M + 10, y: 640, w: 440, h: 640 }, away: { x: W - M - 450, y: 640, w: 440, h: 640 } };
+    const P = bugPlates();
     return {
       id: 'score',
-      dur: 2 * BAR,
+      dur,
+      camera: false,
       accent: (winner || d.home).style.acc,
+      overlay: (ctx, t) => drawBug(ctx, d, A, { score: [d.home.score, d.away.score], clock: d.live ? d.clock : (d.t?.fullTime || 'FINAL'), final: !d.live }, prog(t, dur - 0.2, 0.2)),
       music: { energy: 'full', drop: BEAT },
       cues: [
         { t: 0, kind: 'impact', vel: 1 },
-        { t: BEAT, kind: 'slam' }, { t: BEAT, kind: 'hit', vel: 0.8 },
-        { t: BAR, kind: 'slam' }, { t: BAR, kind: 'impact', vel: 0.9 },
+        { t: BEAT, kind: 'hit', vel: 0.8 },
+        { t: BAR, kind: 'impact', vel: 0.9 },
+        { t: dur - FLY, kind: 'riser', dur: FLY, vel: 0.6 },
       ],
       draw(ctx, t) {
-        for (const h of halves) {
-          const st = h.side.style;
-          ctx.save();
-          const band = bleed(ctx, h.x, 0, W / 2, H);
-          ctx.beginPath();
-          ctx.rect(...band);
-          ctx.clip();
-          teamBg(ctx, st, h.x, 0, W / 2, H, 0.5, 0.55);
-          if (h.side.lost) {
-            ctx.fillStyle = `rgba(0,0,0,${0.28 * easeOut(prog(t, BAR, 0.4))})`;
-            ctx.fillRect(...bleed(ctx, h.x, 0, W / 2, H));
+        groundBg(ctx, d);
+        const fly = easeInOut(prog(t, dur - FLY, FLY));
+        // Los escudos y los nombres
+        ctx.save();
+        ctx.globalAlpha = 1 - fly;
+        for (const [side, img, cx] of [['home', A.homeLogo, big.home.x + big.home.w / 2], ['away', A.awayLogo, big.away.x + big.away.w / 2]]) {
+          logo(ctx, img, cx, 330, 210 * (1 + 0.06 * pulse(t, BEAT)));
+          const name = up(d[side].short);
+          text(ctx, name, cx, 540, ANTON(fit(ctx, name, ANTON, 80, 430)), '#ffffff', 'center');
+        }
+        if (d.live) chip(ctx, `${d.t?.live || 'EN JUEGO'} ${d.clock}`, W / 2, 1360, { acc: '#e3172d', on: '#ffffff' }, 46, 'center');
+        ctx.restore();
+        // Las dos placas: gigantes y, al final, a su sitio en el marcador de arriba
+        for (const side of ['home', 'away']) {
+          const a = big[side], b = P[side];
+          const r = { x: a.x + (b.x - a.x) * fly, y: a.y + (b.y - a.y) * fly, w: a.w + (b.w - a.w) * fly, h: a.h + (b.h - a.h) * fly };
+          const k = 1 + (d[side].won ? 0.06 * pulse(t, BAR) : 0) + 0.04 * pulse(t, BEAT);
+          if (d[side].lost && fly < 1) {
+            ctx.save();
+            ctx.globalAlpha = 0.85;
+            scorePlate(ctx, r, d[side].score, d[side].style, k);
+            ctx.restore();
+          } else {
+            scorePlate(ctx, r, d[side].score, d[side].style, k);
           }
-          logo(ctx, h.logo, h.x + W / 4, 250, 180);
-          const name = up(h.side.short);
-          text(ctx, name, h.x + W / 4, 425, ANTON(fit(ctx, name, ANTON, 80, W / 2 - 90)), st.fg, 'center');
-          const n = String(h.side.score ?? '');
-          const size = fit(ctx, n, ANTON, 880, W / 2 - 70);
-          const pop = 1 + 0.08 * pulse(t, BEAT) + (h.side.won ? 0.06 * pulse(t, BAR) : 0);
+          if (d[side].shootout != null && fly === 0) text(ctx, `(${d[side].shootout})`, a.x + a.w / 2, a.y + a.h + 90, ANTON(80), '#ffffff', 'center');
+        }
+        // La cinta, que se va antes de que vuelen las placas
+        const out = easeInOut(prog(t, dur - FLY - 0.25, 0.3));
+        if (out < 1) {
           ctx.save();
-          ctx.translate(h.x + W / 4, 1420);
-          ctx.scale(pop, pop);
-          ctx.shadowColor = 'rgba(0,0,0,.3)';
-          ctx.shadowBlur = 50;
-          text(ctx, n, 0, 0, ANTON(size), st.fg, 'center');
-          ctx.restore();
-          if (h.side.shootout != null) text(ctx, `(${h.side.shootout})`, h.x + W / 4, 1530, ANTON(84), st.fg, 'center');
+          ctx.translate(-out * 1400, 0);
+          hookTape(ctx, hook, 1330, 1, 0.025 * pulse(t, BEAT));
           ctx.restore();
         }
-        if (d.live) chip(ctx, `${d.t?.live || 'EN JUEGO'} ${d.clock}`, W / 2, 560, { acc: '#e3172d', on: '#ffffff' }, 46, 'center');
-        hookTape(ctx, hook, 1010, 1, 0.025 * pulse(t, BEAT));
       },
     };
+  }
+
+  // 2 · EL PARTIDO, del 0' al 90' en una sola pieza (como los retratos de Bogachev): el campo en
+  // perspectiva y el reloj corriendo. La luz de cada equipo se enciende sobre la portería que
+  // ataca cuando aprieta (el pulso); cada tiro vuela en su minuto; en cada gol el reloj se para, la
+  // cámara entra en el área, salen el minuto gigante y el goleador cayendo letra a letra, y cambia
+  // el marcador de arriba. Abajo, la gráfica del pulso se va dibujando. Al final, la posesión
+  // llena la pantalla. Junta lo que antes eran tres escenas (los goles, el pulso y los tiros).
+  function sceneMatch(d, A) {
+    const s = d.shots, pu = d.pulse;
+    const total = pu?.total || (d.extraTime ? 120 : 90);
+    const PL = 105, PW = 68, HL = PL / 2;
+    const col = marksDark(d);
+    const sub = (p, q) => [p[0] - q[0], p[1] - q[1], p[2] - q[2]];
+    const dot = (p, q) => p[0] * q[0] + p[1] * q[1] + p[2] * q[2];
+    const cross = (p, q) => [p[1] * q[2] - p[2] * q[1], p[2] * q[0] - p[0] * q[2], p[0] * q[1] - p[1] * q[0]];
+    const norm = (p) => { const l = Math.hypot(...p); return [p[0] / l, p[1] / l, p[2] / l]; };
+    const rnd = (i) => { const v = Math.sin(i * 12.9898 + 78.233) * 43758.5453; return v - Math.floor(v); };
+    const pressure = (side, m) => {
+      if (!pu) return 0;
+      const arr = pu[side], i = Math.max(0, Math.min(arr.length - 2, Math.floor(m))), f = m - i;
+      return (arr[i] * (1 - f) + arr[i + 1] * f) / pu.max;
+    };
+    // Los goles (y las rojas), con el marcador de después
+    let h = 0, a = 0;
+    const evs = d.goals.filter(e => e.kind === 'goal' || e.kind === 'red').map(e => {
+      if (e.kind === 'goal') { if (e.side === 'home') h++; else a++; }
+      return { e, score: e.score ? [...e.score] : [h, a] };
+    });
+    const goalEvs = evs.filter(x => x.e.kind === 'goal');
+    goalEvs.forEach(x => {
+      const his = goalEvs.filter(y => !y.e.own && !x.e.own && y.e.name === x.e.name && y.e.side === x.e.side);
+      if (his.length > 1 && his[his.length - 1] === x) x.mins = his.map(y => String(y.e.min || '').replace(/\s/g, ''));
+    });
+    const pos = d.stats?.find(r => r.pct);
+    // ESPN da cada tiro en % del campo, atacando hacia x = 100; el local ataca hacia z = +HL
+    const place = (side, x, y) => (side === 'home' ? [-(y / 100 - 0.5) * PW, -HL + (x / 100) * PL] : [(y / 100 - 0.5) * PW, HL - (x / 100) * PL]);
+    const scorers = { home: goalEvs.filter(x => !x.e.own && x.e.side === 'home'), away: goalEvs.filter(x => !x.e.own && x.e.side === 'away') };
+    const seen = { home: 0, away: 0 };
+    const shots = s.list.map((sh, i) => {
+      const [X, Z] = place(sh.side, sh.x, sh.y);
+      const goalZ = sh.side === 'home' ? HL : -HL;
+      let X2, Z2, h2;
+      if (sh.x2 != null && sh.y2 != null && sh.x2 >= 95) [X2, Z2] = place(sh.side, Math.min(100, sh.x2), sh.y2);
+      else [X2, Z2] = [(rnd(i) - 0.5) * 9, goalZ];
+      if (sh.kind === 'goal' || sh.kind === 'on') { X2 = Math.max(-3.4, Math.min(3.4, X2)); Z2 = goalZ; h2 = 0.3 + rnd(i + 3) * 1.8; }
+      else if (sh.kind === 'post') { X2 = X2 < 0 ? -3.66 : 3.66; Z2 = goalZ; h2 = 1 + rnd(i) * 1.4; }
+      else {
+        h2 = Math.abs(X2) < 3.66 ? 2.9 + rnd(i + 5) * 1.2 : 0.6 + rnd(i + 5) * 1.6;
+        Z2 = goalZ + (sh.side === 'home' ? 4 : -4);
+        if (sh.x2 != null && sh.x2 < 95) { Z2 = place(sh.side, sh.x2, sh.y2)[1]; h2 = 0.5; }
+      }
+      const g = sh.kind === 'goal' ? scorers[sh.side][seen[sh.side]++] : null;
+      return { ...sh, X, Z, X2, Z2, h2, g, i };
+    });
+    const FLY = 0.5;
+    const ballAt = (sh, u) => {
+      const dist = Math.hypot(sh.X2 - sh.X, sh.Z2 - sh.Z), peak = sh.x2 != null && sh.x2 < 95 ? 0.4 : Math.min(4, dist * 0.09);
+      return [sh.X + (sh.X2 - sh.X) * u, peak * 4 * u * (1 - u) + sh.h2 * u, sh.Z + (sh.Z2 - sh.Z) * u];
+    };
+    // El tiempo: el reloj corre por los minutos sin nada y se para en cada gol (y un momento en el
+    // descanso y en cada roja)
+    const RUN = 6, HOLD = { goal: 1.6, red: 0.8, ht: 0.55 };
+    const stops = [...evs.map(x => ({ m: x.e.t, hold: HOLD[x.e.kind], ev: x })), ...(d.halftime ? [{ m: 45.01, hold: HOLD.ht, ht: true }] : [])].sort((p, q) => p.m - q.m);
+    const holdsTotal = stops.reduce((sum, x) => sum + x.hold, 0);
+    const END = pos ? 2.3 : 0.9;
+    const build = (dur) => {
+      const k = (dur - 0.3 - END) / (RUN + holdsTotal);
+      const knots = [[0.3, 0]];
+      let T = 0.3, prevM = 0;
+      for (const st of stops) {
+        T += k * RUN * ((st.m - prevM) / total);
+        knots.push([T, st.m]);
+        st.start = T;
+        T += k * st.hold;
+        st.end = T;
+        knots.push([T, st.m]);
+        prevM = st.m;
+      }
+      T += k * RUN * ((total - prevM) / total);
+      knots.push([T, total]);
+      const RUN_END = T;
+      const minuteAt = (t) => {
+        if (t <= knots[0][0]) return 0;
+        for (let j = 1; j < knots.length; j++) {
+          const [t0, m0] = knots[j - 1], [t1, m1] = knots[j];
+          if (t <= t1) return t1 > t0 ? m0 + (m1 - m0) * ((t - t0) / (t1 - t0)) : m1;
+        }
+        return total;
+      };
+      const timeOfMinute = (m) => {
+        for (let j = 1; j < knots.length; j++) {
+          const [t0, m0] = knots[j - 1], [t1, m1] = knots[j];
+          if (m <= m1 && m1 > m0) return t0 + (t1 - t0) * ((m - m0) / (m1 - m0));
+        }
+        return RUN_END;
+      };
+      const goalStops = stops.filter(st => st.ev?.e.kind === 'goal');
+      // Cuándo sale cada tiro: en su minuto; el del gol, para que entre justo cuando se para el reloj
+      shots.forEach(sh => {
+        const st = sh.g && goalStops.find(x => x.ev === sh.g);
+        sh.launch = st ? st.start - FLY : timeOfMinute(sh.t ?? (total * (sh.i + 0.5)) / Math.max(1, shots.length));
+      });
+      const FILL = dur - 1.75;
+      // La cámara: alta y girando despacio; en cada gol, entra hacia esa portería
+      const bell = (t, t0, t1) => Math.min(easeInOut(prog(t, t0 - 0.35, 0.35)), 1 - easeInOut(prog(t, t1, 0.4)));
+      const camera = (t) => {
+        let w = 0, end = 1;
+        for (const st of goalStops) {
+          const q = bell(t, st.start, st.end);
+          if (q > w) { w = q; end = st.ev.e.side === 'home' ? 1 : -1; }
+        }
+        const u = t / dur;
+        const yaw = -0.16 + 0.32 * u + w * 0.12 * end, el = 0.98 - 0.32 * w, R = 112 - 52 * w;
+        const tgt = [0, 0, 4 + (end * HL * 0.62 - 4) * w];
+        const p = [tgt[0] + R * Math.cos(el) * Math.sin(yaw), R * Math.sin(el), tgt[2] - R * Math.cos(el) * Math.cos(yaw)];
+        const fwd = norm(sub(tgt, p)), right = norm(cross([0, 1, 0], fwd));
+        return { pos: p, fwd, right, up: cross(fwd, right) };
+      };
+      const F = 1240, CX = W / 2, CY = 900;
+      const cues = [];
+      shots.forEach(sh => { if (!sh.g) cues.push({ t: snap(sh.launch + FLY), kind: 'pop', made: false, clank: sh.kind === 'post' }); });
+      goalStops.forEach(st => cues.push({ t: snap(st.start), kind: 'impact', vel: 1 }, { t: snap(st.start), kind: 'slam' }, { t: snap(st.start), kind: 'pop', made: true }));
+      stops.filter(st => st.ht || st.ev?.e.kind === 'red').forEach(st => cues.push({ t: snap(st.start), kind: 'hit', vel: 0.8 }));
+      if (pos) cues.push({ t: snap(FILL), kind: 'impact', vel: 0.9 }, { t: snap(FILL), kind: 'slam' });
+      const scoreAt = (t) => {
+        let sc = [0, 0], pop = [0, 0];
+        for (const st of goalStops) {
+          if (t < st.start) break;
+          sc = st.ev.score;
+          const q = 1 - clamp01((t - st.start) / 0.4);
+          pop = st.ev.e.side === 'home' ? [q, 0] : [0, q];
+        }
+        return { sc, pop };
+      };
+      return {
+        id: 'goals',
+        dur,
+        stretch: build,
+        camera: false,
+        enter: { kind: 'cut' },
+        accent: ACCENT,
+        music: { energy: 'full' },
+        cues,
+        overlay: (ctx, t) => {
+          const { sc, pop } = scoreAt(t);
+          const done = t >= RUN_END;
+          drawBug(ctx, d, A, { score: done ? [d.home.score, d.away.score] : sc, pop, clock: done ? (d.t?.fullTime || 'FINAL') : `${Math.floor(minuteAt(t))}'`, final: done });
+        },
+        draw(ctx, t) {
+          const m = minuteAt(t);
+          const cam = camera(t);
+          const Pj = (p) => { const v = sub(p, cam.pos), z = dot(v, cam.fwd); return [CX + (F * dot(v, cam.right)) / z, CY - (F * dot(v, cam.up)) / z]; };
+          const path = (pts, close) => { ctx.beginPath(); pts.forEach((p, j) => { const [x, y] = Pj(p); if (j) ctx.lineTo(x, y); else ctx.moveTo(x, y); }); if (close) ctx.closePath(); };
+          const rect = (x0, z0, x1, z1) => [[x0, 0, z0], [x1, 0, z0], [x1, 0, z1], [x0, 0, z1]];
+          groundBg(ctx, d);
+          // El césped, oscuro, a franjas
+          for (let i = 0; i < 12; i++) {
+            const z0 = -HL + (i * PL) / 12;
+            path(rect(-PW / 2, z0, PW / 2, z0 + PL / 12), true);
+            ctx.fillStyle = i % 2 ? '#0f3a22' : '#0d331e';
+            ctx.fill();
+          }
+          // La luz de quien aprieta, sobre la portería que ataca
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          for (const [side, z] of [['home', HL * 0.55], ['away', -HL * 0.55]]) {
+            const p = pressure(side, m);
+            if (p < 0.03) continue;
+            const [gx, gy] = Pj([0, 0, z]);
+            const [ex] = Pj([PW / 2, 0, z]);
+            const rx = Math.max(60, Math.abs(ex - gx)) * 1.15;
+            ctx.save();
+            ctx.translate(gx, gy);
+            ctx.scale(1, 0.55);
+            const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
+            g.addColorStop(0, rgba(col[side], 0.55 * p));
+            g.addColorStop(1, rgba(col[side], 0));
+            ctx.fillStyle = g;
+            ctx.fillRect(-rx, -rx, 2 * rx, 2 * rx);
+            ctx.restore();
+          }
+          ctx.restore();
+          // Las líneas
+          const draw = (pts, close, style = 'rgba(255,255,255,.7)', width = 3) => { path(pts, close); ctx.strokeStyle = style; ctx.lineWidth = width; ctx.stroke(); };
+          ctx.lineJoin = 'round';
+          draw(rect(-PW / 2, -HL, PW / 2, HL), true);
+          draw([[-PW / 2, 0, 0], [PW / 2, 0, 0]]);
+          draw(Array.from({ length: 49 }, (_, j) => [9.15 * Math.cos((j / 48) * Math.PI * 2), 0, 9.15 * Math.sin((j / 48) * Math.PI * 2)]));
+          for (const sg of [1, -1]) {
+            draw([[-20.16, 0, sg * HL], [-20.16, 0, sg * (HL - 16.5)], [20.16, 0, sg * (HL - 16.5)], [20.16, 0, sg * HL]]);
+            draw([[-9.16, 0, sg * HL], [-9.16, 0, sg * (HL - 5.5)], [9.16, 0, sg * (HL - 5.5)], [9.16, 0, sg * HL]]);
+            draw([[-3.66, 2.44, sg * HL], [-3.66, 0, sg * (HL + 2)], [3.66, 0, sg * (HL + 2)], [3.66, 2.44, sg * HL]], false, 'rgba(255,255,255,.3)', 2);
+            draw([[-3.66, 0, sg * HL], [-3.66, 2.44, sg * HL], [3.66, 2.44, sg * HL], [3.66, 0, sg * HL]], false, '#ffffff', 6);
+          }
+          // Los tiros, cada uno en su minuto
+          const glows = [];
+          for (const sh of shots) {
+            if (t < sh.launch) continue;
+            const u = clamp01((t - sh.launch) / FLY), c = col[sh.side];
+            path(Array.from({ length: 13 }, (_, j) => [sh.X + 0.9 * Math.cos((j / 12) * Math.PI * 2), 0, sh.Z + 0.9 * Math.sin((j / 12) * Math.PI * 2)]), true);
+            if (sh.kind === 'goal' || sh.kind === 'on') { ctx.fillStyle = c; ctx.fill(); } else { ctx.strokeStyle = c; ctx.lineWidth = 4; ctx.stroke(); }
+            const after = t - sh.launch - FLY;
+            if (u < 1 || (sh.kind === 'goal' && after < 0.9)) {
+              const tail = Math.max(0, u - 0.35);
+              path(Array.from({ length: 12 }, (_, j) => ballAt(sh, tail + ((u - tail) * j) / 11)));
+              ctx.strokeStyle = rgba(c, 0.6 * (u < 1 ? 1 : 1 - after / 0.9));
+              ctx.lineWidth = 5;
+              ctx.stroke();
+              if (u < 1) { const [bx, by] = Pj(ballAt(sh, u)); football(ctx, bx, by, 14, 1, u * 9); }
+            }
+            if (sh.kind === 'goal' && u >= 1 && after < 1) glows.push({ sh, after });
+          }
+          for (const { sh, after } of glows) {
+            const [gx, gy] = Pj([0, 1.2, sh.side === 'home' ? HL : -HL]);
+            const r = 80 + 340 * easeOut(after);
+            const g = ctx.createRadialGradient(gx, gy, 0, gx, gy, r);
+            g.addColorStop(0, rgba(ACCENT, 0.85 * (1 - after)));
+            g.addColorStop(1, rgba(ACCENT, 0));
+            ctx.fillStyle = g;
+            ctx.fillRect(gx - r, gy - r, 2 * r, 2 * r);
+          }
+          // Abajo, la gráfica del pulso: se va dibujando con el reloj (el local hacia arriba)
+          if (pu) {
+            const GX0 = M, GX1 = W - M, GY = 1500, GA = 70;
+            const xOf = (mm) => GX0 + ((GX1 - GX0) * mm) / total;
+            const net = (mm) => pressure('home', mm) - pressure('away', mm);
+            ctx.fillStyle = 'rgba(255,255,255,.15)';
+            ctx.fillRect(GX0, GY - 1, GX1 - GX0, 2);
+            for (const [side, sign] of [['home', -1], ['away', 1]]) {
+              ctx.save();
+              ctx.beginPath();
+              ctx.rect(GX0, sign < 0 ? GY - GA - 10 : GY, GX1 - GX0, GA + 10);
+              ctx.clip();
+              ctx.beginPath();
+              ctx.moveTo(xOf(0), GY);
+              for (let mm = 0; mm <= m; mm += 0.5) ctx.lineTo(xOf(mm), GY - GA * net(mm));
+              ctx.lineTo(xOf(m), GY);
+              ctx.closePath();
+              ctx.fillStyle = rgba(col[side], 0.8);
+              ctx.fill();
+              ctx.restore();
+            }
+            for (const st of goalStops) {
+              if (t < st.start) continue;
+              football(ctx, xOf(st.m), GY + (st.ev.e.side === 'home' ? -GA - 26 : GA + 26), 14);
+            }
+            ctx.fillStyle = ACCENT;
+            ctx.fillRect(xOf(m) - 2, GY - GA - 6, 4, 2 * GA + 12);
+          }
+          // El descanso
+          const ht = stops.find(st => st.ht);
+          if (ht && t >= ht.start && t < ht.end + 0.4) {
+            const e = Math.min(easeBack(prog(t, ht.start, 0.25)), 1 - prog(t, ht.end, 0.4));
+            ctx.save();
+            ctx.globalAlpha = Math.max(0, e);
+            const str = `${d.t?.halftime || 'DESCANSO'} ${d.halftime[0]}-${d.halftime[1]}`;
+            ctx.font = ANTON(84);
+            const w = ctx.measureText(str).width + 80;
+            plate(ctx, W / 2 - w / 2, 760, w, 130, 30);
+            ctx.fillStyle = ACCENT;
+            ctx.fill();
+            text(ctx, str, W / 2, 855, ANTON(84), '#111111', 'center');
+            ctx.restore();
+          }
+          // Cada gol: el reloj se para, se oscurece el campo y salen el minuto gigante y el
+          // goleador cayendo letra a letra (si lleva más de uno, sus minutos apilados)
+          for (const st of stops) {
+            if (!st.ev || t < st.start || t > st.end + 0.35) continue;
+            const lt = t - st.start, e = st.ev.e, out = prog(t, st.end, 0.35);
+            const dark = 0.62 * Math.min(easeOut(prog(lt, 0.15, 0.25)), 1 - out);
+            fillAll(ctx, `rgba(4,5,8,${dark})`);
+            ctx.save();
+            ctx.globalAlpha = 1 - out;
+            const c = col[e.side];
+            if (e.kind === 'red') {
+              const name = up(e.name);
+              text(ctx, String(e.min || '').replace(/\s/g, ''), W / 2, 900, ANTON(300), '#ffffff', 'center');
+              ctx.fillStyle = '#e3172d';
+              roundRect(ctx, W / 2 - 60, 960, 120, 170, 14);
+              ctx.fill();
+              text(ctx, name, W / 2, 1290, ANTON(fit(ctx, name, ANTON, 150, W - 2 * M)), c, 'center');
+            } else {
+              const mins = st.ev.mins || [String(e.min || '').replace(/\s/g, '')];
+              const n = mins.length;
+              const msize = Math.min(...mins.map(x => fit(ctx, x, ANTON, n === 1 ? 560 : n === 2 ? 400 : 290, W - 2 * M)));
+              const k = 1.4 - 0.4 * easeOut(prog(lt, 0.12, 0.18));
+              mins.forEach((x, j) => {
+                const last = j === n - 1;
+                if (last && lt < 0.12) return;
+                ctx.save();
+                ctx.translate(W / 2, 1060 - (n - 1 - j) * msize * 0.9);
+                ctx.rotate(-0.045);
+                if (last) ctx.scale(k, k);
+                ctx.globalAlpha *= last ? 1 : 0.5;
+                ctx.shadowColor = 'rgba(0,0,0,.5)';
+                ctx.shadowBlur = 50;
+                text(ctx, x, 0, 0, ANTON(msize), '#ffffff', 'center');
+                ctx.restore();
+              });
+              const name = up(e.name);
+              const nsize = fit(ctx, name, ANTON, 190, W - 2 * M);
+              ctx.font = ANTON(nsize);
+              const chars = [...name], cw = chars.map(ch => ctx.measureText(ch).width);
+              let x = W / 2 - cw.reduce((p, q) => p + q, 0) / 2;
+              chars.forEach((ch, j) => {
+                const q = prog(lt, 0.2 + j * 0.035, 0.34);
+                if (q > 0) {
+                  const seed = rnd(j + name.length * 7);
+                  ctx.save();
+                  ctx.translate(x + cw[j] / 2, 1270 - (1 - easeBounce(q)) * 900);
+                  ctx.rotate((seed - 0.5) * (0.5 * (1 - q) + 0.12));
+                  text(ctx, ch, 0, 0, ANTON(nsize), c, 'center');
+                  ctx.restore();
+                }
+                x += cw[j];
+              });
+              if (e.how) {
+                const e2 = easeOut(prog(lt, 0.45, 0.25));
+                ctx.globalAlpha *= e2;
+                text(ctx, e.how, W / 2, 1360, BARLOW(fit(ctx, e.how, BARLOW, 56, W - 2 * M), 700), 'rgba(255,255,255,.85)', 'center');
+              }
+            }
+            ctx.restore();
+          }
+          // Al final, la posesión: la pantalla se llena con el color de cada uno, en proporción
+          if (pos) {
+            const f = easeInOut(prog(t, FILL, 0.45));
+            if (f > 0) {
+              const share = pos.v[0] / Math.max(1, pos.v[0] + pos.v[1]);
+              const split = W * share;
+              const [hx, hy, hw, hh] = bleed(ctx, 0, 0, split, H), [ax, ay, aw, ah] = bleed(ctx, split, 0, W - split, H);
+              ctx.fillStyle = d.home.style.bg;
+              ctx.fillRect(hx, hy + hh * (1 - f), hw, hh * f);
+              ctx.fillStyle = d.away.style.bg;
+              ctx.fillRect(ax, ay + ah * (1 - f), aw, ah * f);
+              const e2 = easeOut(prog(t, FILL + 0.25, 0.35));
+              ctx.save();
+              ctx.globalAlpha = e2;
+              text(ctx, up(pos.label), W / 2, 520, ANTON(90), split > W / 2 ? d.home.style.fg : d.away.style.fg, 'center');
+              const bigN = (v, x, w, st2) => {
+                const str = `${Math.round(v)}%`;
+                text(ctx, str, x + w / 2, 1100, ANTON(fit(ctx, str, ANTON, 300, w - 40)), st2.fg, 'center');
+              };
+              bigN(pos.v[0], 0, split, d.home.style);
+              bigN(pos.v[1], split, W - split, d.away.style);
+              ctx.restore();
+            }
+          }
+        },
+      };
+    };
+    const base = 0.3 + RUN + holdsTotal + END;
+    return build(Math.ceil(base / BAR - 1e-6) * BAR);
   }
 
   // 2 · Los goles, uno a uno y al golpe: el minuto a pantalla completa, del color del que marca,
@@ -911,205 +1379,34 @@
     return build(pos ? 4 * BAR : 3 * BAR);
   }
 
-  // 4 · Los tiros, en el campo en perspectiva: la cámara gira despacio y cada balón vuela desde
-  // donde se tiró hacia la portería, con su estela, en el orden del partido. El gol enciende la
-  // red y salta su minuto. El local ataca arriba y el visitante abajo; los contadores suben con
-  // los tiros que ya han llegado.
-  function sceneShots(d, A) {
-    const s = d.shots;
-    const PL = 105, PW = 68, HL = PL / 2;
-    const PITCH = { bg: '#155232', hi: '#1f6b3f', lo: '#0c3520' };
-    const col = marksOn(d, PITCH.bg);
-    const sub = (p, q) => [p[0] - q[0], p[1] - q[1], p[2] - q[2]];
-    const dot = (p, q) => p[0] * q[0] + p[1] * q[1] + p[2] * q[2];
-    const cross = (p, q) => [p[1] * q[2] - p[2] * q[1], p[2] * q[0] - p[0] * q[2], p[0] * q[1] - p[1] * q[0]];
-    const norm = (p) => { const l = Math.hypot(...p); return [p[0] / l, p[1] / l, p[2] / l]; };
-    const rnd = (i) => { const v = Math.sin(i * 12.9898 + 78.233) * 43758.5453; return v - Math.floor(v); };
-    // ESPN da cada tiro en % del campo, atacando hacia x = 100; el local ataca hacia z = +HL.
-    const place = (side, x, y) => (side === 'home' ? [-(y / 100 - 0.5) * PW, -HL + (x / 100) * PL] : [(y / 100 - 0.5) * PW, HL - (x / 100) * PL]);
-    // Cada gol con su goleador: los goles de cada equipo en orden (sin los de en propia)
-    const scorers = { home: d.goals.filter(e => e.kind === 'goal' && !e.own && e.side === 'home'), away: d.goals.filter(e => e.kind === 'goal' && !e.own && e.side === 'away') };
-    const seen = { home: 0, away: 0 };
-    const shots = s.list.map((sh, i) => {
-      const [X, Z] = place(sh.side, sh.x, sh.y);
-      const goalZ = sh.side === 'home' ? HL : -HL;
-      let X2, Z2, h2;
-      if (sh.x2 != null && sh.y2 != null && sh.x2 >= 95) [X2, Z2] = place(sh.side, Math.min(100, sh.x2), sh.y2);
-      else [X2, Z2] = [(rnd(i) - 0.5) * 9, goalZ];
-      if (sh.kind === 'goal' || sh.kind === 'on') { X2 = Math.max(-3.4, Math.min(3.4, X2)); Z2 = goalZ; h2 = 0.3 + rnd(i + 3) * 1.8; }
-      else if (sh.kind === 'post') { X2 = X2 < 0 ? -3.66 : 3.66; Z2 = goalZ; h2 = 1 + rnd(i) * 1.4; }
-      else {
-        // Fuera: por encima del larguero si iba entre los palos; si no, al lado. Se pasa de la línea.
-        h2 = Math.abs(X2) < 3.66 ? 2.9 + rnd(i + 5) * 1.2 : 0.6 + rnd(i + 5) * 1.6;
-        Z2 = goalZ + (sh.side === 'home' ? 4 : -4);
-        if (sh.x2 != null && sh.x2 < 95) { Z2 = place(sh.side, sh.x2, sh.y2)[1]; h2 = 0.5; } // bloqueado
-      }
-      const g = sh.kind === 'goal' ? scorers[sh.side][seen[sh.side]++] : null;
-      return { ...sh, X, Z, X2, Z2, h2, g, i };
-    });
-    const FLY = 0.55;
-    const ballAt = (sh, u) => {
-      const dist = Math.hypot(sh.X2 - sh.X, sh.Z2 - sh.Z), peak = sh.x2 != null && sh.x2 < 95 ? 0.4 : Math.min(4, dist * 0.09);
-      return [sh.X + (sh.X2 - sh.X) * u, peak * 4 * u * (1 - u) + sh.h2 * u, sh.Z + (sh.Z2 - sh.Z) * u];
-    };
-    const count = (side, kinds) => s.list.filter(x => x.side === side && kinds.includes(x.kind)).length;
-    const plotted = { home: [count('home', ['goal', 'on', 'off', 'post']), count('home', ['goal', 'on'])], away: [count('away', ['goal', 'on', 'off', 'post']), count('away', ['goal', 'on'])] };
-    const build = (dur) => {
-      const n = shots.length;
-      const START = 2 * BEAT, END = dur - BAR - FLY;
-      const launch = (i) => START + Math.round(((END - START) / STEP) * (i / Math.max(1, n - 1))) * STEP;
-      const cues = [];
-      shots.forEach((sh, i) => {
-        const t = launch(i) + FLY;
-        const same = cues.find(c => Math.abs(c.t - t) < STEP / 2);
-        const made = sh.kind === 'goal';
-        if (!same) cues.push({ t, kind: 'pop', made, clank: sh.kind === 'post' });
-        else { same.made = same.made || made; same.clank = same.clank && sh.kind === 'post'; }
-      });
-      shots.forEach((sh, i) => { if (sh.kind === 'goal') cues.push({ t: launch(i) + FLY, kind: 'slam' }); });
-      const camera = (t) => {
-        const u = t / dur;
-        const yaw = -0.17 + 0.34 * easeInOut(u), el = 0.98 + 0.08 * Math.sin(u * Math.PI), R = 110 - 10 * Math.sin(u * Math.PI);
-        const tgt = [0, 0, 4];
-        const pos = [tgt[0] + R * Math.cos(el) * Math.sin(yaw), R * Math.sin(el), tgt[2] - R * Math.cos(el) * Math.cos(yaw)];
-        const fwd = norm(sub(tgt, pos)), right = norm(cross([0, 1, 0], fwd));
-        return { pos, fwd, right, up: cross(fwd, right) };
-      };
-      const F = 1240, CX = W / 2, CY = 960;
-      return {
-        id: 'tiros',
-        dur,
-        stretch: build,
-        enter: { kind: 'circles', colors: [ACCENT, '#ffffff', '#1f7a3c'] },
-        accent: ACCENT,
-        music: { energy: 'light' },
-        cues,
-        draw(ctx, t) {
-          const cam = camera(t);
-          const P = (p) => { const v = sub(p, cam.pos), z = dot(v, cam.fwd); return [CX + (F * dot(v, cam.right)) / z, CY - (F * dot(v, cam.up)) / z]; };
-          const path = (pts, close) => { ctx.beginPath(); pts.forEach((p, k) => { const [x, y] = P(p); if (k) ctx.lineTo(x, y); else ctx.moveTo(x, y); }); if (close) ctx.closePath(); };
-          const rect = (x0, z0, x1, z1) => [[x0, 0, z0], [x1, 0, z0], [x1, 0, z1], [x0, 0, z1]];
-          teamBg(ctx, { bg: '#0b2a17', hi: '#123d22', lo: '#04130a' }, 0, 0, W, H, 0.5, 0.5);
-          // El césped, a franjas, y las líneas
-          for (let i = 0; i < 12; i++) {
-            const z0 = -HL + (i * PL) / 12;
-            path(rect(-PW / 2, z0, PW / 2, z0 + PL / 12), true);
-            ctx.fillStyle = i % 2 ? '#1f7a3c' : '#1b6d35';
-            ctx.fill();
-          }
-          const draw = (pts, close, style = 'rgba(255,255,255,.82)', width = 3) => { path(pts, close); ctx.strokeStyle = style; ctx.lineWidth = width; ctx.stroke(); };
-          ctx.lineJoin = 'round';
-          draw(rect(-PW / 2, -HL, PW / 2, HL), true);
-          draw([[-PW / 2, 0, 0], [PW / 2, 0, 0]]);
-          draw(Array.from({ length: 49 }, (_, k) => [9.15 * Math.cos((k / 48) * Math.PI * 2), 0, 9.15 * Math.sin((k / 48) * Math.PI * 2)]));
-          for (const sg of [1, -1]) {
-            draw([[-20.16, 0, sg * HL], [-20.16, 0, sg * (HL - 16.5)], [20.16, 0, sg * (HL - 16.5)], [20.16, 0, sg * HL]]);
-            draw([[-9.16, 0, sg * HL], [-9.16, 0, sg * (HL - 5.5)], [9.16, 0, sg * (HL - 5.5)], [9.16, 0, sg * HL]]);
-            draw([[-3.66, 2.44, sg * HL], [-3.66, 0, sg * (HL + 2)], [3.66, 0, sg * (HL + 2)], [3.66, 2.44, sg * HL]], false, 'rgba(255,255,255,.3)', 2);
-            draw([[-3.66, 0, sg * HL], [-3.66, 2.44, sg * HL], [3.66, 2.44, sg * HL], [3.66, 0, sg * HL]], false, '#ffffff', 6);
-          }
-          // Los tiros
-          const labels = [];
-          const glows = [];
-          shots.forEach((sh, i) => {
-            const t0 = launch(i);
-            if (t < t0) return;
-            const u = clamp01((t - t0) / FLY), c = col[sh.side];
-            path(Array.from({ length: 13 }, (_, k) => [sh.X + 0.9 * Math.cos((k / 12) * Math.PI * 2), 0, sh.Z + 0.9 * Math.sin((k / 12) * Math.PI * 2)]), true);
-            if (sh.kind === 'goal' || sh.kind === 'on') { ctx.fillStyle = c; ctx.fill(); } else { ctx.strokeStyle = c; ctx.lineWidth = 4; ctx.stroke(); }
-            const after = t - t0 - FLY;
-            if (u < 1 || (sh.kind === 'goal' && after < 0.9)) {
-              const tail = Math.max(0, u - 0.35);
-              path(Array.from({ length: 12 }, (_, k) => ballAt(sh, tail + ((u - tail) * k) / 11)));
-              ctx.strokeStyle = rgba(c, 0.6 * (u < 1 ? 1 : 1 - after / 0.9));
-              ctx.lineWidth = 5;
-              ctx.stroke();
-              if (u < 1) { const [bx, by] = P(ballAt(sh, u)); football(ctx, bx, by, 14, 1, u * 9); }
-            }
-            if (sh.kind === 'goal' && u >= 1) {
-              if (after < 1) glows.push({ sh, after });
-              if (after < 1.2) {
-                const k = labels.findIndex(l => l.sh.side === sh.side);
-                if (k >= 0) labels[k] = { sh, after }; else labels.push({ sh, after });
-              }
-            }
-          });
-          for (const { sh, after } of glows) {
-            const [gx, gy] = P([0, 1.2, sh.side === 'home' ? HL : -HL]);
-            const r = 80 + 300 * easeOut(after);
-            const g = ctx.createRadialGradient(gx, gy, 0, gx, gy, r);
-            g.addColorStop(0, rgba(ACCENT, 0.8 * (1 - after)));
-            g.addColorStop(1, rgba(ACCENT, 0));
-            ctx.fillStyle = g;
-            ctx.fillRect(gx - r, gy - r, 2 * r, 2 * r);
-          }
-          // Arriba: los contadores (suben con los tiros que han llegado) y el minuto
-          const shown = (side) => shots.filter((x, i) => x.side === side && t >= launch(i) + FLY);
-          const counter = (side, img, right) => {
-            const list = shown(side);
-            const tot = Math.round(s[side].total * (list.length / Math.max(1, plotted[side][0])));
-            const on = Math.round(s[side].on * (list.filter(x => x.kind === 'goal' || x.kind === 'on').length / Math.max(1, plotted[side][1])));
-            const x = right ? W - M : M;
-            logo(ctx, img, right ? x - 50 : x + 50, 300, 100);
-            text(ctx, String(tot), right ? x - 120 : x + 120, 345, ANTON(130), '#ffffff', right ? 'right' : 'left');
-            ctx.font = ANTON(130);
-            const nw = ctx.measureText(String(tot)).width;
-            const lbl = up(d.t?.shots || 'tiros'), lbl2 = `${on} ${up(d.t?.onTarget || 'a puerta')}`;
-            const lx = right ? x - 140 - nw : x + 140 + nw;
-            text(ctx, lbl, lx, 290, BARLOW(40), 'rgba(255,255,255,.8)', right ? 'right' : 'left');
-            text(ctx, lbl2, lx, 340, BARLOW(40), col[side], right ? 'right' : 'left');
-          };
-          counter('home', A.homeLogo, false);
-          counter('away', A.awayLogo, true);
-          for (const { sh, after } of labels) {
-            if (!sh.g) continue;
-            const k = easeBack(prog(after, 0, 0.3));
-            const [gx, gy] = P([0, 4, sh.side === 'home' ? HL : -HL]);
-            const str = `${String(sh.g.min).replace(/\s/g, '')} ${up(sh.g.name)}`;
-            ctx.save();
-            ctx.translate(Math.max(M + 260, Math.min(W - M - 260, gx)), Math.max(520, Math.min(1500, gy - 30)));
-            ctx.scale(k, k);
-            ctx.globalAlpha = 1 - prog(after, 0.95, 0.25);
-            const size = fit(ctx, str, ANTON, 84, W - 2 * M - 60);
-            ctx.font = ANTON(size);
-            const w = ctx.measureText(str).width + 56;
-            ctx.fillStyle = ACCENT;
-            roundRect(ctx, -w / 2, -size * 0.9, w, size * 1.3, 10);
-            ctx.fill();
-            text(ctx, str, 0, size * 0.12, ANTON(size), '#111111', 'center');
-            ctx.restore();
-          }
-        },
-      };
-    };
-    return build(3 * BAR);
-  }
-
   // 6 · Jugador del partido: su apellido enorme y sus tres números gigantes apilados, cada uno
   // con su etiqueta (como el «Player of the game»); la nota, si la hay, la primera y en el acento.
   // Su cara en pequeño (o su foto detrás, si ESPN la tiene).
   const FACE_R = 150;
   function sceneJugador(d, A) {
     const m = d.jugador, st = m.style;
+    // Sobre el fondo negro: el blanco y el color de su equipo que se lea
+    const fg = '#ffffff', hl = marksDark(d)[m.side] || ACCENT;
     const nums = m.stats.slice(0, 3);
     const statAt = (i) => (i + 1) * 2 * BEAT;
     const counts = (v) => /^\d+(\/\d+|%)?$/.test(String(v));
     return {
       id: 'jugador',
       dur: 3 * BAR,
-      enter: { kind: 'circles', at: [W - M - FACE_R, 330], colors: [st.acc, st.bg] },
+      enter: { kind: 'circles', at: [W - M - FACE_R, 460], colors: [st.bg, GROUND] },
+      overlay: (ctx, t) => drawBug(ctx, d, A, finalBug(d)()),
       accent: st.acc,
       music: { energy: 'full' },
       cues: [
         ...nums.flatMap((s, i) => [{ t: statAt(i), kind: 'hit' }, { t: statAt(i), kind: 'slam' }, ...(counts(s.v) ? ticks(statAt(i) + STEP, statAt(i) + 0.7, 0.6) : [])]),
       ],
       draw(ctx, t) {
-        teamBg(ctx, st);
+        groundBg(ctx, d);
         if (A.jugadorPhoto) {
           const e0 = easeOut(prog(t, 0.05, 0.75));
           const pw = 1400 * (1 + 0.035 * prog(t, 0, 3 * BAR));
           imgBottom(ctx, A.jugadorPhoto, W - pw + 420, H + 40 + (1 - e0) * 400, pw, 0.55 * e0);
-          fadeBottom(ctx, st.lo, 520);
+          fadeBottom(ctx, GROUND, 520);
         } else {
           logo(ctx, A.jugadorLogo, W - 230, 1050, 820 * (1 + 0.05 * prog(t, 0, 3 * BAR)), 0.1);
         }
@@ -1117,7 +1414,7 @@
         const face = !A.jugadorPhoto && A.jugadorFace;
         if (face) {
           const e = easeBack(prog(t, 0.1, 0.4));
-          const cx = W - M - FACE_R, cy = 330;
+          const cx = W - M - FACE_R, cy = 440;
           ctx.save();
           ctx.translate(cx, cy);
           ctx.scale(e, e);
@@ -1142,10 +1439,10 @@
         const room = W - 2 * M - (face ? 2 * FACE_R + 40 : 0);
         const kw = d.t?.player || 'JUGADOR', kr = d.t?.ofMatch || ' DEL PARTIDO';
         ctx.font = BARLOW(46);
-        text(ctx, up(kw), M, 250, BARLOW(46), st.hl);
-        text(ctx, up(kr), M + ctx.measureText(up(kw)).width, 250, BARLOW(46), st.fg);
-        if (m.first) text(ctx, up(m.first), M, 330, BARLOW(fit(ctx, up(m.first), BARLOW, 56, room)), st.fg);
-        text(ctx, up(m.last), M, 520, ANTON(fit(ctx, up(m.last), ANTON, 190, room)), st.fg);
+        text(ctx, up(kw), M, 340, BARLOW(46), hl);
+        text(ctx, up(kr), M + ctx.measureText(up(kw)).width, 340, BARLOW(46), fg);
+        if (m.first) text(ctx, up(m.first), M, 420, BARLOW(fit(ctx, up(m.first), BARLOW, 56, room)), fg);
+        text(ctx, up(m.last), M, 610, ANTON(fit(ctx, up(m.last), ANTON, 190, room)), fg);
         ctx.restore();
         // Sus números, gigantes y apilados
         nums.forEach((s, i) => {
@@ -1154,7 +1451,7 @@
           if (a <= 0) return;
           // Con dos números, más grandes (que llenen la pantalla como tres)
           const big = nums.length <= 2 ? 420 : 300;
-          const y = 900 + i * big * 1.05;
+          const y = 980 + i * big * 1.0;
           const v = countText(s.v, easeOut(prog(t, start, 0.7)));
           const size = fit(ctx, String(s.v), ANTON, big, W - 2 * M - 280);
           ctx.save();
@@ -1165,12 +1462,12 @@
           ctx.scale(pop, pop);
           ctx.shadowColor = 'rgba(0,0,0,.25)';
           ctx.shadowBlur = 30;
-          text(ctx, v, 0, 0, ANTON(size), s.rating ? st.hl : st.fg);
+          text(ctx, v, 0, 0, ANTON(size), s.rating ? hl : fg);
           ctx.shadowColor = 'transparent';
           ctx.font = ANTON(size);
           const nw = ctx.measureText(String(s.v)).width;
           const lines = wrap(ctx, up(s.label), BARLOW(50), W - 2 * M - nw - 40).slice(0, 2);
-          lines.forEach((l, j) => text(ctx, l, nw + 30, -size * 0.55 + (j + 1) * 54 - (lines.length - 1) * 27, BARLOW(50), s.rating ? st.hl : st.fg));
+          lines.forEach((l, j) => text(ctx, l, nw + 30, -size * 0.55 + (j + 1) * 54 - (lines.length - 1) * 27, BARLOW(50), s.rating || i === 0 ? hl : fg));
           ctx.restore();
         });
       },
@@ -1236,7 +1533,7 @@
   function sceneTable(d, A) {
     const rows = d.table.rows.slice(0, 11);
     const rowAt = (i) => BEAT + i * STEP;
-    const TOP = 560, ROW = 84;
+    const TOP = 630, ROW = 78;
     const side = d.home.won ? 'home' : d.away.won ? 'away' : rows.some(r => r?.me === 'home') ? 'home' : 'away';
     const me = rows.find(r => r?.me === side);
     const maxPts = Math.max(1, ...rows.filter(Boolean).map(r => r.pts || 0));
@@ -1252,23 +1549,24 @@
       id: 'tabla',
       dur: 2 * BAR,
       accent: (d.home.won ? d.home : d.away).style.acc,
+      overlay: d.kind === 'previa' ? null : (ctx, t) => drawBug(ctx, d, A, finalBug(d)()),
       music: { energy: 'full' },
       cues: [{ t: 0.1, kind: 'hit', vel: 0.8 }, { t: BEAT, kind: 'whoosh', dur: 0.5, vel: 0.5 }, ...rows.map((r, i) => (r?.me ? { t: rowAt(i), kind: 'hit', vel: 0.9 } : null)).filter(Boolean)],
       draw(ctx, t) {
-        const P = sheet(d);
-        sheetBg(ctx, d);
+        const P = SHEET.oscuro;
+        groundBg(ctx, d);
         const k = easeOut(prog(t, 0.05, 0.35));
         ctx.save();
         ctx.globalAlpha = k;
-        text(ctx, up(d.table.title), M, 210, BARLOW(fit(ctx, up(d.table.title), BARLOW, 48, W - 2 * M)), P.mute);
+        text(ctx, up(d.table.title), M, 310, BARLOW(fit(ctx, up(d.table.title), BARLOW, 48, W - 2 * M)), P.mute);
         if (me) {
           const st = d[side].style;
-          const ink = d.dark ? (st.night || '#ffffff') : P.team(st);
-          const lw = ledText(ctx, `${me.rank}º`, M, 236, 34, ink, 'left', prog(t, 0.05, 0.35));
-          logo(ctx, A.tableLogos[rows.indexOf(me)], M + lw + 90, 300, 100);
+          const ink = marksDark(d)[side];
+          const lw = ledText(ctx, `${me.rank}º`, M, 340, 30, ink, 'left', prog(t, 0.05, 0.35));
+          logo(ctx, A.tableLogos[rows.indexOf(me)], M + lw + 90, 410, 100);
           const name = up(d[side].short);
-          text(ctx, name, M + lw + 160, 330, ANTON(fit(ctx, name, ANTON, 84, W - 2 * M - lw - 170)), P.ink);
-          if (me.pts != null) text(ctx, `${me.pts} ${d.t?.pts || 'PUNTOS'}`, M + lw + 160, 400, BARLOW(46), P.mute);
+          text(ctx, name, M + lw + 160, 440, ANTON(fit(ctx, name, ANTON, 84, W - 2 * M - lw - 170)), P.ink);
+          if (me.pts != null) text(ctx, `${me.pts} ${d.t?.pts || 'PUNTOS'}`, M + lw + 160, 510, BARLOW(46), P.mute);
         } else {
           text(ctx, 'PTS', W - M - 20, TOP - 30, BARLOW(34), P.mute, 'center');
         }
@@ -1309,7 +1607,7 @@
           if (r.me) {
             // Con su color (si no se vería sobre el fondo, con el del acento)
             const st = d[r.me].style;
-            const hidden = d.dark ? contrastWith(st.bg, NIGHT) < 1.4 : contrastWith(st.bg, '#ece9e2') < 1.3;
+            const hidden = contrastWith(st.bg, GROUND) < 1.4;
             ctx.fillStyle = hidden ? st.acc : st.bg;
             fg = hidden ? st.on : st.fg;
             bar = fg;
@@ -1320,7 +1618,7 @@
             roundRect(ctx, M - 16, y, W - 2 * M + 32, ROW - 10, 16);
             ctx.fill();
           }
-          if (!bar || contrastWith(bar, d.dark ? NIGHT : '#ece9e2') < 1.3) bar = P.track;
+          if (!bar || contrastWith(bar, GROUND) < 1.5) bar = P.track;
           text(ctx, String(r.rank), M + 30, y + 54, ANTON(46), fg, 'center');
           logo(ctx, A.tableLogos[i], M + 110, y + 37, 54);
           text(ctx, up(r.name), M + 160, y + 54, BARLOW(fit(ctx, up(r.name), (z) => BARLOW(z), 44, BX0 - M - 180)), fg);
@@ -1344,17 +1642,17 @@
       id: 'outro',
       dur: 2 * BAR,
       accent: st.acc,
+      overlay: d.kind === 'previa' ? null : (ctx, t) => drawBug(ctx, d, A, finalBug(d)()),
       music: { energy: 'outro' },
       cues: [{ t: 0.2, kind: 'riser', dur: BAR - 0.2, vel: 0.6 }, ...(d.brand || !d.sign ? [] : [{ t: BAR, kind: 'stab' }, { t: BAR, kind: 'impact', vel: 0.8 }])],
       draw(ctx, t) {
-        teamBg(ctx, st);
+        groundBg(ctx, d);
         if (A.closingPhoto) {
           const pw = 1500 * (1 + 0.04 * prog(t, 0, 2 * BAR));
           imgBottom(ctx, A.closingPhoto, W - pw + 380, H + 40, pw, 0.3);
         } else {
           logo(ctx, A.closingLogo, W - 260, 1180, 820 * (1 + 0.04 * prog(t, 0, 2 * BAR)), 0.13);
         }
-        fadeBottom(ctx, st.lo, 700);
         const size = wrap(ctx, up(c.question), ANTON(150), W - 2 * M).length > 4 ? 120 : 150;
         const ls = wrap(ctx, up(c.question), ANTON(size), W - 2 * M);
         ls.forEach((l, i) => {
@@ -1362,14 +1660,14 @@
           ctx.save();
           ctx.globalAlpha = e;
           ctx.translate(0, (1 - e) * 60);
-          text(ctx, l, M, 470 + i * size * 1.05, ANTON(size), st.fg);
+          text(ctx, l, M, 520 + i * size * 1.05, ANTON(size), '#ffffff');
           ctx.restore();
         });
-        const after = 470 + ls.length * size * 1.05;
+        const after = 520 + ls.length * size * 1.05;
         const e1 = easeOut(prog(t, 0.6, 0.4));
         ctx.save();
         ctx.globalAlpha = e1;
-        text(ctx, d.t?.comments || 'TE LEO EN COMENTARIOS', M, after + 30, BARLOW(48), st.hl);
+        text(ctx, d.t?.comments || 'TE LEO EN COMENTARIOS', M, after + 30, BARLOW(48), ACCENT);
         ctx.restore();
         // Con logo, la firma y el logo van en la escena siguiente, la de tu marca
         if (d.brand || !d.sign) return;
@@ -1458,22 +1756,24 @@
   // significa entrando línea a línea. La frase la dice la voz; en pantalla no se repite.
   function sceneDato(d, A) {
     const x = d.dato, st = x.style;
+    const fg = '#ffffff', hl = marksDark(d)[x.side] || ACCENT;
     const counts = /^\d+(\/\d+)?$/.test(x.big);
     const build = (dur) => ({
       id: 'dato',
       dur,
       stretch: build,
       accent: st.acc,
+      overlay: (ctx, t) => drawBug(ctx, d, A, finalBug(d)()),
       music: { energy: 'full' },
       cues: [{ t: 0, kind: 'impact', vel: 0.9 }, { t: 0, kind: 'slam' }, ...(counts ? ticks(STEP, 0.6, 0.6) : []), { t: BAR, kind: 'hit', vel: 0.8 }],
       draw(ctx, t) {
-        teamBg(ctx, st);
+        groundBg(ctx, d);
         logo(ctx, x.side === 'away' ? A.awayLogo : A.homeLogo, W - 170, 620, 900 * (1 + 0.05 * prog(t, 0, dur)), 0.12);
         if (x.who) {
           const k = easeOut(prog(t, 0.05, 0.3));
           ctx.save();
           ctx.globalAlpha = k;
-          text(ctx, up(x.who), M, 330, ANTON(fit(ctx, up(x.who), ANTON, 80, W - 2 * M)), st.fg);
+          text(ctx, up(x.who), M, 380, ANTON(fit(ctx, up(x.who), ANTON, 80, W - 2 * M)), fg);
           ctx.restore();
         }
         const big = up(x.big);
@@ -1484,7 +1784,7 @@
         ctx.scale(0.7 + 0.3 * a, 0.7 + 0.3 * a);
         ctx.shadowColor = 'rgba(0,0,0,.25)';
         ctx.shadowBlur = 40;
-        text(ctx, countText(big, easeOut(prog(t, 0, 0.6))), 0, 0, ANTON(size), st.hl);
+        text(ctx, countText(big, easeOut(prog(t, 0, 0.6))), 0, 0, ANTON(size), hl);
         ctx.restore();
         let usize = 150;
         while (usize > 90 && wrap(ctx, up(x.unit), ANTON(usize), W - 2 * M).length > 3) usize -= 10;
@@ -1494,7 +1794,7 @@
           ctx.save();
           ctx.globalAlpha = e;
           ctx.translate((1 - e) * 200, 0);
-          text(ctx, l, M, 1130 + i * usize * 1.02, ANTON(usize), i === lines.length - 1 ? st.hl : st.fg);
+          text(ctx, l, M, 1130 + i * usize * 1.02, ANTON(usize), i === lines.length - 1 ? hl : fg);
           ctx.restore();
         });
         if (t < 0.09) fillAll(ctx, `rgba(255,255,255,${0.5 * (1 - t / 0.09)})`);
@@ -1845,16 +2145,19 @@
       ].filter(Boolean);
     }
     const beats = d.goals?.some(e => e.kind === 'goal' || e.kind === 'red' || e.kind === 'pen');
+    const match = d.shots?.list.length >= 4;
     const scenes = [
       intro && sceneNotice(d, A),
       sceneScore(d, A, intro),
       d.polemica && scenePolemica(d, A),
-      beats && sceneGoals(d, A),
-      d.pulse && scenePulso(d, A),
-      d.shots?.list.length >= 4 && sceneShots(d, A),
+      // El partido en una pieza (con el sitio de los tiros); si ESPN no lo da, los goles uno a uno
+      // y el pulso aparte
+      match && sceneMatch(d, A),
+      !match && beats && sceneGoals(d, A),
+      !match && d.pulse && scenePulso(d, A),
       d.jugador && sceneJugador(d, A),
       // Las estadísticas, si no hay pulso (que ya lleva la posesión) o en la versión larga
-      (!d.pulse || d.long) && d.stats?.length >= 3 && sceneStats(d, A),
+      (!match && !d.pulse || d.long) && d.stats?.length >= 3 && sceneStats(d, A),
       // La versión larga: también el resto de estadísticas, cómo llegaban y el cara a cara
       d.long && d.stats?.length >= 3 && d.statsMore?.length >= 2 && sceneStats(d, A, d.statsMore.slice(0, 5), 'stats2'),
       d.dato && sceneDato(d, A),
@@ -2087,6 +2390,8 @@
   function transition(ctx, a, b, t) {
     const u = t / TRANSITION, e = easeInOut(u);
     const kind = b.enter?.kind;
+    // Sin transición: la escena de antes ya ha dejado todo donde empieza la nueva
+    if (kind === 'cut') { drawScene(ctx, b, t); return; }
     drawScene(ctx, a, a.dur + t);
     if (kind === 'blinds') {
       ctx.save();
@@ -2181,7 +2486,9 @@
         }
         ctx.restore();
         inSafe(ctx, () => {
-          if (brandImg && !['intro', 'outro', 'marca'].includes(scenes[i].id)) drawBrand(ctx, brandImg);
+          // El marcador fijo de arriba (lleva tu logo); sin él, tu logo en la esquina
+          if (scenes[i].overlay) scenes[i].overlay(ctx, t);
+          else if (brandImg && !['intro', 'outro', 'marca'].includes(scenes[i].id)) drawBrand(ctx, brandImg);
           if (captions) drawCaptions(ctx, captions, T);
         });
       },

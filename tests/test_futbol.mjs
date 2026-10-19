@@ -325,19 +325,19 @@ try {
 
   // ── El vídeo: guion automático, la mezcla y el MP4 ──
   const script = await page.$$eval('#scriptLines .script-line', (ls) => ls.map((l) => [l.dataset.scene, l.querySelector('textarea').value, l.querySelector('.script-fit').className]));
-  // El marcador, los goles, el pulso del partido, los tiros, el mejor, el dato, la tabla y el cierre
-  check(script.map(([id]) => id).join(',') === 'score,goals,pulso,tiros,jugador,dato,tabla,outro', `guion: una frase por escena (${script.map(([id]) => id).join(', ')})`);
+  // El marcador, el partido entero (los goles, el pulso y los tiros, en su minuto), el mejor, el
+  // dato, la tabla y el cierre
+  check(script.map(([id]) => id).join(',') === 'score,goals,jugador,dato,tabla,outro', `guion: una frase por escena (${script.map(([id]) => id).join(', ')})`);
   const told = Object.fromEntries(script.map(([id, line]) => [id, line]));
   check(told.score === 'Remontada del Real Madrid: 4-3 a la Roma.' && told.dato === 'Se acaba la racha de la Roma: 14 partidos sin perder.',
     `y escrita con los datos (${told.score} · ${told.dato})`);
-  // Que cuente el partido, no una lista de datos: la remontada, los tiros (4 goles con 8 a puerta
-  // no es «pegada»), el doblete, a quién no le sirvió el balón y dónde se queda
-  check(told.goals === 'La Roma se adelantó con de Roon y llegó a ir ganando de dos, pero el Real Madrid le dio la vuelta con un gol de Rüdiger en el 90.'
-    && told.tiros === '' // contar los tiros sin más sería leer los contadores de la pantalla
+  // Que cuente el partido, no una lista de datos: la remontada y a quién no le sirvió el balón (los
+  // tiros, solo si dicen algo que no dicen los contadores: 4 goles con 8 a puerta no es «pegada»),
+  // el doblete del mejor (sus goles no los había contado la frase del partido) y dónde se queda
+  check(told.goals === 'La Roma se adelantó con de Roon y llegó a ir ganando de dos, pero el Real Madrid le dio la vuelta con un gol de Rüdiger en el 90. La Roma tuvo más el balón, un 54%, pero no le sirvió.'
     && told.jugador === 'Malen, el mejor del partido: doblete y 3 de 4 tiros a puerta.'
-    && told.pulso === 'La Roma tuvo más el balón, un 54%, pero no le sirvió.'
     && told.tabla === 'El Real Madrid, octavo.',
-    `y cuenta el partido (${['goals', 'tiros', 'jugador', 'pulso', 'tabla'].map((id) => told[id]).join(' · ')})`);
+    `y cuenta el partido (${['goals', 'jugador', 'tabla'].map((id) => told[id]).join(' · ')})`);
   check(script.every(([, line, cls]) => !line || /ok/.test(cls)), 'todas caben a ritmo normal');
   await page.fill('#scriptLines textarea[data-scene="outro"]', '¿Mbappé o Malen?');
   await page.waitForTimeout(700);
@@ -358,7 +358,7 @@ try {
   await page.click('#mixPreviewBtn');
   await page.waitForFunction(() => !document.getElementById('mixPlayer').hidden, null, { timeout: 120000 });
   const trapLen = await mixDuration();
-  check(trapLen > 36.2 && trapLen < 37.4, `«Escuchar la mezcla» prepara la urbana (${trapLen.toFixed(1)} s)`);
+  check(trapLen > 41 && trapLen < 42.2, `«Escuchar la mezcla» prepara la urbana (${trapLen.toFixed(1)} s)`);
 
   await page.check('#videoSubs');
   // Cuántos canvas se crean mientras se hace el vídeo: con uno nuevo por fotograma (los fondos
@@ -386,23 +386,23 @@ try {
     return { name: document.getElementById('videoDlBtn').download, duration: v.duration, meta: document.getElementById('videoMeta').textContent, toast: document.getElementById('toast').textContent };
   });
   check(/^futbol-roma-rma-2026-10-14-short\.(mp4|webm)$/.test(video.name || ''), `vídeo: ${video.name} (${video.toast})`);
-  check(video.duration > 36.2 && video.duration < 37.4, `dura unos 37 s: el marcador, 6 escenas, el cierre y la de tu logo (${video.duration?.toFixed(1)} s)`);
-  check(video.meta === 'Lleva música urbana y subtítulos.', `con los subtítulos encendidos, lo dice (${video.meta})`);
+  check(video.duration > 41 && video.duration < 42.2, `dura unos 42 s: el aviso, el marcador, el partido, 3 escenas, el cierre y la de tu logo (${video.duration?.toFixed(1)} s)`);
+  check(video.meta === 'Lleva música urbana, subtítulos y la apertura con el aviso.', `con los subtítulos encendidos, lleva todo (${video.meta})`);
   // La portada del vídeo dice de quién es el dato, no solo «14 partidos sin perder… hasta hoy»
   const hook = await page.evaluate(() => window.__videoData?.hook);
   check(hook?.tag === 'El dato' && hook.text === 'Se acaba la racha de la Roma: 14 partidos sin perder', `la portada del vídeo dice de quién es el dato (${hook?.tag} · ${hook?.text})`);
   // El pulso del partido: lo que apretaba cada uno, minuto a minuto, de la narración de ESPN
   const pulse = await page.evaluate(() => window.__videoData?.pulse && { n: window.__videoData.pulse.home.length, home: window.__videoData.pulse.home.some((v) => v > 0), away: window.__videoData.pulse.away.some((v) => v > 0) });
   check(pulse?.n === 91 && pulse.home && pulse.away, `y el pulso del partido, minuto a minuto (${JSON.stringify(pulse)})`);
-  // La apertura con el aviso del móvil (a prueba, apagada por defecto): un compás más
+  // La apertura con el aviso del móvil (encendida por defecto): un compás
   const lens = await page.evaluate(() => [window.StudioVideo.length(window.__videoData, false), window.StudioVideo.length(window.__videoData, true)]);
-  check(!(await page.isChecked('#videoIntro')) && Math.abs(lens[1] - lens[0] - 1.6) < 0.01, `la apertura con el aviso del móvil, apagada por defecto, suma un compás (${lens.join(' → ')} s)`);
+  check(await page.isChecked('#videoIntro') && Math.abs(lens[1] - lens[0] - 1.6) < 0.01, `la apertura con el aviso del móvil, encendida por defecto, es un compás (${lens.map((x) => x.toFixed(1)).join(' → ')} s)`);
   await page.click('.lang-opt[data-music="epica"]');
   check(await page.isHidden('#mixPlayer') && await page.isVisible('#mixResetBtn'), 'al cambiar a la épica, la mezcla se rehace y sale «↺ Por defecto»');
   await page.click('#mixPreviewBtn');
   await page.waitForFunction(() => !document.getElementById('mixPlayer').hidden, null, { timeout: 120000 });
   const epicLen = await mixDuration();
-  check(epicLen > 36.2 && epicLen < 37.4, `y la épica dura lo mismo (${epicLen.toFixed(1)} s)`);
+  check(epicLen > 41 && epicLen < 42.2, `y la épica dura lo mismo (${epicLen.toFixed(1)} s)`);
   // La versión larga (TikTok solo paga a partir del minuto): más escenas si hay datos y cada una
   // algo más en pantalla, en compases enteros, hasta pasar del minuto
   const secs = () => page.$$eval('#scriptLines .script-line', (ls) => ls.map((l) => [l.dataset.scene, parseFloat(l.querySelector('small').textContent.replace(',', '.'))]));
@@ -412,7 +412,7 @@ try {
   const longScenes = await secs();
   const longTotal = await page.textContent('#scriptTotal');
   const bars = longScenes.every(([, t]) => Math.abs(t / 1.6 - Math.round(t / 1.6)) < 0.05);
-  check(shortTotal === 'El vídeo dura 37 s.' && longTotal === 'El vídeo dura 1:02.' && longScenes.length >= shortScenes.length && bars,
+  check(shortTotal === 'El vídeo dura 42 s.' && longTotal === 'El vídeo dura 1:02.' && longScenes.length >= shortScenes.length && bars,
     `«Versión larga (+1 min)»: ${shortTotal} → ${longTotal} (${longScenes.map(([id, t]) => `${id} ${t}`).join(' · ')})`);
   await page.uncheck('#videoLong');
   check((await secs()).join() === shortScenes.join() && await page.textContent('#scriptTotal') === shortTotal, 'y al quitarla, el vídeo de siempre');
@@ -451,7 +451,7 @@ try {
     return 'sin configuración';
   });
   check(asc === '11 90', `con el AAC de Safari, el MP4 lleva la configuración buena y suena (${asc})`);
-  check(await page.textContent('#videoMeta') === 'Lleva música épica.', `sin subtítulos, el vídeo lo dice (${await page.textContent('#videoMeta')})`);
+  check(await page.textContent('#videoMeta') === 'Lleva música épica y la apertura con el aviso.', `sin subtítulos, el vídeo lo dice (${await page.textContent('#videoMeta')})`);
   await page.check('#videoSubs');
   await page.reload();
   await page.waitForSelector('#slide-portada');
@@ -624,7 +624,7 @@ try {
       e.competitions[0].status = e.status;
     }
     // Con la voz del robot (ElevenLabs, en tools/piloto.mjs): aquí, un tono por frase, la de los
-    // goles de 8 s (no cabe en su escena) y las demás de 1,2 s, con el tiempo de cada palabra
+    // goles de 30 s (no cabe en su escena) y las demás de 1,2 s, con el tiempo de cada palabra
     const asked = [];
     const { ctx: c7, page: p7 } = await open({
       url: `${base}/?partido=esp.1/401882844&dia=2026-10-16`,
@@ -633,7 +633,7 @@ try {
         await ctx.exposeFunction('fsVoz', async (lines) => {
           asked.push(lines);
           return Object.fromEntries(lines.map((l) => {
-            const secs = l.id === 'goals' ? 8 : 1.2, n = l.text.split(/\s+/).length;
+            const secs = l.id === 'goals' ? 30 : 1.2, n = l.text.split(/\s+/).length;
             return [l.id, { audio: wavTone(secs), times: [...Array(n)].map((_, i) => [(i * secs) / n, ((i + 1) * secs) / n]) }];
           }));
         });
@@ -667,10 +667,10 @@ try {
     // Sin voz, lo de siempre (redondeado); con ella, la escena de los goles crece en compases (1,6 s)
     // hasta que caben sus 8 s de frase
     const plain = Number(voiced.total?.match(/(\d+) s/)?.[1]);
-    const grow = Math.ceil((0.15 + 8 + 0.35 - voiced.goals) / 1.6 - 1e-6) * 1.6;
+    const grow = Math.max(0, Math.ceil((0.15 + 30 + 0.35 - voiced.goals) / 1.6 - 1e-6) * 1.6);
     check(asked.length === 1 && asked[0][0].id === 'score' && asked[0].some((l) => l.id === 'goals') && asked[0].every((l) => l.text),
       `el robot pone la voz a cada frase del guion (${asked[0]?.map((l) => l.id).join(', ')})`);
-    check(voiced.meta === 'Lleva tu voz y subtítulos.' && voiced.audio && grow > 0 && Math.abs(voiced.duration - plain - grow) < 0.6,
+    check(voiced.meta === 'Lleva tu voz, subtítulos y la apertura con el aviso.' && voiced.audio && grow > 0 && Math.abs(voiced.duration - plain - grow) < 0.6,
       `y el vídeo la lleva: la escena de los goles dura lo que su frase, en compases (${voiced.meta} · ${voiced.duration?.toFixed(1)} s, sin voz ${plain} s, +${grow.toFixed(1)} s)`);
     await c7.close();
     // Un partido que no está: lo dice y deja el Studio como siempre.
