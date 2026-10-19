@@ -387,6 +387,8 @@ export async function makeVideo(browser, base, p, dir) {
       || /No se pudo|no da ese partido/.test(document.getElementById('toast').textContent), null, { timeout: 20 * 60e3 });
     if (await page.$eval('#videoOut', el => el.hidden)) throw new Error(await page.textContent('#toast'));
     const caption = await page.inputValue('#captionText');
+    // Si lleva la voz (y los subtítulos): si no, el aviso no ofrece hacerlo «sin voz»
+    const voz = await page.$eval('#videoOut', el => el.dataset.voz === 'si');
     const title = previa ? await page.$eval('#videoOut', el => el.dataset.title || '') || `Previa · ${p.title}`
       : (await page.textContent('#renderedInfo')).split(' · ')[0] || p.title;
     const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#videoDlBtn')]);
@@ -397,7 +399,7 @@ export async function makeVideo(browser, base, p, dir) {
     execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', raw, '-c:v', 'libx264', '-profile:v', 'high', '-level', '4.0', '-pix_fmt', 'yuv420p',
       '-preset', 'medium', '-crf', '18', '-movflags', '+faststart', '-c:a', 'aac', '-b:a', '192k', join(dir, `${file}.mp4`)]);
     writeFileSync(join(dir, `${file}.json`), JSON.stringify({
-      id: file, league: p.league, day: p.day, title, caption, file: dl.suggestedFilename(), made: new Date().toISOString(),
+      id: file, league: p.league, day: p.day, title, caption, voz, file: dl.suggestedFilename(), made: new Date().toISOString(),
     }, null, 2));
     return { id: file, kind: p.kind || 'final', title, caption, files: [`${file}.mp4`, `${file}.json`] };
   } finally {

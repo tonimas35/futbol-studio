@@ -40,6 +40,7 @@
       <div class="robot-actions">
         <button class="btn btn-primary" id="robotShare" type="button" hidden>Compartir vídeo</button>
         <a class="btn btn-ghost" id="robotDl" hidden>Descargar</a>
+        <a class="btn btn-ghost" id="robotNoVoice" hidden>Sin voz ni subtítulos</a>
       </div>
       <div class="caption-box" id="robotCaptionBox" hidden>
         <div class="caption-head">
@@ -217,6 +218,11 @@
         <input type="password" id="afKeyInput" maxlength="64" placeholder="Pega aquí tu API-KEY" autocomplete="off" spellcheck="false" />
         <small>Para las notas y las caras de los jugadores. Está en dashboard.api-football.com → Profile. Se guarda solo en este navegador y las pide desde aquí, no desde un servidor (API-Football suspende las cuentas que piden desde servidores compartidos). Sin clave, sale todo sin notas.</small>
       </label>
+      <label class="sign-field">
+        <span>Tu clave de la voz</span>
+        <input type="password" id="voiceKeyInput" maxlength="128" placeholder="Pega aquí tu clave de la voz" autocomplete="off" spellcheck="false" />
+        <small>Para que el vídeo que hagas aquí lleve la voz y los subtítulos (el robot ya los pone solo). Es la de Modal: Secrets → jornada90-voz-token. Se guarda solo en este navegador. Sin clave, el vídeo sale sin voz ni subtítulos.</small>
+      </label>
       <div class="sign-field faces-field" id="facesField" hidden>
         <button class="btn btn-ghost" id="facesBtn" type="button">Caras para el robot</button>
         <small>Baja las plantillas de LaLiga de API-Football (unas 25 de tus peticiones del día; tarda unos 3 minutos) en <b>laliga.json</b>. Súbelo a la carpeta <b>caras</b> del repo y el robot pondrá la cara de cada jugador. Repítelo cuando cambien las plantillas (en septiembre y en enero).</small>
@@ -244,7 +250,7 @@
         <p class="section-sub">El partido en unos 40 segundos, en vertical (1080×1920) para TikTok, Reels y Shorts. Abre con el resultado en grande y lleva música propia (urbana o épica), sin derechos de autor, a tiempo con las animaciones y los cortes. Usa el titular de la portada, la pregunta del cierre y tu firma.</p>
       </div>
 
-      <!-- Guion: una frase por escena, para los subtítulos (y para la voz, cuando llegue) -->
+      <!-- Guion: una frase por escena, lo que dice la voz (y los subtítulos) -->
       <div class="script-box" id="scriptBox" hidden>
         <div class="script-head">
           <div>
@@ -268,7 +274,13 @@
           </svg>
         </button>
         <label class="check"><input type="checkbox" id="videoMusic" /> Con música</label>
-        <label class="check"><input type="checkbox" id="videoSubs" /> Subtítulos</label>
+        <!-- La voz y los subtítulos van juntos: con los dos (por defecto) o sin ninguno -->
+        <div class="mix-style voice-mode"><span>Voz</span>
+          <div class="lang-switch" id="voiceMode" role="radiogroup" aria-label="Voz y subtítulos">
+            <button class="lang-opt" type="button" role="radio" data-voz="si" aria-checked="true">Con voz y subtítulos</button>
+            <button class="lang-opt" type="button" role="radio" data-voz="no" aria-checked="false">Sin voz ni subtítulos</button>
+          </div>
+        </div>
         <label class="check"><input type="checkbox" id="videoIntro" checked /> Apertura con el aviso del móvil</label>
         <label class="check" title="Más de un minuto: TikTok solo paga (Creator Rewards) los vídeos de más de 1 minuto"><input type="checkbox" id="videoLong" /> Versión larga (+1 min)</label>
       </div>
@@ -339,6 +351,6 @@
   <script src="audio.js?v=3"></script>
   <script src="campo3d.js?v=1"></script>
   <script src="video.js?v=22"></script>
-  <script src="futbol.js?v=42"></script>
+  <script src="futbol.js?v=43"></script>
 </body>
 </html>

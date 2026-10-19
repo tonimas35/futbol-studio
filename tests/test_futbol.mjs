@@ -357,7 +357,8 @@ try {
     return a.duration;
   });
   check(await page.getAttribute('.lang-opt[data-music="trap"]', 'aria-checked') === 'true' && await page.isHidden('#mixResetBtn'), 'la música, urbana por defecto');
-  check(!(await page.isChecked('#videoSubs')), 'y los subtítulos, apagados por defecto (salen con la voz)');
+  check(await page.getAttribute('.lang-opt[data-voz="si"]', 'aria-checked') === 'true' && await page.inputValue('#voiceKeyInput') === '',
+    'y «Con voz y subtítulos» por defecto (la voz, con tu clave)');
   check(!(await page.isChecked('#videoMusic')) && await page.isDisabled('#musicVol'), 'y sin música por defecto (en TikTok se pone un sonido)');
   await page.check('#videoMusic');
   await page.click('#mixPreviewBtn');
@@ -366,7 +367,15 @@ try {
   const trapLen = await mixDuration();
   check(trapLen > 58.6 && trapLen < 59.8, `«Escuchar la mezcla» prepara la urbana (${trapLen.toFixed(1)} s)`);
 
-  await page.check('#videoSubs');
+  // Con voz y subtítulos, a mano: el Studio le pide la voz al servicio de Modal con tu clave (aquí,
+  // uno de mentira: un tono de 1 s por frase, que cabe en cada escena sin alargarla)
+  const voiceAsked = [];
+  await ctx.route(/jornada90-voz-navegador\.us-east\.modal\.run/, (r) => {
+    const body = JSON.parse(r.request().postData());
+    voiceAsked.push({ type: r.request().headers()['content-type'], body });
+    return r.fulfill(json(JSON.stringify(Object.fromEntries(body.lines.map((l) => [l.id, { audio: wavTone(1), times: null }])))));
+  });
+  await page.fill('#voiceKeyInput', 'clave-de-prueba');
   // Cuántos canvas se crean mientras se hace el vídeo: con uno nuevo por fotograma (los fondos
   // cacheados por el tamaño de la pantalla, que cambia con la cámara) el iPhone se quedaba sin
   // memoria y Safari cerraba la página.
@@ -393,7 +402,11 @@ try {
   });
   check(/^futbol-roma-rma-2026-10-14-short\.(mp4|webm)$/.test(video.name || ''), `vídeo: ${video.name} (${video.toast})`);
   check(video.duration > 58.6 && video.duration < 59.8, `dura unos 59 s: el aviso, el marcador, el partido (con los onces y 7 goles), 4 escenas, el cierre y la de tu logo (${video.duration?.toFixed(1)} s)`);
-  check(video.meta === 'Lleva música urbana, subtítulos y la apertura con el aviso.', `con los subtítulos encendidos, lleva todo (${video.meta})`);
+  check(video.meta === 'Lleva la voz, música urbana, subtítulos y la apertura con el aviso.', `con voz y subtítulos, lleva todo (${video.meta})`);
+  const asked = voiceAsked[0]?.body;
+  check(voiceAsked.length === 1 && voiceAsked[0].type.startsWith('text/plain') && asked.token === 'clave-de-prueba'
+    && asked.lines[0].id === 'score' && asked.lines[0].text === 'Remontada del Real Madrid: 4 a 3 a la Roma.' && asked.lines.at(-1).text === '¿Mbappé o Malen?',
+    `la voz, al servicio de Modal con tu clave y en texto plano (sin preguntar antes por CORS), con «4-3» dicho «4 a 3» (${asked?.lines.map((l) => l.id).join(', ')})`);
   // La portada del vídeo dice de quién es el dato, no solo «14 partidos sin perder… hasta hoy»
   const hook = await page.evaluate(() => window.__videoData?.hook);
   check(hook?.tag === 'El dato' && hook.text === 'Se acaba la racha de la Roma: 14 partidos sin perder', `la portada del vídeo dice de quién es el dato (${hook?.tag} · ${hook?.text})`);
@@ -443,7 +456,7 @@ try {
     `«Versión larga (+1 min)»: ${shortTotal} → ${longTotal} (${longScenes.map(([id, t]) => `${id} ${t}`).join(' · ')})`);
   await page.uncheck('#videoLong');
   check((await secs()).join() === shortScenes.join() && await page.textContent('#scriptTotal') === shortTotal, 'y al quitarla, el vídeo de siempre');
-  await page.uncheck('#videoSubs');
+  await page.click('.lang-opt[data-voz="no"]');
   // En el iPhone salía mudo: el AudioEncoder de Safari da para el AAC una descripción que no es la
   // AudioSpecificConfig (WebKit 302253). Con uno de mentira que hace lo mismo, el MP4 tiene que
   // llevar la buena (AAC-LC, 48 kHz, estéreo: 11 90).
@@ -478,14 +491,16 @@ try {
     return 'sin configuración';
   });
   check(asc === '11 90', `con el AAC de Safari, el MP4 lleva la configuración buena y suena (${asc})`);
-  check(await page.textContent('#videoMeta') === 'Lleva música épica y la apertura con el aviso.', `sin subtítulos, el vídeo lo dice (${await page.textContent('#videoMeta')})`);
-  await page.check('#videoSubs');
+  check(await page.textContent('#videoMeta') === 'Lleva música épica y la apertura con el aviso.' && voiceAsked.length === 1,
+    `«Sin voz ni subtítulos»: sin pedir la voz, y el vídeo lo dice (${await page.textContent('#videoMeta')})`);
   await page.reload();
   await page.waitForSelector('#slide-portada');
   await page.waitForTimeout(500);
   check(await page.inputValue('#scriptLines textarea[data-scene="outro"]') === '¿Mbappé o Malen?', 'al recargar sigue el guion retocado');
-  check(await page.getAttribute('.lang-opt[data-music="epica"]', 'aria-checked') === 'true' && await page.isChecked('#videoSubs') && await page.isChecked('#videoMusic'),
-    'y la música (activada y la elegida) y los subtítulos encendidos');
+  check(await page.getAttribute('.lang-opt[data-music="epica"]', 'aria-checked') === 'true' && await page.getAttribute('.lang-opt[data-voz="no"]', 'aria-checked') === 'true'
+    && await page.isChecked('#videoMusic') && await page.inputValue('#voiceKeyInput') === 'clave-de-prueba',
+    'y la música (activada y la elegida), «Sin voz ni subtítulos» y tu clave de la voz');
+  await page.click('.lang-opt[data-voz="si"]');
   await page.click('#mixResetBtn');
   check(await page.getAttribute('.lang-opt[data-music="trap"]', 'aria-checked') === 'true' && await page.isHidden('#mixResetBtn'), '«↺ Por defecto» vuelve a la urbana');
 
@@ -702,6 +717,23 @@ try {
     check(voiced.meta === 'Lleva la voz, subtítulos y la apertura con el aviso.' && voiced.audio && grow > 0 && Math.abs(voiced.duration - plain - grow) < 0.6,
       `y el vídeo la lleva: la escena de los goles dura lo que su frase, en compases (${voiced.meta} · ${voiced.duration?.toFixed(1)} s, sin voz ${plain} s, +${grow.toFixed(1)} s)`);
     await c7.close();
+    // «Sin voz ni subtítulos» (el botón del aviso, &voz=no): el mismo partido, sin pedir la voz
+    const askedNo = [];
+    const { ctx: c7n, page: p7n } = await open({
+      url: `${base}/?partido=esp.1/401882844&dia=2026-10-16&voz=no`,
+      before: async (ctx) => {
+        ctx.on('page', (pg) => pg.on('dialog', (d) => d.accept()));
+        await ctx.exposeFunction('fsVoz', async (lines) => { askedNo.push(lines); return null; });
+        await ctx.clock.setFixedTime(new Date('2026-10-17T10:00:00+02:00'));
+        await ctx.route('https://site.api.espn.com/apis/site/v2/sports/soccer/esp.1/scoreboard?dates=20261016', (r) => r.fulfill(json(JSON.stringify(sbEnded))));
+      },
+    });
+    await p7n.waitForFunction(() => !document.getElementById('videoOut').hidden || /No se pudo/.test(document.getElementById('toast').textContent), null, { timeout: 400000 });
+    const nv = await p7n.evaluate(() => ({ meta: document.getElementById('videoMeta').textContent, voz: document.getElementById('videoOut').dataset.voz,
+      mode: document.querySelector('.lang-opt[data-voz="no"]').getAttribute('aria-checked'), saved: localStorage.getItem('fc-mix') || '' }));
+    check(askedNo.length === 0 && nv.voz === 'no' && !/voz|subtítulos/.test(nv.meta) && nv.mode === 'true' && !nv.saved.includes('"voz":false'),
+      `«Sin voz ni subtítulos» desde el aviso: el mismo partido sin voz ni subtítulos, sin cambiar lo que tengas elegido (${nv.meta})`);
+    await c7n.close();
     // Un partido que no está: lo dice y deja el Studio como siempre.
     const { ctx: c7b, page: p7b } = await open({ url: `${base}/?partido=esp.1/999`, before: async (ctx) => { await ctx.clock.setFixedTime(new Date('2026-10-16T22:00:00+02:00')); } });
     await p7b.waitForFunction(() => /ni hoy ni ayer/.test(document.getElementById('toast').textContent), null, { timeout: 15000 }).catch(() => {});
@@ -867,8 +899,10 @@ try {
     });
     await pp.click('#previaBtn');
     await pp.waitForFunction(() => !document.getElementById('videoOut').hidden || /No se pudo/.test(document.getElementById('toast').textContent), null, { timeout: 400000 });
-    const said = await pp.evaluate(() => ({ captions: window.__previaOpts?.captions, ...window.__previaOpts?.script }));
-    check(said.captions === false && said.forma === 'El Real Madrid llega con cuatro victorias de cinco.' && said.h2h === 'El Real Madrid ganó los cinco últimos.'
+    const said = await pp.evaluate(() => ({ captions: window.__previaOpts?.captions, toast: document.getElementById('toast').textContent, ...window.__previaOpts?.script }));
+    check(said.captions === false && /sin voz ni subtítulos: falta tu clave de la voz/.test(said.toast),
+      `sin tu clave de la voz, la previa sale sin voz ni subtítulos y lo dice (${said.toast})`);
+    check(said.forma === 'El Real Madrid llega con cuatro victorias de cinco.' && said.h2h === 'El Real Madrid ganó los cinco últimos.'
       && said.goleadores === 'Los que más marcan: Mbappé, 7; Sierra, 2.' && /^El Real Madrid, cuarto, a nueve del líder/.test(said.tabla)
       && said.outro === '¿Quién gana? Te leo en comentarios.',
       `y su guion (para la voz; sin ella, sin subtítulos): cómo llegan, el cara a cara, los goleadores y la tabla (${[said.forma, said.h2h, said.goleadores, said.tabla].join(' · ')})`);
@@ -885,7 +919,7 @@ try {
 
   // ── Piloto automático: el aviso abre el vídeo del robot (?video=), listo para compartirlo ──
   {
-    const info = { id: '401882844', title: 'Deportivo 1-0 Levante', caption: '⚽ Final · Depor 1-0 Levante\n#futbol', file: 'futbol-dep-lev-2026-10-16-short.mp4' };
+    const info = { id: '401882844', league: 'esp.1', day: '2026-10-16', voz: true, title: 'Deportivo 1-0 Levante', caption: '⚽ Final · Depor 1-0 Levante\n#futbol', file: 'futbol-dep-lev-2026-10-16-short.mp4' };
     const { ctx: cv, page: pv } = await open({
       url: `${base}/?video=401882844`,
       before: async (c) => {
@@ -900,10 +934,12 @@ try {
       caption: document.getElementById('robotCaption').value,
       share: !document.getElementById('robotShare').hidden,
       dl: document.getElementById('robotDl').download,
+      noVoice: !document.getElementById('robotNoVoice').hidden && document.getElementById('robotNoVoice').getAttribute('href'),
       url: location.search,
     }));
     check(rv.open && rv.title === info.title && rv.caption === info.caption && rv.share && rv.dl === info.file && rv.url === '',
       `el aviso abre el vídeo con su descripción, para compartir o descargar (${rv.title})`);
+    check(rv.noVoice === '?partido=esp.1/401882844&dia=2026-10-16&voz=no', `y, como lleva voz, el botón para hacerlo sin voz ni subtítulos en el Studio (${rv.noVoice})`);
     await pv.click('#robotShare');
     await pv.waitForTimeout(300);
     // (en Windows, el portapapeles devuelve los saltos de línea como \r\n)
