@@ -95,16 +95,35 @@ Sin abrir el Studio: cuando acaba un partido, un robot hace el vídeo y te llega
 - **El resumen de la jornada, al acabar su último partido:** cuando termina el último partido de la jornada de LaLiga (la jornada son los partidos de los días de alrededor mientras ningún equipo repita, como en el Studio), el robot hace «Resumen de la jornada» en 9:16 y te llega «📊 Así fue la jornada · LaLiga · 16-19 oct 2026». Al tocarlo, las fotos en orden (portada, resultados, clasificación y cierre) con **«Compartir N fotos»**, que las manda todas a la vez (a TikTok como carrusel de fotos) con la descripción ya copiada. `?jornada=esp.1&dia=2026-10-19` la hace sola en el Studio.
 - **A mano:** en GitHub, **Actions → Piloto automático → Run workflow**, con el partido (`liga/id`, p. ej. `esp.1/401882846`; para su previa, `previa:esp.1/401882846`; para el resumen de la jornada, `jornada:esp.1`) y, si no es de hoy, su día: lo hace (o lo rehace) y avisa.
 
-**La voz del robot (ElevenLabs):** con la clave y la voz puestas, el guion de cada vídeo (y de cada previa) se dice con tu voz clonada o con una de la biblioteca de ElevenLabs. Sin ellas, o si ElevenLabs falla (sin saldo, caído), el vídeo sale como siempre, con subtítulos. Para ponerla:
+**La voz del robot:** el guion de cada vídeo (y de cada previa) se dice con una voz clonada. Sin voz puesta, o si falla, el vídeo sale como siempre, con subtítulos. Hay dos formas; `piloto.json` → `voz.motor` dice cuál, y si esa no está puesta, usa la otra. Las claves solo las usa el robot (`tools/piloto.mjs`), fuera de la página. Al publicar en TikTok, marca **«Contenido generado por IA»**: lo pide para el audio realista hecho con IA.
+
+*Qwen3-TTS en Modal (`"qwen"`, la de ahora).* La voz se clona con [Qwen3-TTS](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-Base) (de Alibaba, licencia Apache-2.0: vale para vídeos monetizados) a partir de unos 10 segundos de la voz, en una tarjeta gráfica L4 de [Modal](https://modal.com) que solo se enciende cuando el robot la llama (`tools/voz_modal.py`) y se apaga al minuto. Tarda alrededor de un minuto por vídeo (encenderse, cargar el modelo y decir las frases) y cuesta unos 2 céntimos de dólar; el plan gratis de Modal da 30 $ al mes. La muestra de la voz está en un volumen privado de Modal, nunca en el repo, que es público. Para ponerla:
+
+1. En [modal.com](https://modal.com), una cuenta (plan **Starter**, gratis). En el ordenador, `pip install modal` y `modal setup` (abre el navegador para entrar).
+2. La muestra: un WAV de unos 10 segundos, limpio y en el tono de los vídeos, y un `.txt` con lo que dice, palabra por palabra:
+   ```
+   modal volume create jornada90-voz
+   modal volume put jornada90-voz referencia.wav /referencia.wav
+   modal volume put jornada90-voz referencia.txt /referencia.txt
+   ```
+3. `modal deploy tools/voz_modal.py`. Al acabar, dice la dirección del servicio (termina en `.modal.run`).
+4. En Modal, **Settings → Proxy Auth Tokens → New token**: copia el Token ID y el Token Secret. No los pegues en ningún chat.
+5. En GitHub, **Settings → Secrets and variables → Actions**:
+   - en **Variables**, `VOZ_URL` con la dirección del servicio;
+   - en **Secrets**, `MODAL_KEY` con el Token ID y `MODAL_SECRET` con el Token Secret.
+
+Qwen3-TTS no da el tiempo de cada palabra: el Studio reparte los subtítulos por lo que dura cada frase (con la voz clonada, unas 8 centésimas de desfase de media). Para cambiar la muestra, vuelve a subirla (`modal volume put … --force`); el modelo se queda en el volumen.
+
+*ElevenLabs (`"elevenlabs"`, la de antes).* Con la clave y la voz puestas, el guion se dice con una voz clonada en ElevenLabs o con una de su biblioteca:
 
 1. En [elevenlabs.io](https://elevenlabs.io), una cuenta con el plan **Starter** o mejor: el gratis no deja clonar ni publicar (sin licencia comercial).
-2. **Voices → Add a new voice → Instant Voice Clone:** sube o graba 1 o 2 minutos de tu voz, limpia, sin ruido y en el tono en que narrarías (por ejemplo, leyendo un guion del Studio). Copia su **Voice ID**.
+2. **Voices → Add a new voice → Instant Voice Clone:** sube o graba 1 o 2 minutos de la voz, limpia, sin ruido y en el tono de los vídeos (por ejemplo, leyendo un guion del Studio). Copia su **Voice ID**.
 3. **Developers → API Keys → Create:** con permiso de Text to Speech. Copia la clave. No la pegues en ningún chat.
 4. En GitHub: **Settings → Secrets and variables → Actions**.
    - En **Secrets**, `ELEVENLABS_API_KEY` con la clave.
    - En **Variables**, `ELEVENLABS_VOICE_ID` con el Voice ID.
 
-Cada vídeo son unos 450 caracteres de guion (la previa, unos 250). En `piloto.json` → `voz` se cambia el modelo (`eleven_multilingual_v2`, el más natural en español, gasta un crédito por carácter) y la velocidad (1,05). La clave solo la usa el robot (`tools/piloto.mjs`), fuera de la página.
+Cada vídeo son unos 450 caracteres de guion (la previa, unos 250). En `piloto.json` → `voz` se cambia el modelo (`eleven_multilingual_v2`, el más natural en español, gasta un crédito por carácter) y la velocidad (1,05).
 
 **Para recibir los avisos:** instala la app **ntfy** (gratis y sin cuenta) y suscríbete al tema `jornada90-40dc7171c6b9c5a9` (el de `piloto.json`). El tema está en el repo, que es público: quien lo lea podría suscribirse (solo vería tus vídeos, que son para publicar) o mandarte avisos. Para cambiarlo sin que salga en el repo, pon otro en **Settings → Secrets and variables → Actions → Variables** como `NTFY_TOPIC`.
 
@@ -208,7 +227,7 @@ El partido en 30 a 40 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
 
   Cada escena prueba de la frase más completa a la más corta y se queda la primera que cabe a ritmo normal. Los goles, el pulso, los tiros y el dato admiten frases algo más largas: con la voz, reparten su animación en lo que dure su frase. Se retoca en el paso 4 y cada frase avisa si no cabe; «↺ Automático» la vuelve a escribir. La previa también lleva el suyo: cómo llegan, el cara a cara, sus goleadores y la tabla (este no se retoca). El guion es lo que dice la voz; sin voz no sale en el vídeo.
 - **Subtítulos:** de dos en dos o de tres en tres palabras, con la que suena en verde lima, sin cortar en «y», «el», «de»… Van debajo de lo que se ve en cada escena (la tabla, el minuto a minuto, el mapa de tiros y el cara a cara se han subido un poco para dejarles sitio) y por encima del nombre y la descripción de TikTok. Salen solos cuando el vídeo lleva voz (la del robot): sin voz, el vídeo va sin subtítulos, salvo que los enciendas con «Subtítulos» (se recuerda).
-- **Voz:** la pone el robot con ElevenLabs (ver «La voz del robot», arriba). Cada frase del guion se dice con esa voz, la escena dura lo que pide su frase (en compases enteros, para que la música siga cuadrando) y los subtítulos van con lo que suena, palabra a palabra. En el Studio a mano no hay voz (se quitó «Grabar mi voz» y el teleprompter).
+- **Voz:** la pone el robot (ver «La voz del robot», arriba). Cada frase del guion se dice con esa voz, la escena dura lo que pide su frase (en compases enteros, para que la música siga cuadrando) y los subtítulos van con lo que suena: palabra a palabra con ElevenLabs y, con Qwen3-TTS, repartidos por lo que dura la frase. En el Studio a mano no hay voz (se quitó «Grabar mi voz» y el teleprompter).
 - **Versión larga (+1 min):** TikTok solo paga (Creator Rewards) los vídeos de más de un minuto. Con «Versión larga (+1 min)» (se recuerda) el vídeo suma lo que haya de:
   - **Más estadísticas:** las que no caben en la primera (faltas, amarillas…).
   - **Cómo llegaban:** los 5 partidos de antes de cada uno, como en la previa.
@@ -244,6 +263,7 @@ El partido en 30 a 40 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
 | `manifest.webmanifest`, `apple-touch-icon.png`, `icon-*.png` | El nombre y el icono al añadirlo a la pantalla de inicio del móvil |
 | `piloto.json` | El piloto automático: qué competiciones, el tema de ntfy, la dirección de la web, las previas y la voz |
 | `tools/piloto.mjs` | El robot del piloto automático: busca los partidos acabados, hace el vídeo con el Studio, lo deja en la web y avisa |
+| `tools/voz_modal.py` | La voz del robot en Modal: el guion dicho con la voz clonada, con Qwen3-TTS |
 | `.github/workflows/piloto.yml` | Lanza el robot cada 10 minutos en las horas de partidos (o a mano) |
 | `.github/workflows/web.yml` | Publica el Studio y los vídeos del robot en GitHub Pages |
 | `tests/` | Las pruebas y los datos de ESPN que usan |

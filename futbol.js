@@ -3962,7 +3962,7 @@
         adl.href = audioUrl;
         adl.download = `${base}-musica.wav`;
       }
-      const parts = [out.mix?.voice && 'tu voz', out.mix?.music && `música ${MUSIC_STYLES[opts.musicStyle]}`, out.mix?.captions && 'subtítulos', out.mix?.intro && 'la apertura con el aviso'].filter(Boolean);
+      const parts = [out.mix?.voice && 'la voz', out.mix?.music && `música ${MUSIC_STYLES[opts.musicStyle]}`, out.mix?.captions && 'subtítulos', out.mix?.intro && 'la apertura con el aviso'].filter(Boolean);
       const long = out.duration ? ` Dura ${Math.floor(out.duration / 60)}:${String(Math.round(out.duration % 60)).padStart(2, '0')}.` : '';
       document.getElementById('videoMeta').textContent = `${parts.length ? `Lleva ${listEs(parts)}.` : 'Sin sonido ni subtítulos.'}${data.long ? long : ''}`;
       document.getElementById('videoOut').hidden = false;

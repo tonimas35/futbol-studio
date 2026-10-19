@@ -69,7 +69,11 @@ jobs:
         if: steps.buscar.outputs.partidos != '[]' || (steps.esperar.outputs.partidos != '' && steps.esperar.outputs.partidos != '[]')
         env:
           GH_TOKEN: ${{ github.token }}
-          # La voz (opcional): la clave de ElevenLabs como secreto y la voz como variable del repo
+          # La voz (opcional): Qwen3-TTS en Modal (la dirección como variable y su token como
+          # secretos) o ElevenLabs (la clave como secreto y la voz como variable). Ver «La voz del robot»
+          VOZ_URL: ${{ vars.VOZ_URL }}
+          MODAL_KEY: ${{ secrets.MODAL_KEY }}
+          MODAL_SECRET: ${{ secrets.MODAL_SECRET }}
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
           ELEVENLABS_VOICE_ID: ${{ vars.ELEVENLABS_VOICE_ID }}
           PARTIDOS: ${{ steps.buscar.outputs.partidos != '[]' && steps.buscar.outputs.partidos || steps.esperar.outputs.partidos }}

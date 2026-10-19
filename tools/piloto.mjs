@@ -259,12 +259,15 @@ export function serve() {
   return new Promise(ok => server.listen(0, '127.0.0.1', () => ok(server)));
 }
 
-// LA VOZ · con ELEVENLABS_API_KEY (un secreto del repo) y ELEVENLABS_VOICE_ID (una variable: la voz
-// de Toni clonada en ElevenLabs, o una de su biblioteca), el Studio le pide al robot cada frase del
-// guion dicha con esa voz (window.fsVoz) y el vídeo dura lo que pide cada una. Sin ellas, o si
-// ElevenLabs falla (sin saldo, caído), el vídeo sale como siempre, con subtítulos. La clave solo
-// está aquí, en Node: la página no la ve.
-const VOZ = { modelo: 'eleven_multilingual_v2', velocidad: 1.05, ...CONFIG.voz };
+// LA VOZ · el Studio le pide al robot cada frase del guion dicha con la voz clonada (window.fsVoz) y
+// el vídeo dura lo que pide cada una. Dos motores (piloto.json → voz.motor; si el elegido no está
+// puesto, el otro):
+//  · «qwen»: Qwen3-TTS (Apache-2.0) en Modal (tools/voz_modal.py), con VOZ_URL (una variable del
+//    repo: la dirección del servicio) y MODAL_KEY y MODAL_SECRET (secretos: su Proxy Auth Token).
+//  · «elevenlabs»: ELEVENLABS_API_KEY (un secreto) y ELEVENLABS_VOICE_ID (una variable).
+// Sin ninguno, o si falla (sin saldo, caído), el vídeo sale como siempre, con subtítulos. Las
+// claves solo están aquí, en Node: la página no las ve.
+const VOZ = { motor: 'qwen', modelo: 'eleven_multilingual_v2', velocidad: 1.05, ...CONFIG.voz };
 
 // Lo que se le manda a ElevenLabs: los marcadores dichos («4-1» → «4 a 1»). Cada palabra del guion
 // sabe cuántas dichas le tocan, para poner los subtítulos con lo que suena.
@@ -313,6 +316,34 @@ export async function voiceLines(lines, { key, voice, fetchFn = fetch } = {}) {
   return out;
 }
 
+// Con Qwen3-TTS en Modal: todas las frases en una petición (la tarjeta se enciende una vez; con el
+// arranque, un minuto o así). Devuelve WAV y sin los tiempos de cada palabra: el Studio reparte los
+// subtítulos por lo que dura la frase (con la voz clonada, unas centésimas de desfase).
+export async function qwenLines(lines, { url, key, secret, fetchFn = fetch } = {}) {
+  const res = await fetchFn(url, {
+    method: 'POST',
+    headers: { 'Modal-Key': key, 'Modal-Secret': secret, 'content-type': 'application/json' },
+    body: JSON.stringify({ lines: lines.map(l => ({ id: l.id, text: spokenWords(l.text).text })) }),
+    signal: AbortSignal.timeout(10 * 60e3),
+  });
+  if (!res.ok) throw new Error(`Modal ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  const j = await res.json();
+  const missing = lines.find(l => !j[l.id]?.audio);
+  if (missing) throw new Error(`Modal no ha devuelto la frase «${missing.id}»`);
+  return Object.fromEntries(lines.map(l => [l.id, { audio: j[l.id].audio, times: j[l.id].times || null }]));
+}
+
+// El motor de la voz con lo que haya puesto (null: sin voz)
+export function voiceEngine(env = process.env, motor = VOZ.motor) {
+  const engines = {
+    qwen: env.VOZ_URL && env.MODAL_KEY && env.MODAL_SECRET
+      && { name: 'Qwen3-TTS en Modal', say: lines => qwenLines(lines, { url: env.VOZ_URL, key: env.MODAL_KEY, secret: env.MODAL_SECRET }) },
+    elevenlabs: env.ELEVENLABS_API_KEY && env.ELEVENLABS_VOICE_ID
+      && { name: 'ElevenLabs', say: lines => voiceLines(lines, { key: env.ELEVENLABS_API_KEY, voice: env.ELEVENLABS_VOICE_ID }) },
+  };
+  return engines[motor] || engines[motor === 'qwen' ? 'elevenlabs' : 'qwen'] || null;
+}
+
 // El vídeo de un partido, como lo haría Toni: el enlace del pitido final (?partido=) genera el
 // carrusel y el vídeo con lo que tenga el Studio por defecto (sin música, la firma y el logo de
 // Jornada90). Luego, a H.264 para el iPhone y TikTok.
@@ -334,12 +365,13 @@ async function studio(browser) {
 export async function makeVideo(browser, base, p, dir) {
   const { ctx, page } = await studio(browser);
   try {
-    const key = process.env.ELEVENLABS_API_KEY, voice = process.env.ELEVENLABS_VOICE_ID;
-    if (key && voice) {
+    const engine = voiceEngine();
+    if (engine) {
       await page.exposeFunction('fsVoz', async (lines) => {
         try {
-          const clips = await voiceLines(lines, { key, voice });
-          console.log(`  voz: ${lines.length} frases, ${lines.reduce((n, l) => n + l.text.length, 0)} caracteres`);
+          const t = Date.now();
+          const clips = await engine.say(lines);
+          console.log(`  voz (${engine.name}): ${lines.length} frases, ${lines.reduce((n, l) => n + l.text.length, 0)} caracteres, en ${Math.round((Date.now() - t) / 1000)} s`);
           return clips;
         } catch (e) {
           console.warn(`  sin voz: ${e.message}`);
