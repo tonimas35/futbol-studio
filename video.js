@@ -788,10 +788,10 @@
       return { ...sh, X, Z, X2, Z2, h2, g, i };
     });
     const FLY = 0.5;
-    // La animación del gol (a prueba): 'celebra' (la pantalla del color del equipo y el GOL
-    // gigante), 'led' (el marcador de bombillas del estadio), 'balon' (la cámara sigue el disparo
-    // hasta la red) o la de siempre
-    const GOAL = d.goalStyle || '';
+    // La animación del gol: 'balon' (por defecto: la cámara se pone detrás del que tira y sigue el
+    // disparo hasta la red), 'celebra' (la pantalla del color del equipo y el GOL gigante), 'led'
+    // (el marcador de bombillas del estadio) o '' (el minuto gigante sobre el campo oscurecido)
+    const GOAL = d.goalStyle ?? 'balon';
     const flyOf = (sh) => (GOAL === 'balon' && sh.g ? 1.1 : FLY);
     const ballAt = (sh, u) => {
       const dist = Math.hypot(sh.X2 - sh.X, sh.Z2 - sh.Z), peak = sh.x2 != null && sh.x2 < 95 ? 0.4 : Math.min(4, dist * 0.09);
