@@ -3744,8 +3744,21 @@
     videoUrl = null;
     audioUrl = null;
   }
-  // video.js sabe mezclar una voz (voice, voiceLead, voiceShift): queda para cuando llegue la
-  // de ElevenLabs.
+  // LA VOZ DEL ROBOT · si al Studio lo abre el robot con ElevenLabs (tools/piloto.mjs le da
+  // window.fsVoz), cada frase del guion se dice con esa voz (la de Toni, clonada) y el vídeo se
+  // ajusta a lo que dura. Si no hay voz o falla, el vídeo de siempre, con subtítulos.
+  async function robotVoice(data, script) {
+    if (typeof window.fsVoz !== 'function' || !script || !window.StudioVideo?.plan) return null;
+    const lines = window.StudioVideo.plan(data, script).filter(sc => sc.words).map(sc => ({ id: sc.id, text: String(script[sc.id]).trim() }));
+    if (!lines.length) return null;
+    try {
+      const clips = await window.fsVoz(lines);
+      return clips && Object.keys(clips).length ? clips : null;
+    } catch (e) {
+      console.warn(`Sin voz: ${e.message}`);
+      return null;
+    }
+  }
   const videoOptions = () => ({
     music: document.getElementById('videoMusic').checked,
     script: state.script, ...mixLevels(), intro: document.getElementById('videoIntro').checked,
@@ -3764,6 +3777,8 @@
     try {
       const opts = { ...videoOptions(), captions: document.getElementById('videoSubs').checked };
       const data = videoData(m);
+      if (window.fsVoz) label.textContent = 'Poniendo la voz…';
+      opts.voiceClips = await robotVoice(data, opts.script);
       const out = await window.StudioVideo.render(data, (p, stage) => {
         label.textContent = stage || `Creando el vídeo… ${Math.round(p * 100)}%`;
       }, opts);
@@ -3935,9 +3950,12 @@
     try {
       const m = await fetchMatch(game);
       const data = previaData(m);
+      const script = previaScript(data);
+      if (window.fsVoz) label.textContent = 'Poniendo la voz…';
+      const voiceClips = await robotVoice(data, script);
       const out = await window.StudioVideo.render(data, (p, stage) => {
         label.textContent = stage || `Creando la previa… ${Math.round(p * 100)}%`;
-      }, { ...videoOptions(), captions: document.getElementById('videoSubs').checked, script: previaScript(data) });
+      }, { ...videoOptions(), captions: document.getElementById('videoSubs').checked, script, voiceClips });
       resetVideo();
       videoUrl = URL.createObjectURL(out.blob);
       document.getElementById('videoPreview').src = videoUrl;

@@ -95,6 +95,17 @@ Sin abrir el Studio: cuando acaba un partido, un robot hace el vídeo y te llega
 - **El resumen de la jornada, al acabar su último partido:** cuando termina el último partido de la jornada de LaLiga (la jornada son los partidos de los días de alrededor mientras ningún equipo repita, como en el Studio), el robot hace «Resumen de la jornada» en 9:16 y te llega «📊 Así fue la jornada · LaLiga · 16-19 oct 2026». Al tocarlo, las fotos en orden (portada, resultados, clasificación y cierre) con **«Compartir N fotos»**, que las manda todas a la vez (a TikTok como carrusel de fotos) con la descripción ya copiada. `?jornada=esp.1&dia=2026-10-19` la hace sola en el Studio.
 - **A mano:** en GitHub, **Actions → Piloto automático → Run workflow**, con el partido (`liga/id`, p. ej. `esp.1/401882846`; para su previa, `previa:esp.1/401882846`; para el resumen de la jornada, `jornada:esp.1`) y, si no es de hoy, su día: lo hace (o lo rehace) y avisa.
 
+**La voz del robot (ElevenLabs):** con la clave y la voz puestas, el guion de cada vídeo (y de cada previa) se dice con tu voz clonada o con una de la biblioteca de ElevenLabs. Sin ellas, o si ElevenLabs falla (sin saldo, caído), el vídeo sale como siempre, con subtítulos. Para ponerla:
+
+1. En [elevenlabs.io](https://elevenlabs.io), una cuenta con el plan **Starter** o mejor: el gratis no deja clonar ni publicar (sin licencia comercial).
+2. **Voices → Add a new voice → Instant Voice Clone:** sube o graba 1 o 2 minutos de tu voz, limpia, sin ruido y en el tono en que narrarías (por ejemplo, leyendo un guion del Studio). Copia su **Voice ID**.
+3. **Developers → API Keys → Create:** con permiso de Text to Speech. Copia la clave. No la pegues en ningún chat.
+4. En GitHub: **Settings → Secrets and variables → Actions**.
+   - En **Secrets**, `ELEVENLABS_API_KEY` con la clave.
+   - En **Variables**, `ELEVENLABS_VOICE_ID` con el Voice ID.
+
+Cada vídeo son unos 450 caracteres de guion (la previa, unos 250). En `piloto.json` → `voz` se cambia el modelo (`eleven_multilingual_v2`, el más natural en español, gasta un crédito por carácter) y la velocidad (1,05). La clave solo la usa el robot (`tools/piloto.mjs`), fuera de la página.
+
 **Para recibir los avisos:** instala la app **ntfy** (gratis y sin cuenta) y suscríbete al tema `jornada90-40dc7171c6b9c5a9` (el de `piloto.json`). El tema está en el repo, que es público: quien lo lea podría suscribirse (solo vería tus vídeos, que son para publicar) o mandarte avisos. Para cambiarlo sin que salga en el repo, pon otro en **Settings → Secrets and variables → Actions → Variables** como `NTFY_TOPIC`.
 
 ## En inglés
@@ -192,7 +203,7 @@ El partido en 30 a 40 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
 
   Cada escena prueba de la frase más completa a la más corta y se queda la primera que cabe a ritmo normal. Se retoca en el paso 4 y cada frase avisa si no cabe; «↺ Automático» la vuelve a escribir. La previa también lleva el suyo: cómo llegan, el cara a cara, sus goleadores y la tabla (este no se retoca).
 - **Subtítulos:** de dos en dos o de tres en tres palabras, con la que suena en verde lima, sin cortar en «y», «el», «de»… Van debajo de lo que se ve en cada escena (la tabla, el minuto a minuto, el mapa de tiros y el cara a cara se han subido un poco para dejarles sitio) y por encima del nombre y la descripción de TikTok. Salen encendidos por defecto, también en el robot: son la explicación del vídeo. Se apagan con «Subtítulos» (se recuerda).
-- **Voz:** ya no se graba en el Studio (se quitó «Grabar mi voz» y el teleprompter). `video.js` sigue sabiendo mezclar una voz con la música (la música baja a un tercio mientras se habla): queda preparado para una voz de ElevenLabs o clonada, que leería el guion escena a escena.
+- **Voz:** la pone el robot con ElevenLabs (ver «La voz del robot», arriba). Cada frase del guion se dice con esa voz, la escena dura lo que pide su frase (en compases enteros, para que la música siga cuadrando) y los subtítulos van con lo que suena, palabra a palabra. En el Studio a mano no hay voz (se quitó «Grabar mi voz» y el teleprompter).
 - **Versión larga (+1 min):** TikTok solo paga (Creator Rewards) los vídeos de más de un minuto. Con «Versión larga (+1 min)» (se recuerda) el vídeo suma lo que haya de:
   - **Más estadísticas:** las que no caben en la primera (faltas, amarillas…).
   - **Cómo llegaban:** los 5 partidos de antes de cada uno, como en la previa.
@@ -225,7 +236,7 @@ El partido en 30 a 40 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
 | `audio.js` | La música y los efectos del vídeo |
 | `futbol.css` | La interfaz y las slides (`.fc`); el grano de las slides va dentro, en base64, para que la descarga funcione abriendo el archivo |
 | `manifest.webmanifest`, `apple-touch-icon.png`, `icon-*.png` | El nombre y el icono al añadirlo a la pantalla de inicio del móvil |
-| `piloto.json` | El piloto automático: qué competiciones, el tema de ntfy y la dirección de la web |
+| `piloto.json` | El piloto automático: qué competiciones, el tema de ntfy, la dirección de la web, las previas y la voz |
 | `tools/piloto.mjs` | El robot del piloto automático: busca los partidos acabados, hace el vídeo con el Studio, lo deja en la web y avisa |
 | `.github/workflows/piloto.yml` | Lanza el robot cada 10 minutos en las horas de partidos (o a mano) |
 | `.github/workflows/web.yml` | Publica el Studio y los vídeos del robot en GitHub Pages |
