@@ -347,7 +347,7 @@ try {
   await page.fill('#scriptLines textarea[data-scene="outro"]', '¿Mbappé o Malen?');
   await page.waitForTimeout(700);
 
-  check(!(await page.$('#voiceRecBtn')) && !(await page.$('#prompter')), 'sin «Grabar mi voz» ni teleprompter (la voz llegará de ElevenLabs)');
+  check(!(await page.$('#voiceRecBtn')) && !(await page.$('#prompter')), 'sin «Grabar mi voz» ni teleprompter (la voz la pone el robot)');
 
   // Sin música ni subtítulos por defecto (en TikTok se pone un sonido); si se activa, la urbana,
   // y la épica se elige y se recuerda.
@@ -699,7 +699,7 @@ try {
     const grow = fitGrow(30, voiced.goals) + fitGrow(1.2, voiced.score);
     check(asked.length === 1 && asked[0][0].id === 'score' && asked[0].some((l) => l.id === 'goals') && asked[0].every((l) => l.text),
       `el robot pone la voz a cada frase del guion (${asked[0]?.map((l) => l.id).join(', ')})`);
-    check(voiced.meta === 'Lleva tu voz, subtítulos y la apertura con el aviso.' && voiced.audio && grow > 0 && Math.abs(voiced.duration - plain - grow) < 0.6,
+    check(voiced.meta === 'Lleva la voz, subtítulos y la apertura con el aviso.' && voiced.audio && grow > 0 && Math.abs(voiced.duration - plain - grow) < 0.6,
       `y el vídeo la lleva: la escena de los goles dura lo que su frase, en compases (${voiced.meta} · ${voiced.duration?.toFixed(1)} s, sin voz ${plain} s, +${grow.toFixed(1)} s)`);
     await c7.close();
     // Un partido que no está: lo dice y deja el Studio como siempre.
@@ -727,6 +727,30 @@ try {
     let failed = '';
     await pl.voiceLines([{ id: 'score', text: 'Hola.' }], { key: 'k', voice: 'v', fetchFn: async () => ({ ok: false, status: 401, text: async () => 'quota_exceeded' }) }).catch((e) => { failed = e.message; });
     check(/ElevenLabs 401: quota_exceeded/.test(failed), `si ElevenLabs falla (sin saldo), lo dice y el vídeo sale sin voz (${failed})`);
+    // Con Qwen3-TTS en Modal (tools/voz_modal.py): todas las frases en una petición, con su token
+    const qcalls = [];
+    const qFetch = async (url, o) => {
+      qcalls.push({ url, o, body: JSON.parse(o.body) });
+      return { ok: true, json: async () => ({ score: { audio: 'UklG', times: null }, outro: { audio: 'UklH', times: null } }) };
+    };
+    const qclips = await pl.qwenLines([{ id: 'score', text: 'Victoria del Depor: 1-0 al Levante.' }, { id: 'outro', text: '¿Quién fue el mejor?' }],
+      { url: 'https://voz.modal.run', key: 'wk-1', secret: 'ws-1', fetchFn: qFetch });
+    check(qcalls.length === 1 && qcalls[0].url === 'https://voz.modal.run' && qcalls[0].o.headers['Modal-Key'] === 'wk-1' && qcalls[0].o.headers['Modal-Secret'] === 'ws-1'
+      && qcalls[0].body.lines.map((l) => l.text).join(' | ') === 'Victoria del Depor: 1 a 0 al Levante. | ¿Quién fue el mejor?'
+      && qclips.score.audio === 'UklG' && qclips.outro.audio === 'UklH' && qclips.score.times === null,
+      'con Qwen3-TTS en Modal, todas las frases en una petición, con «1-0» dicho «1 a 0» y el token solo en el robot');
+    let qfailed = '';
+    await pl.qwenLines([{ id: 'score', text: 'Hola.' }, { id: 'outro', text: '¿Y?' }], { url: 'u', key: 'k', secret: 's',
+      fetchFn: async () => ({ ok: true, json: async () => ({ score: { audio: 'UklG' } }) }) }).catch((e) => { qfailed = e.message; });
+    let q401 = '';
+    await pl.qwenLines([{ id: 'score', text: 'Hola.' }], { url: 'u', key: 'k', secret: 's',
+      fetchFn: async () => ({ ok: false, status: 401, text: async () => 'missing credentials' }) }).catch((e) => { q401 = e.message; });
+    check(/«outro»/.test(qfailed) && /Modal 401: missing credentials/.test(q401), `si a Modal le falta una frase o falla, lo dice y el vídeo sale sin voz (${qfailed} · ${q401})`);
+    // El motor: el de piloto.json si está puesto; si no, el otro; sin ninguno, sin voz
+    const modal = { VOZ_URL: 'u', MODAL_KEY: 'k', MODAL_SECRET: 's' }, eleven = { ELEVENLABS_API_KEY: 'k', ELEVENLABS_VOICE_ID: 'v' };
+    check(pl.voiceEngine({ ...modal, ...eleven }, 'qwen')?.name === 'Qwen3-TTS en Modal' && pl.voiceEngine({ ...modal, ...eleven }, 'elevenlabs')?.name === 'ElevenLabs'
+      && pl.voiceEngine(eleven, 'qwen')?.name === 'ElevenLabs' && pl.voiceEngine({ VOZ_URL: 'u', MODAL_KEY: 'k' }, 'qwen') === null && pl.voiceEngine({}, 'qwen') === null,
+      'la voz: con el motor de piloto.json si está puesto, si no con el otro, y sin ninguno, sin voz');
     // En juego (minuto 74, empezó a las 21:00): a partir de los 80 minutos desde el inicio, el robot
     // se queda vigilándolo para avisar nada más acabar
     const live = [{ league: 'esp.1', day: '2026-10-16', data: JSON.parse(readFileSync(join(FIX, 'sb-esp.1-20261016.json'))) }];

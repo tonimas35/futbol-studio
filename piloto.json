@@ -5,6 +5,7 @@
   "web": "https://tonimas35.github.io/futbol-studio/",
   "diasEnLaWeb": 3,
   "voz": {
+    "motor": "qwen",
     "modelo": "eleven_multilingual_v2",
     "velocidad": 1.05
   },
