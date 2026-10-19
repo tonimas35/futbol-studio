@@ -471,7 +471,7 @@
   const LED = { '0': [14,17,19,21,25,17,14], '1': [4,12,4,4,4,4,14], '2': [14,17,1,2,4,8,31], '3': [31,2,4,2,1,17,14], '4': [2,6,10,18,31,2,2], '5': [31,16,30,1,1,17,14], '6': [6,8,16,30,17,17,14], '7': [31,1,2,4,8,8,8], '8': [14,17,17,14,17,17,14], '9': [14,17,17,15,1,2,12], "'": [4,4,8,0,0,0,0], '-': [0,0,0,31,0,0,0], 'º': [12,18,12,0,30,0,0], '+': [0,4,4,31,4,4,0], ' ': [0,0,0,0,0,0,0], 'A': [14,17,17,31,17,17,17], 'B': [30,17,17,30,17,17,30], 'C': [14,17,16,16,16,17,14], 'D': [28,18,17,17,17,18,28], 'E': [31,16,16,30,16,16,31], 'F': [31,16,16,30,16,16,16], 'G': [14,17,16,23,17,17,15], 'H': [17,17,17,31,17,17,17], 'I': [14,4,4,4,4,4,14], 'J': [7,2,2,2,2,18,12], 'K': [17,18,20,24,20,18,17], 'L': [16,16,16,16,16,16,31], 'M': [17,27,21,21,17,17,17], 'N': [17,17,25,21,19,17,17], 'O': [14,17,17,17,17,17,14], 'P': [30,17,17,30,16,16,16], 'Q': [14,17,17,17,21,18,13], 'R': [30,17,17,30,20,18,17], 'S': [15,16,16,14,1,1,30], 'T': [31,4,4,4,4,4,4], 'U': [17,17,17,17,17,17,14], 'V': [17,17,17,17,17,10,4], 'W': [17,17,17,21,21,21,10], 'X': [17,17,10,4,10,17,17], 'Y': [17,17,10,4,4,4,4], 'Z': [31,1,2,4,8,16,31] };
   const ledWidth = (str, dot) => (String(str).length * 6 - 1) * dot;
   function ledText(ctx, str, x, y, dot, color, align = 'left', p = 1) {
-    const s = up(str).replace(/Á/g, 'A').replace(/É/g, 'E').replace(/Í/g, 'I').replace(/Ó/g, 'O').replace(/Ú/g, 'U').replace(/Ñ/g, 'N');
+    const s = up(str).replace(/Á/g, 'A').replace(/É/g, 'E').replace(/Í/g, 'I').replace(/Ó/g, 'O').replace(/[ÚÜ]/g, 'U').replace(/Ñ/g, 'N');
     const w = ledWidth(s, dot);
     const x0 = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
     const r = dot * 0.4;
@@ -788,6 +788,11 @@
       return { ...sh, X, Z, X2, Z2, h2, g, i };
     });
     const FLY = 0.5;
+    // La animación del gol: 'balon' (por defecto: la cámara se pone detrás del que tira y sigue el
+    // disparo hasta la red), 'celebra' (la pantalla del color del equipo y el GOL gigante), 'led'
+    // (el marcador de bombillas del estadio) o '' (el minuto gigante sobre el campo oscurecido)
+    const GOAL = d.goalStyle ?? 'balon';
+    const flyOf = (sh) => (GOAL === 'balon' && sh.g ? 1.1 : FLY);
     const ballAt = (sh, u) => {
       const dist = Math.hypot(sh.X2 - sh.X, sh.Z2 - sh.Z), peak = sh.x2 != null && sh.x2 < 95 ? 0.4 : Math.min(4, dist * 0.09);
       return [sh.X + (sh.X2 - sh.X) * u, peak * 4 * u * (1 - u) + sh.h2 * u, sh.Z + (sh.Z2 - sh.Z) * u];
@@ -834,27 +839,43 @@
       // Cuándo sale cada tiro: en su minuto; el del gol, para que entre justo cuando se para el reloj
       shots.forEach(sh => {
         const st = sh.g && goalStops.find(x => x.ev === sh.g);
-        sh.launch = st ? st.start - FLY : timeOfMinute(sh.t ?? (total * (sh.i + 0.5)) / Math.max(1, shots.length));
+        sh.launch = st ? st.start - flyOf(sh) : timeOfMinute(sh.t ?? (total * (sh.i + 0.5)) / Math.max(1, shots.length));
       });
       const FILL = dur - 3.3;
       // La cámara: alta y girando despacio; en cada gol, entra hacia esa portería
-      const bell = (t, t0, t1) => Math.min(easeInOut(prog(t, t0 - 0.35, 0.35)), 1 - easeInOut(prog(t, t1, 0.4)));
+      const LEAD = GOAL === 'balon' ? 1.2 : 0.35;
+      // (siguiendo el balón, la cámara llega antes de que salga el disparo)
+      const bell = (t, t0, t1) => Math.min(easeInOut(GOAL === 'balon' ? prog(t, t0 - 2.1, 0.85) : prog(t, t0 - LEAD, LEAD)), 1 - easeInOut(prog(t, t1, 0.4)));
+      goalStops.forEach(st => { st.shot = shots.find(sh => sh.g === st.ev); });
       const camera = (t) => {
-        let w = 0, end = 1;
+        let w = 0, end = 1, near = null;
         for (const st of goalStops) {
           const q = bell(t, st.start, st.end);
-          if (q > w) { w = q; end = st.ev.e.side === 'home' ? 1 : -1; }
+          if (q > 0 && q >= w) { w = q; end = st.ev.e.side === 'home' ? 1 : -1; near = st; } // (en un empate, el gol que viene)
+        }
+        // Seguir el balón: detrás del que tira, a la altura de la cabeza, mirando a la portería
+        if (GOAL === 'balon' && near?.shot) {
+          const sh = near.shot, gz = end * HL;
+          const dx = sh.X, dz = sh.Z - gz, l = Math.hypot(dx, dz) || 1;
+          const cp = [sh.X + (dx / l) * 9, 3.2, sh.Z + (dz / l) * 9], ct = [0, 1.1, gz];
+          const u0 = t / dur, yaw0 = -0.16 + 0.32 * u0, R0 = 112, el0 = 0.98, t0 = [0, 0, 4];
+          const p0 = [t0[0] + R0 * Math.cos(el0) * Math.sin(yaw0), R0 * Math.sin(el0), t0[2] - R0 * Math.cos(el0) * Math.cos(yaw0)];
+          const lerp3 = (a, b) => a.map((v, i) => v + (b[i] - v) * w);
+          const pos = lerp3(p0, cp), tg = lerp3(t0, ct);
+          const fwd = norm(sub(tg, pos)), right = norm(cross([0, 1, 0], fwd));
+          return { pos, fwd, right, up: cross(fwd, right) };
         }
         const u = t / dur;
-        const yaw = -0.16 + 0.32 * u + w * 0.12 * end, el = 0.98 - 0.32 * w, R = 112 - 52 * w;
-        const tgt = [0, 0, 4 + (end * HL * 0.62 - 4) * w];
+        const close = GOAL === 'balon';
+        const yaw = -0.16 + 0.32 * u + w * (close ? 0.3 : 0.12) * end, el = 0.98 - (close ? 0.6 : 0.32) * w, R = 112 - (close ? 84 : 52) * w;
+        const tgt = [0, close ? 1.2 * w : 0, 4 + (end * HL * (close ? 0.86 : 0.62) - 4) * w];
         const p = [tgt[0] + R * Math.cos(el) * Math.sin(yaw), R * Math.sin(el), tgt[2] - R * Math.cos(el) * Math.cos(yaw)];
         const fwd = norm(sub(tgt, p)), right = norm(cross([0, 1, 0], fwd));
         return { pos: p, fwd, right, up: cross(fwd, right) };
       };
       const F = 1240, CX = W / 2, CY = 900;
       const cues = [];
-      shots.forEach(sh => { if (!sh.g) cues.push({ t: snap(sh.launch + FLY), kind: 'pop', made: false, clank: sh.kind === 'post' }); });
+      shots.forEach(sh => { if (!sh.g) cues.push({ t: snap(sh.launch + flyOf(sh)), kind: 'pop', made: false, clank: sh.kind === 'post' }); });
       goalStops.forEach(st => cues.push({ t: snap(st.start), kind: 'impact', vel: 1 }, { t: snap(st.start), kind: 'slam' }, { t: snap(st.start), kind: 'pop', made: true }));
       stops.filter(st => st.ht || st.ev?.e.kind === 'red').forEach(st => cues.push({ t: snap(st.start), kind: 'hit', vel: 0.8 }));
       stops.filter(st => st.pol).forEach(st => cues.push({ t: snap(st.start), kind: 'impact', vel: 0.9 }, { t: snap(st.start), kind: 'slam' }));
@@ -870,6 +891,178 @@
           pop = st.ev.e.side === 'home' ? [q, 0] : [0, q];
         }
         return { sc, pop };
+      };
+      const minStr = (e) => String(e.min || '').replace(/\s/g, '');
+      const shake = (lt, at, amp = 26) => { const q = prog(lt, at, 0.25); return q > 0 && q < 1 ? amp * (1 - q) ** 2 : 0; };
+      const penStamp = (ctx, lt, out, e, x = W / 2 + 230, y = 560) => {
+        if (!e.pen) return;
+        const k2 = easeBack(prog(lt, 0.05, 0.25));
+        ctx.save();
+        ctx.globalAlpha = 1 - out;
+        ctx.translate(x, y);
+        ctx.rotate(0.12);
+        ctx.scale(k2, k2);
+        const str = d.t?.penalty || 'PENALTI';
+        ctx.font = ANTON(70);
+        const pw = ctx.measureText(str).width + 60;
+        plate(ctx, -pw / 2, -60, pw, 110, 22);
+        ctx.fillStyle = '#e3172d';
+        ctx.fill();
+        text(ctx, str, 0, 22, ANTON(70), '#ffffff', 'center');
+        ctx.restore();
+      };
+      const goalFx = {
+        // A · La celebración: la pantalla se tiñe del color del equipo desde la portería, el
+        // «GOOOL» gigante cruza cortado por los bordes y, a golpes, el minuto y el goleador
+        celebra(ctx, st, lt, out, e, Pj) {
+          // El color del equipo; si es casi blanco (el Madrid), su acento o el negro, que el blanco no grita
+          const light = contrastWith(e.style.bg, '#ffffff') < 1.6;
+          const alt = light && contrastWith(e.style.acc || '#111111', '#ffffff') >= 3 ? e.style.acc : '#111111';
+          const S = light ? { bg: alt, fg: '#ffffff' } : e.style, sg = e.side === 'home' ? 1 : -1;
+          const [gx, gy] = Pj([0, 1.2, sg * HL]);
+          const r = Math.hypot(W, H) * 1.3 * easeOut(prog(lt, 0, 0.22)) * (1 - easeInOut(out));
+          ctx.save();
+          ctx.beginPath(); ctx.arc(gx, gy, Math.max(0, r), 0, Math.PI * 2); ctx.clip();
+          fillAll(ctx, S.bg);
+          const sx = Math.sin(lt * 90) * (shake(lt, 0.05) + shake(lt, 0.55, 20) + shake(lt, 0.85, 16));
+          ctx.translate(sx, 0);
+          // Detrás, filas de «GOOOL» en contorno que corren en sentidos contrarios
+          ctx.font = ANTON(260);
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = rgba(S.fg, 0.18);
+          const word = `${d.t?.goal || 'GOL'}`.replace(/O/, 'OOO') + '  ';
+          const ww = ctx.measureText(word).width;
+          for (let i = 0; i < 8; i++) {
+            const dir = i % 2 ? 1 : -1, off = ((lt * 700 * dir + i * 230) % ww + ww) % ww;
+            for (let x = -ww + off - 400; x < W + 400; x += ww) ctx.strokeText(word, x, 260 + i * 250);
+          }
+          // El «GOOOL» que cruza, enorme, y deja paso al minuto
+          const g1 = prog(lt, 0.02, 0.55);
+          if (g1 > 0 && g1 < 1) {
+            const big = word.trim() + '!';
+            ctx.save();
+            ctx.translate(W * (1.1 - 1.6 * easeInOut(g1)), 1050);
+            ctx.rotate(-0.06);
+            text(ctx, big, 0, 0, ANTON(520), S.fg, 'center');
+            ctx.restore();
+          }
+          const k1 = easeBack(prog(lt, 0.5, 0.2));
+          if (k1 > 0) {
+            ctx.save();
+            ctx.translate(W / 2, 1000);
+            ctx.rotate(-0.05);
+            ctx.scale(1.25 - 0.25 * k1, 1.25 - 0.25 * k1);
+            ctx.globalAlpha *= Math.min(1, k1 * 2);
+            const mins = (st.ev.mins || [minStr(e)]).join(' ');
+            text(ctx, mins, 0, 0, ANTON(fit(ctx, mins, ANTON, 560, W - 2 * M)), S.fg, 'center');
+            ctx.restore();
+          }
+          const k2 = easeBack(prog(lt, 0.8, 0.22));
+          if (k2 > 0) {
+            const name = up(e.name);
+            ctx.save();
+            ctx.translate(W / 2, 1290);
+            ctx.scale(k2, k2);
+            const ns = fit(ctx, name, ANTON, 200, W - 2 * M);
+            ctx.font = ANTON(ns);
+            const nw = ctx.measureText(name).width + 60;
+            ctx.fillStyle = S.fg;
+            ctx.fillRect(-nw / 2, -ns * 1.06, nw, ns * 1.22);
+            text(ctx, name, 0, 0, ANTON(ns), S.bg, 'center');
+            if (e.how) text(ctx, e.how, 0, 90, BARLOW(fit(ctx, e.how, BARLOW, 54, W - 2 * M), 700), S.fg, 'center');
+            ctx.restore();
+          }
+          ctx.restore();
+          penStamp(ctx, lt, out, e);
+          if (lt < 0.08) fillAll(ctx, `rgba(255,255,255,${0.6 * (1 - lt / 0.08)})`);
+        },
+        // B · El marcador de bombillas del estadio: «GOOOL» se enciende bombilla a bombilla y
+        // parpadea; luego el mismo marcador enseña el minuto y el goleador
+        led(ctx, st, lt, out, e) {
+          const a = Math.min(easeOut(prog(lt, 0, 0.15)), 1 - out);
+          fillAll(ctx, `rgba(4,5,8,${0.82 * a})`);
+          const k = easeBack(prog(lt, 0, 0.25)) * (1 - 0.15 * out);
+          const BW = W - 2 * M + 40, BH = 760, bx = -BW / 2, by = -BH / 2;
+          ctx.save();
+          ctx.globalAlpha = a;
+          ctx.translate(W / 2 + Math.sin(lt * 80) * shake(lt, 0.05, 18), 980);
+          ctx.scale(k, k);
+          plate(ctx, bx, by, BW, BH, 40);
+          ctx.fillStyle = '#05070a';
+          ctx.fill();
+          ctx.lineWidth = 6;
+          ctx.strokeStyle = '#1b1f27';
+          ctx.stroke();
+          // Las bombillas del borde, que corren
+          const n = 46, per = 2 * (BW + BH) - 120;
+          for (let i = 0; i < n; i++) {
+            let dd = ((i / n) * per + lt * 900) % per, x, y;
+            const w2 = BW - 60, h2 = BH - 60;
+            if (dd < w2) [x, y] = [bx + 30 + dd, by + 30]; else if ((dd -= w2) < h2) [x, y] = [bx + 30 + w2, by + 30 + dd];
+            else if ((dd -= h2) < w2) [x, y] = [bx + 30 + w2 - dd, by + 30 + h2]; else [x, y] = [bx + 30, by + 30 + h2 - (dd - w2)];
+            const on = (i + Math.floor(lt * 12)) % 3 === 0;
+            ctx.beginPath(); ctx.arc(x, y, 9, 0, Math.PI * 2);
+            ctx.fillStyle = on ? '#ffd76a' : 'rgba(255,215,106,.18)';
+            ctx.shadowColor = on ? '#ffd76a' : 'transparent';
+            ctx.shadowBlur = on ? 18 : 0;
+            ctx.fill();
+          }
+          ctx.shadowBlur = 0;
+          if (lt < 0.85) {
+            // «GOOOL!» bombilla a bombilla, y parpadeando
+            const word = (d.t?.goal || 'GOL').replace(/O/, 'OOO') + '!';
+            const dot = Math.min(30, (BW - 120) / (word.length * 6 - 1));
+            const blink = lt > 0.4 && lt < 0.7 && Math.floor(lt * 14) % 2 === 1;
+            if (!blink) ledText(ctx, word, 0, -dot * 3.5, dot, ACCENT, 'center', prog(lt, 0.03, 0.15));
+          } else {
+            const mins = (st.ev.mins || [minStr(e)]).join(' ');
+            const d1 = Math.min(34, (BW - 140) / (mins.length * 6 - 1));
+            ledText(ctx, mins, 0, by + 90, d1, ACCENT, 'center', prog(lt, 0.85, 0.15));
+            const name = up(e.name);
+            const d2 = Math.min(24, (BW - 120) / (name.length * 6 - 1));
+            ledText(ctx, name, 0, by + 120 + d1 * 7 + 50, d2, '#ffffff', 'center', prog(lt, 0.95, 0.15));
+          }
+          ctx.restore();
+          penStamp(ctx, lt, out, e, W / 2 + 260, 520);
+          if (e.how && lt > 1.0) {
+            ctx.save();
+            ctx.globalAlpha = a * easeOut(prog(lt, 1.0, 0.2));
+            text(ctx, e.how, W / 2, 1450, BARLOW(fit(ctx, e.how, BARLOW, 54, W - 2 * M), 700), '#ffffff', 'center');
+            ctx.restore();
+          }
+        },
+        // C · Seguir el balón: la cámara baja con el disparo hasta la red (ver la cámara y la red,
+        // arriba), un destello y el goleador al lado de la portería, sin tapar el campo
+        balon(ctx, st, lt, out, e, Pj) {
+          if (lt < 0.1) fillAll(ctx, `rgba(255,255,255,${0.65 * (1 - lt / 0.1)})`);
+          const sg = e.side === 'home' ? 1 : -1;
+          const [gx, gy] = Pj([0, 3.4, sg * HL]);
+          const k = easeBack(prog(lt, 0.12, 0.3));
+          if (k <= 0) return;
+          const str = `${(st.ev.mins || [minStr(e)]).join(' ')} ${up(e.name)}`;
+          ctx.save();
+          ctx.globalAlpha = 1 - out;
+          ctx.translate(Math.max(M + 300, Math.min(W - M - 300, gx)) + Math.sin(lt * 80) * shake(lt, 0.12, 14), Math.max(520, Math.min(1300, gy - 230)));
+          ctx.rotate(-0.04);
+          ctx.scale(k, k);
+          const size = fit(ctx, str, ANTON, 120, W - 2 * M - 40);
+          ctx.font = ANTON(size);
+          const w = ctx.measureText(str).width + 70;
+          plate(ctx, -w / 2, -size * 0.95, w, size * 1.35, 24);
+          ctx.fillStyle = ACCENT;
+          ctx.fill();
+          text(ctx, str, 0, size * 0.12, ANTON(size), '#111111', 'center');
+          if (e.how) {
+            ctx.font = BARLOW(50, 700);
+            const hw = ctx.measureText(e.how).width + 40;
+            plate(ctx, -hw / 2, size * 0.5, hw, 74, 14);
+            ctx.fillStyle = '#06080b';
+            ctx.fill();
+            text(ctx, e.how, 0, size * 0.5 + 54, BARLOW(50, 700), '#ffffff', 'center');
+          }
+          ctx.restore();
+          penStamp(ctx, lt, out, e, W / 2 + 250, 420);
+        },
       };
       return {
         id: 'goals',
@@ -889,10 +1082,42 @@
           const m = minuteAt(t);
           const cam = camera(t);
           const Pj = (p) => { const v = sub(p, cam.pos), z = dot(v, cam.fwd); return [CX + (F * dot(v, cam.right)) / z, CY - (F * dot(v, cam.up)) / z]; };
-          const path = (pts, close) => { ctx.beginPath(); pts.forEach((p, j) => { const [x, y] = Pj(p); if (j) ctx.lineTo(x, y); else ctx.moveTo(x, y); }); if (close) ctx.closePath(); };
+          // Lo que queda detrás de la cámara (con la cámara a ras de césped) se recorta contra un
+          // plano a medio metro de ella; si no, el césped de detrás saldría por arriba
+          const NEAR = 0.5;
+          const camP = (p) => { const v = sub(p, cam.pos); return [dot(v, cam.right), dot(v, cam.up), dot(v, cam.fwd)]; };
+          const scr = ([x, y, z]) => [CX + (F * x) / z, CY - (F * y) / z];
+          const cut = (a, b) => { const k = (NEAR - a[2]) / (b[2] - a[2]); return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, NEAR]; };
+          const path = (pts, close) => {
+            ctx.beginPath();
+            const cs = pts.map(camP);
+            if (close) {
+              const out = [];
+              cs.forEach((a, j) => {
+                const b = cs[(j + 1) % cs.length];
+                if (a[2] >= NEAR) out.push(a);
+                if ((a[2] >= NEAR) !== (b[2] >= NEAR)) out.push(cut(a, b));
+              });
+              out.forEach((c, j) => { const [x, y] = scr(c); if (j) ctx.lineTo(x, y); else ctx.moveTo(x, y); });
+              if (out.length) ctx.closePath();
+              return;
+            }
+            let pen = false;
+            cs.forEach((a, j) => {
+              const b = cs[j + 1];
+              if (a[2] >= NEAR) { const [x, y] = scr(a); if (pen) ctx.lineTo(x, y); else ctx.moveTo(x, y); pen = true; }
+              if (b && (a[2] >= NEAR) !== (b[2] >= NEAR)) {
+                const [x, y] = scr(cut(a, b));
+                if (pen) { ctx.lineTo(x, y); pen = false; } else { ctx.moveTo(x, y); pen = true; }
+              }
+            });
+          };
           const rect = (x0, z0, x1, z1) => [[x0, 0, z0], [x1, 0, z0], [x1, 0, z1], [x0, 0, z1]];
           groundBg(ctx, d);
-          // El césped, oscuro, a franjas
+          // El césped de fuera de las líneas y, encima, el del campo a franjas
+          path(rect(-PW / 2 - 9, -HL - 12, PW / 2 + 9, HL + 12), true);
+          ctx.fillStyle = TH.grass[1];
+          ctx.fill();
           for (let i = 0; i < 12; i++) {
             const z0 = -HL + (i * PL) / 12;
             path(rect(-PW / 2, z0, PW / 2, z0 + PL / 12), true);
@@ -935,19 +1160,38 @@
           const glows = [];
           for (const sh of shots) {
             if (t < sh.launch) continue;
-            const u = clamp01((t - sh.launch) / FLY), c = colShot[sh.side];
-            path(Array.from({ length: 13 }, (_, j) => [sh.X + 0.9 * Math.cos((j / 12) * Math.PI * 2), 0, sh.Z + 0.9 * Math.sin((j / 12) * Math.PI * 2)]), true);
+            const fly = flyOf(sh), u = clamp01((t - sh.launch) / fly), c = colShot[sh.side];
+            // (con la cámara detrás del que tira, su marca quedaría enorme a sus pies)
+            if (!(GOAL === 'balon' && sh.g)) path(Array.from({ length: 13 }, (_, j) => [sh.X + 0.9 * Math.cos((j / 12) * Math.PI * 2), 0, sh.Z + 0.9 * Math.sin((j / 12) * Math.PI * 2)]), true);
+            else ctx.beginPath();
             if (sh.kind === 'goal' || sh.kind === 'on') { ctx.fillStyle = c; ctx.fill(); } else { ctx.strokeStyle = c; ctx.lineWidth = 4; ctx.stroke(); }
-            const after = t - sh.launch - FLY;
+            const after = t - sh.launch - fly;
             if (u < 1 || (sh.kind === 'goal' && after < 0.9)) {
               const tail = Math.max(0, u - 0.35);
               path(Array.from({ length: 12 }, (_, j) => ballAt(sh, tail + ((u - tail) * j) / 11)));
               ctx.strokeStyle = rgba(c, 0.6 * (u < 1 ? 1 : 1 - after / 0.9));
               ctx.lineWidth = 5;
               ctx.stroke();
-              if (u < 1) { const [bx, by] = Pj(ballAt(sh, u)); football(ctx, bx, by, 14, 1, u * 9); }
+              if (u < 1) {
+                const bp = ballAt(sh, u), [bx, by] = Pj(bp);
+                // Siguiendo el balón, a su tamaño (de cerca, grande)
+                const r = GOAL === 'balon' && sh.g ? Math.min(60, Math.max(12, (F * 0.3) / Math.max(1, camP(bp)[2]))) : 14;
+                football(ctx, bx, by, r, 1, u * 9);
+              }
             }
             if (sh.kind === 'goal' && u >= 1 && after < 1) glows.push({ sh, after });
+          }
+          // La red: con la cámara siguiendo el balón, la del gol se hunde donde entra
+          if (GOAL === 'balon') {
+            for (const { sh, after } of glows) {
+              const sg = sh.side === 'home' ? 1 : -1, hit = ballAt(sh, 1);
+              const bulge = 1.6 * Math.sin(Math.PI * clamp01(after / 0.5)) * (1 - clamp01(after / 0.9) * 0.6);
+              const at = (x, y) => [x, y, sg * (HL + 2 + bulge * Math.exp(-((x - hit[0]) ** 2 + (y - hit[1]) ** 2) / 1.2))];
+              ctx.strokeStyle = 'rgba(255,255,255,.75)';
+              ctx.lineWidth = 2;
+              for (let k = 0; k <= 10; k++) { const x = -3.66 + (7.32 * k) / 10; path(Array.from({ length: 9 }, (_, q) => at(x, (2.44 * q) / 8))); ctx.stroke(); }
+              for (let k = 0; k <= 6; k++) { const y = (2.44 * k) / 6; path(Array.from({ length: 13 }, (_, q) => at(-3.66 + (7.32 * q) / 12, y))); ctx.stroke(); }
+            }
           }
           for (const { sh, after } of glows) {
             const [gx, gy] = Pj([0, 1.2, sh.side === 'home' ? HL : -HL]);
@@ -1006,11 +1250,15 @@
           for (const st of stops) {
             if (!st.ev || t < st.start || t > st.end + 0.35) continue;
             const lt = t - st.start, e = st.ev.e, out = prog(t, st.end, 0.35);
+            const c = col[e.side];
+            if (e.kind === 'goal' && GOAL && goalFx[GOAL]) {
+              goalFx[GOAL](ctx, st, lt, out, e, Pj);
+              continue;
+            }
             const dark = 0.62 * Math.min(easeOut(prog(lt, 0.15, 0.25)), 1 - out);
             fillAll(ctx, `rgba(${TH.dim},${dark + (d.dark ? 0 : 0.2)})`);
             ctx.save();
             ctx.globalAlpha = 1 - out;
-            const c = col[e.side];
             if (e.kind === 'red') {
               const name = up(e.name);
               text(ctx, String(e.min || '').replace(/\s/g, ''), W / 2, 900, ANTON(300), TH.ink, 'center');
