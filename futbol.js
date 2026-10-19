@@ -3790,7 +3790,7 @@
         forma: L('CÓMO LLEGABAN', 'FORM COMING IN'), h2h: L('CARA A CARA', 'HEAD TO HEAD'), draws: L('EMPATES', 'DRAWS'), wdl: L(['G', 'E', 'P'], ['W', 'D', 'L']),
         halftime: L('DESCANSO', 'HALF-TIME'), extraTime: L('PRÓRROGA', 'EXTRA TIME'), now: L('AHORA', 'NOW'), fullTime: L('FINAL', 'FULL TIME'),
         onPens: L('EN LOS PENALTIS', 'ON PENALTIES'),
-        live: L('EN JUEGO', 'LIVE'), shots: L('TIROS', 'SHOTS'), pts: L('PUNTOS', 'POINTS'),
+        live: L('EN JUEGO', 'LIVE'), shots: L('TIROS', 'SHOTS'), pts: L('PUNTOS', 'POINTS'), penalty: L('PENALTI', 'PENALTY'),
         comments: L('TE LEO EN COMENTARIOS', 'LET ME KNOW IN THE COMMENTS'),
         follow: L('Sígueme para más fútbol', 'Follow for more football'),
       },
@@ -4480,7 +4480,7 @@
   // y los tiros, en su minuto): su frase junta las tres, en ese orden
   function matchStory(d, script) {
     if (!(d.shots?.list.length >= 4)) return script;
-    const story = [script.goals, d.pulse ? script.pulso : script.stats, script.tiros].filter(Boolean).join(' ');
+    const story = [script.goals, script.polemica, d.pulse ? script.pulso : script.stats, script.tiros].filter(Boolean).join(' ');
     return story ? { ...script, goals: story } : script;
   }
 

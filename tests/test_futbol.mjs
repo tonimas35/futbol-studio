@@ -358,7 +358,7 @@ try {
   await page.click('#mixPreviewBtn');
   await page.waitForFunction(() => !document.getElementById('mixPlayer').hidden, null, { timeout: 120000 });
   const trapLen = await mixDuration();
-  check(trapLen > 41 && trapLen < 42.2, `«Escuchar la mezcla» prepara la urbana (${trapLen.toFixed(1)} s)`);
+  check(trapLen > 42.6 && trapLen < 43.8, `«Escuchar la mezcla» prepara la urbana (${trapLen.toFixed(1)} s)`);
 
   await page.check('#videoSubs');
   // Cuántos canvas se crean mientras se hace el vídeo: con uno nuevo por fotograma (los fondos
@@ -386,7 +386,7 @@ try {
     return { name: document.getElementById('videoDlBtn').download, duration: v.duration, meta: document.getElementById('videoMeta').textContent, toast: document.getElementById('toast').textContent };
   });
   check(/^futbol-roma-rma-2026-10-14-short\.(mp4|webm)$/.test(video.name || ''), `vídeo: ${video.name} (${video.toast})`);
-  check(video.duration > 41 && video.duration < 42.2, `dura unos 42 s: el aviso, el marcador, el partido, 3 escenas, el cierre y la de tu logo (${video.duration?.toFixed(1)} s)`);
+  check(video.duration > 42.6 && video.duration < 43.8, `dura unos 43 s: el aviso, el marcador, el partido, 3 escenas, el cierre y la de tu logo (${video.duration?.toFixed(1)} s)`);
   check(video.meta === 'Lleva música urbana, subtítulos y la apertura con el aviso.', `con los subtítulos encendidos, lleva todo (${video.meta})`);
   // La portada del vídeo dice de quién es el dato, no solo «14 partidos sin perder… hasta hoy»
   const hook = await page.evaluate(() => window.__videoData?.hook);
@@ -402,7 +402,7 @@ try {
   await page.click('#mixPreviewBtn');
   await page.waitForFunction(() => !document.getElementById('mixPlayer').hidden, null, { timeout: 120000 });
   const epicLen = await mixDuration();
-  check(epicLen > 41 && epicLen < 42.2, `y la épica dura lo mismo (${epicLen.toFixed(1)} s)`);
+  check(epicLen > 42.6 && epicLen < 43.8, `y la épica dura lo mismo (${epicLen.toFixed(1)} s)`);
   // La versión larga (TikTok solo paga a partir del minuto): más escenas si hay datos y cada una
   // algo más en pantalla, en compases enteros, hasta pasar del minuto
   const secs = () => page.$$eval('#scriptLines .script-line', (ls) => ls.map((l) => [l.dataset.scene, parseFloat(l.querySelector('small').textContent.replace(',', '.'))]));
@@ -412,7 +412,7 @@ try {
   const longScenes = await secs();
   const longTotal = await page.textContent('#scriptTotal');
   const bars = longScenes.every(([, t]) => Math.abs(t / 1.6 - Math.round(t / 1.6)) < 0.05);
-  check(shortTotal === 'El vídeo dura 42 s.' && longTotal === 'El vídeo dura 1:02.' && longScenes.length >= shortScenes.length && bars,
+  check(shortTotal === 'El vídeo dura 43 s.' && longTotal === 'El vídeo dura 1:02.' && longScenes.length >= shortScenes.length && bars,
     `«Versión larga (+1 min)»: ${shortTotal} → ${longTotal} (${longScenes.map(([id, t]) => `${id} ${t}`).join(' · ')})`);
   await page.uncheck('#videoLong');
   check((await secs()).join() === shortScenes.join() && await page.textContent('#scriptTotal') === shortTotal, 'y al quitarla, el vídeo de siempre');
@@ -899,13 +899,14 @@ try {
       caption: document.getElementById('captionText').value.split('\n'),
       q: document.querySelector('#slide-cierre .q')?.textContent,
       scenes: [...document.querySelectorAll('#scriptLines .script-line')].map((l) => l.dataset.scene),
-      line: document.querySelector('#scriptLines textarea[data-scene="polemica"]')?.value,
+      line: document.querySelector('#scriptLines textarea[data-scene="goals"]')?.value,
     }));
     check(pol.caption[0] === '😱 El VAR le anula un gol al Betis · Betis 2-5 Barcelona' && pol.caption[2] === '¿Bien anulado el gol del Betis? 👇'
       && pol.q === '¿Bien anulado el gol del Betis?',
       `la polémica: el gancho y la pregunta de la descripción y del cierre (${pol.caption[0]} | ${pol.q})`);
-    check(pol.scenes[1] === 'polemica' && pol.line === 'El VAR le anula un gol al Betis en el 43, con 1-2.',
-      `y su escena en el vídeo, tras el marcador, con el minuto y cómo iba (${pol.line})`);
+    // En el vídeo, dentro del partido: el reloj se para en su minuto (y su frase va en la del partido)
+    check(!pol.scenes.includes('polemica') && pol.line?.includes('El VAR le anula un gol al Betis en el 43, con 1-2.'),
+      `y en el vídeo, dentro del partido, con el minuto y cómo iba (${pol.line})`);
     await cq.close();
   }
 
