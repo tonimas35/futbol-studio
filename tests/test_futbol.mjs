@@ -351,7 +351,7 @@ try {
     return a.duration;
   });
   check(await page.getAttribute('.lang-opt[data-music="trap"]', 'aria-checked') === 'true' && await page.isHidden('#mixResetBtn'), 'la música, urbana por defecto');
-  check(await page.isChecked('#videoSubs'), 'y los subtítulos, encendidos por defecto (el guion cuenta el partido)');
+  check(!(await page.isChecked('#videoSubs')), 'y los subtítulos, apagados por defecto (salen con la voz)');
   check(!(await page.isChecked('#videoMusic')) && await page.isDisabled('#musicVol'), 'y sin música por defecto (en TikTok se pone un sonido)');
   await page.check('#videoMusic');
   await page.click('#mixPreviewBtn');
@@ -808,10 +808,10 @@ try {
     await pp.click('#previaBtn');
     await pp.waitForFunction(() => !document.getElementById('videoOut').hidden || /No se pudo/.test(document.getElementById('toast').textContent), null, { timeout: 400000 });
     const said = await pp.evaluate(() => ({ captions: window.__previaOpts?.captions, ...window.__previaOpts?.script }));
-    check(said.captions && said.forma === 'El Real Madrid llega con cuatro victorias de cinco.' && said.h2h === 'El Real Madrid ganó los cinco últimos.'
+    check(said.captions === false && said.forma === 'El Real Madrid llega con cuatro victorias de cinco.' && said.h2h === 'El Real Madrid ganó los cinco últimos.'
       && said.goleadores === 'Los que más marcan: Mbappé, 7; Sierra, 2.' && /^El Real Madrid, cuarto, a nueve del líder/.test(said.tabla)
       && said.outro === '¿Quién gana? Te leo en comentarios.',
-      `y su guion, en subtítulos: cómo llegan, el cara a cara, los goleadores y la tabla (${[said.forma, said.h2h, said.goleadores, said.tabla].join(' · ')})`);
+      `y su guion (para la voz; sin ella, sin subtítulos): cómo llegan, el cara a cara, los goleadores y la tabla (${[said.forma, said.h2h, said.goleadores, said.tabla].join(' · ')})`);
     const pv = await pp.evaluate(() => ({ title: document.getElementById('videoOut').dataset.title, caption: document.getElementById('captionText').value.split('\n'),
       dl: document.getElementById('videoDlBtn').download, box: !document.getElementById('captionBox').hidden }));
     check(pv.title === 'Previa · Real Madrid – Sevilla' && pv.dl === 'futbol-rma-sev-2026-11-29-previa.mp4' && pv.box,
