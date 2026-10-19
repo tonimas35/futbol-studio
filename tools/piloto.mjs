@@ -19,8 +19,10 @@ import { appendFileSync, createReadStream, existsSync, mkdirSync, readdirSync, r
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { extname, join, normalize, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = resolve(new URL('..', import.meta.url).pathname);
+// (con fileURLToPath, también en Windows)
+const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const CONFIG = JSON.parse(readFileSync(join(ROOT, 'piloto.json'), 'utf8'));
 const ESPN = 'https://site.api.espn.com/apis/site/v2/sports/soccer';
 const RELEASE = 'videos';

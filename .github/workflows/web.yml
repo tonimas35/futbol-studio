@@ -37,7 +37,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p _site
-          cp index.html futbol.js futbol.css video.js audio.js favicon.svg manifest.webmanifest apple-touch-icon.png icon-192.png icon-512.png jornada90-logo.png _site/
+          cp index.html futbol.js futbol.css video.js campo3d.js audio.js favicon.svg manifest.webmanifest apple-touch-icon.png icon-192.png icon-512.png jornada90-logo.png _site/
           node tools/piloto.mjs web _site/v
 
       - uses: actions/configure-pages@v5
