@@ -13,17 +13,26 @@ Ponerlo (desde el ordenador, con `pip install modal` y `modal setup`):
   modal volume put jornada90-voz referencia.txt /referencia.txt
   modal deploy tools/voz_modal.py
 
-Lo que pide: POST {"lines": [{"id": "score", "text": "Remontada del Real Madrid: 4 a 3 a la Roma."}, …]}
-con las cabeceras Modal-Key y Modal-Secret (un Proxy Auth Token de Modal). Lo que devuelve:
-{"score": {"audio": WAV en base64, "times": null}, …}: el Studio reparte los subtítulos por lo que
-dura cada frase.
+Dos entradas:
+  · decir (la del robot): POST {"lines": [{"id": "score", "text": "Remontada del Real Madrid: 4 a 3 a la Roma."}, …]}
+    con las cabeceras Modal-Key y Modal-Secret (un Proxy Auth Token de Modal).
+  · navegador (la del Studio a mano): POST, en texto plano (así el navegador no pregunta antes por
+    CORS), {"token": tu clave de la voz, "lines": […]}. La clave está en el secreto de Modal
+    `jornada90-voz-token` (VOZ_TOKEN). Va sin tarjeta: solo si la clave vale, enciende la de la voz.
+Las dos devuelven {"score": {"audio": WAV en base64, "times": null}, …}: el Studio reparte los
+subtítulos por lo que dura cada frase.
 """
 import base64
+import hmac
 import io
+import json
+import os
 import time
 from pathlib import Path
 
 import modal
+from fastapi import Request
+from fastapi.responses import JSONResponse
 
 MODELO = 'Qwen/Qwen3-TTS-12Hz-1.7B-Base'
 VOZ = Path('/voz')
@@ -36,6 +45,8 @@ image = modal.Image.debian_slim(python_version='3.12').pip_install(
 )
 app = modal.App('jornada90-voz', image=image)
 volumen = modal.Volume.from_name('jornada90-voz', create_if_missing=True)
+# La entrada del navegador, sin tarjeta ni modelo: arranca en un momento
+ligera = modal.Image.debian_slim(python_version='3.12').pip_install('fastapi[standard]')
 
 
 @app.cls(gpu='L4', volumes={str(VOZ): volumen}, timeout=10 * 60, scaledown_window=60)
@@ -81,3 +92,18 @@ class Voz:
             out[line['id']] = {'audio': base64.b64encode(buf.getvalue()).decode('ascii'), 'times': None}
         print(f'{len(out)} frases en {time.time() - t:.1f} s')
         return out
+
+
+@app.function(image=ligera, timeout=10 * 60,
+              secrets=[modal.Secret.from_name('jornada90-voz-token', required_keys=['VOZ_TOKEN'])])
+@modal.fastapi_endpoint(method='POST')
+async def navegador(request: Request):
+    try:
+        body = json.loads(await request.body())
+        token = str(body.get('token', ''))
+        lines = [{'id': str(l['id'])[:40], 'text': str(l['text'])[:400]} for l in (body.get('lines') or [])[:20]]
+    except (ValueError, TypeError, KeyError, AttributeError):
+        return JSONResponse({'error': 'petición mal hecha'}, status_code=400)
+    if not hmac.compare_digest(token.encode(), os.environ['VOZ_TOKEN'].encode()):
+        return JSONResponse({'error': 'la clave no vale'}, status_code=401)
+    return await Voz().frases.remote.aio(lines) if lines else {}

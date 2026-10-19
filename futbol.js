@@ -3899,19 +3899,47 @@
     videoUrl = null;
     audioUrl = null;
   }
-  // LA VOZ DEL ROBOT · si al Studio lo abre el robot con ElevenLabs (tools/piloto.mjs le da
-  // window.fsVoz), cada frase del guion se dice con esa voz (la de Toni, clonada) y el vídeo se
-  // ajusta a lo que dura. Si no hay voz o falla, el vídeo de siempre, con subtítulos.
-  async function robotVoice(data, script) {
-    if (typeof window.fsVoz !== 'function' || !script || !window.StudioVideo?.plan) return null;
+  // LA VOZ · dos tipos de vídeo (el selector «Voz»): con voz y subtítulos (por defecto) o sin
+  // ninguna de las dos cosas. Cada frase del guion se dice con la voz clonada y el vídeo se ajusta a
+  // lo que dura. La pone el robot (tools/piloto.mjs le da window.fsVoz) o, en el Studio a mano, el
+  // servicio de voz en Modal (tools/voz_modal.py) con tu clave, que se guarda solo en este
+  // navegador. Si no hay voz o falla, el vídeo sale sin voz ni subtítulos y lo dice.
+  const VOICE_KEY = 'fc-voice-key';
+  const VOICE_URL = 'https://tonimas35--jornada90-voz-navegador.us-east.modal.run';
+  const voiceKey = () => {
+    try { return (localStorage.getItem(VOICE_KEY) || '').trim(); } catch (e) { return ''; }
+  };
+  const withVoice = () => document.querySelector('.lang-opt[data-voz][aria-checked="true"]')?.dataset.voz !== 'no';
+  const setVoiceMode = (on) => document.querySelectorAll('.lang-opt[data-voz]')
+    .forEach(b => b.setAttribute('aria-checked', String((b.dataset.voz === 'si') === on)));
+  // Los marcadores, dichos: «4-1» → «4 a 1»
+  const spoken = (text) => String(text || '').trim().split(/\s+/).filter(Boolean)
+    .map(w => w.replace(/^(\d+)-(\d+)([.,:;!?…]*)$/, '$1 a $2$3')).join(' ');
+  // { clips } con la voz de cada escena o { clips: null, why } si no la hay (why: por qué, para el aviso)
+  async function videoVoice(data, script) {
+    if (!withVoice() || !script || !window.StudioVideo?.plan) return { clips: null, why: '' };
     const lines = window.StudioVideo.plan(data, script).filter(sc => sc.words).map(sc => ({ id: sc.id, text: String(script[sc.id]).trim() }));
-    if (!lines.length) return null;
+    if (!lines.length) return { clips: null, why: 'el guion está vacío' };
     try {
-      const clips = await window.fsVoz(lines);
-      return clips && Object.keys(clips).length ? clips : null;
+      if (typeof window.fsVoz === 'function') {
+        const clips = await window.fsVoz(lines);
+        return clips && Object.keys(clips).length ? { clips } : { clips: null, why: 'el robot no ha podido ponerla' };
+      }
+      if (!voiceKey()) return { clips: null, why: 'falta tu clave de la voz (paso 2)' };
+      // En texto plano: así el navegador no pregunta antes (CORS) y la clave va dentro
+      const res = await fetch(VOICE_URL, {
+        method: 'POST', headers: { 'content-type': 'text/plain' },
+        body: JSON.stringify({ token: voiceKey(), lines: lines.map(l => ({ id: l.id, text: spoken(l.text) })) }),
+        signal: timeoutSignal(5 * 60e3),
+      });
+      if (res.status === 401) return { clips: null, why: 'tu clave de la voz no vale' };
+      if (!res.ok) return { clips: null, why: `el servicio de la voz ha contestado ${res.status}` };
+      const clips = await res.json();
+      const missing = lines.find(l => !clips[l.id]?.audio);
+      return missing ? { clips: null, why: `falta la frase «${missing.id}»` } : { clips };
     } catch (e) {
       console.warn(`Sin voz: ${e.message}`);
-      return null;
+      return { clips: null, why: /abort|timeout/i.test(e.name + e.message) ? 'el servicio de la voz no ha contestado' : 'no se ha podido conectar con el servicio de la voz' };
     }
   }
   const videoOptions = () => ({
@@ -3932,10 +3960,11 @@
     try {
       const opts = { ...videoOptions() };
       const data = videoData(m);
-      if (window.fsVoz) label.textContent = 'Poniendo la voz…';
-      opts.voiceClips = await robotVoice(data, opts.script);
-      // El guion solo sale en subtítulos si se dice (o si los enciendes tú)
-      opts.captions = document.getElementById('videoSubs').checked || !!opts.voiceClips;
+      if (withVoice()) label.textContent = 'Poniendo la voz…';
+      const voice = await videoVoice(data, opts.script);
+      // La voz y los subtítulos, juntos: el guion solo sale escrito si se dice
+      opts.voiceClips = voice.clips;
+      opts.captions = !!voice.clips;
       const out = await window.StudioVideo.render(data, (p, stage) => {
         label.textContent = stage || `Creando el vídeo… ${Math.round(p * 100)}%`;
       }, opts);
@@ -3965,8 +3994,10 @@
       const parts = [out.mix?.voice && 'la voz', out.mix?.music && `música ${MUSIC_STYLES[opts.musicStyle]}`, out.mix?.captions && 'subtítulos', out.mix?.intro && 'la apertura con el aviso'].filter(Boolean);
       const long = out.duration ? ` Dura ${Math.floor(out.duration / 60)}:${String(Math.round(out.duration % 60)).padStart(2, '0')}.` : '';
       document.getElementById('videoMeta').textContent = `${parts.length ? `Lleva ${listEs(parts)}.` : 'Sin sonido ni subtítulos.'}${data.long ? long : ''}`;
+      document.getElementById('videoOut').dataset.voz = voice.clips ? 'si' : 'no';
       document.getElementById('videoOut').hidden = false;
-      showToast(out.note || 'Vídeo listo · revísalo y descárgalo', out.note ? '' : 'success');
+      if (voice.why) showToast(`Vídeo listo, sin voz ni subtítulos: ${voice.why}`, 'error');
+      else showToast(out.note || 'Vídeo listo · revísalo y descárgalo', out.note ? '' : 'success');
     } catch (e) {
       console.error('Vídeo:', e);
       showToast(`No se pudo crear el vídeo: ${e.message}`, 'error');
@@ -4110,11 +4141,11 @@
       const m = await fetchMatch(game);
       const data = previaData(m);
       const script = previaScript(data);
-      if (window.fsVoz) label.textContent = 'Poniendo la voz…';
-      const voiceClips = await robotVoice(data, script);
+      if (withVoice()) label.textContent = 'Poniendo la voz…';
+      const voice = await videoVoice(data, script);
       const out = await window.StudioVideo.render(data, (p, stage) => {
         label.textContent = stage || `Creando la previa… ${Math.round(p * 100)}%`;
-      }, { ...videoOptions(), captions: document.getElementById('videoSubs').checked || !!voiceClips, script, voiceClips });
+      }, { ...videoOptions(), captions: !!voice.clips, script, voiceClips: voice.clips });
       resetVideo();
       videoUrl = URL.createObjectURL(out.blob);
       document.getElementById('videoPreview').src = videoUrl;
@@ -4127,13 +4158,15 @@
       document.getElementById('videoMeta').textContent = `Previa de ${m.home.short} – ${m.away.short}.`;
       const box = document.getElementById('videoOut');
       box.dataset.title = `${L('Previa', 'Preview')} · ${m.home.short} – ${m.away.short}`;
+      box.dataset.voz = voice.clips ? 'si' : 'no';
       box.hidden = false;
       state.previa = { id: m.id };
       document.getElementById('captionText').value = previaCaption(m);
       document.getElementById('captionBox').hidden = false;
       captionEdited = false;
       box.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      showToast(out.note || 'Previa lista · revísala y compártela', out.note ? '' : 'success');
+      if (voice.why) showToast(`Previa lista, sin voz ni subtítulos: ${voice.why}`, 'error');
+      else showToast(out.note || 'Previa lista · revísala y compártela', out.note ? '' : 'success');
     } catch (e) {
       console.error('Previa:', e);
       showToast(`No se pudo crear la previa: ${e.message}`, 'error');
@@ -4707,7 +4740,7 @@
   let mixBusy = false;
   let mixUrl = null;
   // El estilo de la música: «urbana» (por defecto: el trap que va con los cortes) o «épica».
-  // Los subtítulos, apagados por defecto; las dos cosas se recuerdan en este navegador.
+  // La voz y los subtítulos, juntos y encendidos por defecto; las dos cosas se recuerdan en este navegador.
   const MUSIC_STYLES = { epica: 'épica', trap: 'urbana' };
   const musicStyle = () => document.querySelector('.lang-opt[data-music][aria-checked="true"]')?.dataset.music || 'trap';
   const setMusicStyle = (style) => document.querySelectorAll('.lang-opt[data-music]')
@@ -4727,9 +4760,8 @@
       if (Number.isFinite(saved.music)) document.getElementById('musicVol').value = saved.music;
       // El estilo guardado antes de la urbana nueva (v < 2) era la épica por defecto: no cuenta.
       if (saved.v >= 2 && MUSIC_STYLES[saved.style]) setMusicStyle(saved.style);
-      // Los subtítulos van apagados por defecto: salen solos con la voz. Lo guardado antes de la v4
-      // (con la v3 iban encendidos por defecto) no cuenta.
-      if (saved.v >= 4 && typeof saved.subs === 'boolean') document.getElementById('videoSubs').checked = saved.subs;
+      // Con voz y subtítulos por defecto. Lo de antes de la v5 (los subtítulos sueltos) no cuenta.
+      if (saved.v >= 5 && typeof saved.voz === 'boolean') setVoiceMode(saved.voz);
       if (typeof saved.long === 'boolean') document.getElementById('videoLong').checked = saved.long;
       // Sin música por defecto (en TikTok se pone un sonido en tendencia); si la activas, se recuerda.
       if (typeof saved.musicOn === 'boolean') document.getElementById('videoMusic').checked = saved.musicOn;
@@ -4743,8 +4775,8 @@
     player.hidden = true;
     try {
       localStorage.setItem(MIX_KEY, JSON.stringify({
-        v: 4, music: Number(document.getElementById('musicVol').value), style: musicStyle(),
-        subs: document.getElementById('videoSubs').checked, musicOn: document.getElementById('videoMusic').checked,
+        v: 5, music: Number(document.getElementById('musicVol').value), style: musicStyle(),
+        voz: withVoice(), musicOn: document.getElementById('videoMusic').checked,
         long: document.getElementById('videoLong').checked,
       }));
     } catch (e) { /* sin localStorage: vale para esta vez */ }
@@ -6071,6 +6103,8 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
     const previa = params.has('previa');
     const [league, id] = (params.get(previa ? 'previa' : 'partido') || '').split('/');
     if (!COMP[league] || !/^\d+$/.test(id || '')) return false;
+    // &voz=no (el botón «Sin voz ni subtítulos» del aviso): esta vez, sin las dos cosas (no se guarda)
+    if (params.get('voz') === 'no') setVoiceMode(false);
     // Que al recargar (o volver a abrir la pestaña) no lo repita.
     history.replaceState(null, '', location.pathname);
     const day = /^\d{4}-\d{2}-\d{2}$/.test(params.get('dia') || '') ? params.get('dia') : null;
@@ -6137,6 +6171,11 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
         Object.assign($('robotVideo'), { src: url, hidden: false });
         $('robotVideo').play().catch(() => {});
         Object.assign($('robotDl'), { href: url, download: files[0].name, hidden: false });
+        // El otro tipo: el mismo partido en el Studio, sin voz ni subtítulos (si este lleva voz)
+        const [match, previa] = String(info.id || id).split('-');
+        if (COMP[info.league] && /^\d{4}-\d{2}-\d{2}$/.test(info.day || '') && info.voz !== false) {
+          Object.assign($('robotNoVoice'), { href: `?${previa ? 'previa' : 'partido'}=${info.league}/${match}&dia=${info.day}&voz=no`, hidden: false });
+        }
       }
       $('robotCaption').value = info.caption || '';
       $('robotCaptionBox').hidden = !info.caption;
@@ -6345,6 +6384,11 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
       document.getElementById('facesField').hidden = !afOn();
     });
     facesBtn.addEventListener('click', () => makeFacesFile(facesBtn));
+    const voiceInput = document.getElementById('voiceKeyInput');
+    voiceInput.value = voiceKey();
+    voiceInput.addEventListener('input', () => {
+      try { localStorage.setItem(VOICE_KEY, voiceInput.value.trim()); } catch (e) { /* sin almacenamiento: no se recuerda */ }
+    });
     document.getElementById('captionCopyBtn').addEventListener('click', copyCaption);
     document.getElementById('captionText').addEventListener('input', () => { captionEdited = true; });
 
@@ -6374,7 +6418,13 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
     document.getElementById('previaBtn').addEventListener('click', () => makePrevia());
     document.getElementById('scriptLines').addEventListener('input', onScriptInput);
     document.getElementById('scriptResetBtn').addEventListener('click', resetScript);
-    ['musicVol', 'videoMusic', 'videoIntro', 'videoSubs'].forEach(id => document.getElementById(id).addEventListener('input', mixChanged));
+    ['musicVol', 'videoMusic', 'videoIntro'].forEach(id => document.getElementById(id).addEventListener('input', mixChanged));
+    document.getElementById('voiceMode').addEventListener('click', (e) => {
+      const btn = e.target.closest('.lang-opt[data-voz]');
+      if (!btn || (btn.dataset.voz === 'si') === withVoice()) return;
+      setVoiceMode(btn.dataset.voz === 'si');
+      mixChanged();
+    });
     document.getElementById('videoIntro').addEventListener('input', () => { if (scriptData) showVideoLength(); });
     // La versión larga tiene más escenas: el guion, con las suyas
     document.getElementById('videoLong').addEventListener('input', () => {
