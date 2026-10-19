@@ -703,24 +703,25 @@
             ctx.fillStyle = `rgba(0,0,0,${0.28 * easeOut(prog(t, BAR, 0.4))})`;
             ctx.fillRect(...bleed(ctx, h.x, 0, W / 2, H));
           }
-          logo(ctx, h.logo, h.x + W / 4, 330, 190);
+          logo(ctx, h.logo, h.x + W / 4, 250, 180);
           const name = up(h.side.short);
-          text(ctx, name, h.x + W / 4, 510, ANTON(fit(ctx, name, ANTON, 80, W / 2 - 90)), st.fg, 'center');
+          text(ctx, name, h.x + W / 4, 420, ANTON(fit(ctx, name, ANTON, 80, W / 2 - 90)), st.fg, 'center');
           const n = String(h.side.score ?? '');
-          const size = fit(ctx, n, ANTON, 860, W / 2 - 70);
+          const size = fit(ctx, n, ANTON, 780, W / 2 - 70);
           const pop = 1 + 0.08 * pulse(t, BEAT) + (h.side.won ? 0.06 * pulse(t, BAR) : 0);
           ctx.save();
-          ctx.translate(h.x + W / 4, 1440);
+          ctx.translate(h.x + W / 4, 1180);
           ctx.scale(pop, pop);
           ctx.shadowColor = 'rgba(0,0,0,.3)';
           ctx.shadowBlur = 50;
           text(ctx, n, 0, 0, ANTON(size), st.fg, 'center');
           ctx.restore();
-          if (h.side.shootout != null) text(ctx, `(${h.side.shootout})`, h.x + W / 4, 1540, ANTON(84), st.fg, 'center');
+          if (h.side.shootout != null) text(ctx, `(${h.side.shootout})`, h.x + W / 4, 520, ANTON(84), st.fg, 'center');
           ctx.restore();
         }
-        if (d.live) chip(ctx, `${d.t?.live || 'EN JUEGO'} ${d.clock}`, W / 2, 600, { acc: '#e3172d', on: '#ffffff' }, 46, 'center');
-        hookTape(ctx, hook, 1060, 1, 0.025 * pulse(t, BEAT));
+        if (d.live) chip(ctx, `${d.t?.live || 'EN JUEGO'} ${d.clock}`, W / 2, 640, { acc: '#e3172d', on: '#ffffff' }, 46, 'center');
+        // La cinta, debajo del resultado (encima tapaba los números)
+        hookTape(ctx, hook, 1340, 1, 0.025 * pulse(t, BEAT));
       },
     };
   }
