@@ -333,12 +333,12 @@ try {
   // Que cuente el partido, no una lista de datos: la remontada, los tiros (4 goles con 8 a puerta
   // no es «pegada»), el doblete, a quién no le sirvió el balón y dónde se queda
   check(told.goals === 'La Roma se adelantó con de Roon y llegó a ir ganando de dos, pero el Real Madrid le dio la vuelta con un gol de Rüdiger en el 90.'
-    && told.tiros === 'El Real Madrid lo intentó 16 veces, 8 a puerta; la Roma, 14.'
+    && told.tiros === '' // contar los tiros sin más sería leer los contadores de la pantalla
     && told.jugador === 'Malen, el mejor del partido: doblete y 3 de 4 tiros a puerta.'
     && told.pulso === 'La Roma tuvo más el balón, un 54%, pero no le sirvió.'
     && told.tabla === 'El Real Madrid, octavo.',
     `y cuenta el partido (${['goals', 'tiros', 'jugador', 'pulso', 'tabla'].map((id) => told[id]).join(' · ')})`);
-  check(script.every(([, , cls]) => /ok/.test(cls)), 'todas caben a ritmo normal');
+  check(script.every(([, line, cls]) => !line || /ok/.test(cls)), 'todas caben a ritmo normal');
   await page.fill('#scriptLines textarea[data-scene="outro"]', '¿Mbappé o Malen?');
   await page.waitForTimeout(700);
 

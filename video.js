@@ -568,10 +568,11 @@
   // 1 · El marcador, que es también la portada: cada equipo en su mitad con su escudo, su nombre y
   // su número gigante, y cruzando, la cinta con el gancho. Todo desde el primer fotograma (TikTok
   // puede coger cualquiera de portada) y dos golpes al ritmo.
-  function sceneScore(d, A) {
+  function sceneScore(d, A, intro = false) {
     const winner = d.home.won ? d.home : d.away.won ? d.away : null;
     const halves = [{ side: d.home, logo: A.homeLogo, x: 0 }, { side: d.away, logo: A.awayLogo, x: W / 2 }];
-    const hook = up(d.hook?.text || d.headline);
+    // Con la apertura del aviso, el gancho ya va en la tarjeta: en la cinta, el titular
+    const hook = up((!intro && d.hook?.text) || d.headline);
     const pulse = (t, at) => Math.sin(Math.PI * prog(t, at, 0.3));
     return {
       id: 'score',
@@ -1846,7 +1847,7 @@
     const beats = d.goals?.some(e => e.kind === 'goal' || e.kind === 'red' || e.kind === 'pen');
     const scenes = [
       intro && sceneNotice(d, A),
-      sceneScore(d, A),
+      sceneScore(d, A, intro),
       d.polemica && scenePolemica(d, A),
       beats && sceneGoals(d, A),
       d.pulse && scenePulso(d, A),

@@ -2785,6 +2785,23 @@
   const closingQuestion = (m) => (live(m) ? L('¿Cómo acaba?', 'How will it end?')
     : polemicaText(m)?.question || (sides(m).draw && !pensWon(m) ? L('¿Quién mereció ganar?', 'Who deserved to win?') : L('¿Quién fue el mejor del partido?', 'Who was your player of the match?')));
 
+  // La pregunta del cierre del vídeo: el vídeo ya dice quién fue el mejor, así que en vez de
+  // «¿Quién fue el mejor del partido?», lo que viene: si el que gana alcanzará al líder, quién
+  // para al líder o, si no, cuál de sus goleadores
+  function videoQuestion(m) {
+    const q = closingQuestion(m);
+    const { winner } = sides(m);
+    if (q !== L('¿Quién fue el mejor del partido?', 'Who was your player of the match?') || !winner) return q;
+    const W = m[winner], rows = m.standings || [];
+    const mine = rows.find(r => r.id === W.id), leader = rows.find(r => r.rank === 1);
+    if (mine && leader && !isEn()) {
+      if (leader.id === W.id) return `¿Quién para ${toTeam(W)}?`;
+      if (leader.pts - mine.pts <= 6) return `¿Alcanzará ${theTeam(W)} ${leader.id === m.home.id || leader.id === m.away.id ? toTeam(m[leader.id === m.home.id ? 'home' : 'away']) : toTeam({ short: leader.name, name: leader.name })}?`;
+    }
+    const names = [...new Set(m.goals.filter(g => g.side === winner && !g.own).map(g => nameOf(m, g.scorer, g.scorerName)))];
+    return names.length >= 2 ? `¿${names[0]} o ${names[1]}?` : q;
+  }
+
   function tplCierre(m) {
     const { winner } = sides(m);
     const team = m[winner || 'home'];
@@ -3753,7 +3770,7 @@
         }),
       },
       closing: {
-        question: writtenText('#slide-cierre .q') || closingQuestion(m),
+        question: (slideEdited('cierre') && writtenText('#slide-cierre .q')) || videoQuestion(m),
         style: teamStyle(m[closingSide]), side: closingSide,
         photo: p && hasPhoto(p) ? [photoSrc(p)] : null,
       },
@@ -4227,14 +4244,12 @@
 
   function shotsStory(d) {
     const H = d.home, A = d.away, sh = d.shots;
-    const fallback = `${cap(H.the)}, ${sh.home.total} tiros y ${sh.home.on} a puerta; ${A.the}, ${sh.away.total} y ${sh.away.on}.`;
     const W = H.score > A.score ? 'home' : A.score > H.score ? 'away' : null;
     if (!W) {
       const more = sh.home.total >= sh.away.total ? 'home' : 'away', less = more === 'home' ? 'away' : 'home';
       const T = more === 'home' ? H : A, O = more === 'home' ? A : H;
       return [
         sh[more].total >= 2 * Math.max(1, sh[less].total) && `${cap(T.the)} lo intentó más: ${sh[more].total} tiros, por ${sh[less].total} ${O.of}.`,
-        fallback,
       ];
     }
     const L = W === 'home' ? 'away' : 'home';
@@ -4245,8 +4260,7 @@
       ls.on === 1 && `${cap(Lt.the)} solo tiró una vez a puerta en todo el partido.`,
       ws.total < ls.total && `Y eso que ${Lt.the} tiró más: ${ls.total} veces, por ${ws.total} ${Wt.of}.`,
       Wt.score >= 3 && Wt.score >= 0.6 * ws.on && `Pegada ${Wt.of}: ${Wt.score} goles con ${ws.on} tiros a puerta.`,
-      `${cap(Wt.the)} lo intentó ${ws.total} veces, ${ws.on} a puerta; ${Lt.the}, ${ls.total}.`,
-      fallback,
+      // Contar los tiros sin más es leer los contadores de la pantalla: mejor callarse
     ];
   }
 
@@ -4433,7 +4447,9 @@
         : /^gol/.test(plain(s.label)) && s.v >= 1 && s.v <= 3 ? (s.v === 1 ? 'un gol' : haul(s.v))
           : /^asistencia/.test(plain(s.label)) && s.v === 1 ? 'una asistencia'
             : `${String(s.v).replace('/', ' de ')} ${s.label.toLocaleLowerCase('es')}`);
-      const [a, b] = d.jugador.stats;
+      // Sus goles ya los ha contado la frase de los goles: aquí, lo que no se ha dicho
+      const told = !!script.goals?.includes(d.jugador.last);
+      const [a, b] = d.jugador.stats.filter(s => !(told && /^gol/.test(plain(s.label))));
       script.jugador = `${d.jugador.last}, el mejor del partido${a ? `: ${say(a)}${b ? ` y ${say(b)}` : ''}` : ''}.`;
     }
     if (d.stats) script.stats = firstFit(d, 'stats', statsStory(d));
