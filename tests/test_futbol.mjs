@@ -358,7 +358,7 @@ try {
   await page.click('#mixPreviewBtn');
   await page.waitForFunction(() => !document.getElementById('mixPlayer').hidden, null, { timeout: 120000 });
   const trapLen = await mixDuration();
-  check(trapLen > 34.6 && trapLen < 35.8, `«Escuchar la mezcla» prepara la urbana (${trapLen.toFixed(1)} s)`);
+  check(trapLen > 36.2 && trapLen < 37.4, `«Escuchar la mezcla» prepara la urbana (${trapLen.toFixed(1)} s)`);
 
   await page.check('#videoSubs');
   // Cuántos canvas se crean mientras se hace el vídeo: con uno nuevo por fotograma (los fondos
@@ -386,7 +386,7 @@ try {
     return { name: document.getElementById('videoDlBtn').download, duration: v.duration, meta: document.getElementById('videoMeta').textContent, toast: document.getElementById('toast').textContent };
   });
   check(/^futbol-roma-rma-2026-10-14-short\.(mp4|webm)$/.test(video.name || ''), `vídeo: ${video.name} (${video.toast})`);
-  check(video.duration > 34.6 && video.duration < 35.8, `dura unos 35 s: el marcador, 6 escenas, el cierre y la de tu logo (${video.duration?.toFixed(1)} s)`);
+  check(video.duration > 36.2 && video.duration < 37.4, `dura unos 37 s: el marcador, 6 escenas, el cierre y la de tu logo (${video.duration?.toFixed(1)} s)`);
   check(video.meta === 'Lleva música urbana y subtítulos.', `con los subtítulos encendidos, lo dice (${video.meta})`);
   // La portada del vídeo dice de quién es el dato, no solo «14 partidos sin perder… hasta hoy»
   const hook = await page.evaluate(() => window.__videoData?.hook);
@@ -402,7 +402,7 @@ try {
   await page.click('#mixPreviewBtn');
   await page.waitForFunction(() => !document.getElementById('mixPlayer').hidden, null, { timeout: 120000 });
   const epicLen = await mixDuration();
-  check(epicLen > 34.6 && epicLen < 35.8, `y la épica dura lo mismo (${epicLen.toFixed(1)} s)`);
+  check(epicLen > 36.2 && epicLen < 37.4, `y la épica dura lo mismo (${epicLen.toFixed(1)} s)`);
   // La versión larga (TikTok solo paga a partir del minuto): más escenas si hay datos y cada una
   // algo más en pantalla, en compases enteros, hasta pasar del minuto
   const secs = () => page.$$eval('#scriptLines .script-line', (ls) => ls.map((l) => [l.dataset.scene, parseFloat(l.querySelector('small').textContent.replace(',', '.'))]));
@@ -412,7 +412,7 @@ try {
   const longScenes = await secs();
   const longTotal = await page.textContent('#scriptTotal');
   const bars = longScenes.every(([, t]) => Math.abs(t / 1.6 - Math.round(t / 1.6)) < 0.05);
-  check(shortTotal === 'El vídeo dura 35 s.' && longTotal === 'El vídeo dura 1:02.' && longScenes.length >= shortScenes.length && bars,
+  check(shortTotal === 'El vídeo dura 37 s.' && longTotal === 'El vídeo dura 1:02.' && longScenes.length >= shortScenes.length && bars,
     `«Versión larga (+1 min)»: ${shortTotal} → ${longTotal} (${longScenes.map(([id, t]) => `${id} ${t}`).join(' · ')})`);
   await page.uncheck('#videoLong');
   check((await secs()).join() === shortScenes.join() && await page.textContent('#scriptTotal') === shortTotal, 'y al quitarla, el vídeo de siempre');

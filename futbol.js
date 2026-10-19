@@ -988,6 +988,7 @@
         name: national ? (!isEn() && COUNTRY_NAMES[espnName]) || espnName : clubNames(espnName, e.team?.shortDisplayName, league)[1],
         logo: e.team?.logos?.[0]?.href || logos[id] || LOGO(id),
         zone: /^#[0-9a-f]{6}$/i.test(e.note?.color || '') ? e.note.color : '',
+        zoneName: e.note?.description || '',
         rank: stat(e, 'rank'), gp: stat(e, 'gamesPlayed'), gd: stat(e, 'pointDifferential'), pts: stat(e, 'points'),
       };
     }).filter(r => r.rank != null).sort((a, b) => a.rank - b.rank);
@@ -1010,6 +1011,15 @@
         const table = await espnFetch(`/${game.league}/standings`, ESPN_TABLES);
         addStandings(m, table.children || (table.standings ? [table] : []));
       } catch (e) { /* sin clasificación: la slide no sale */ }
+    } else if (m.standings && !m.standings.some(r => r.zone)) {
+      // El resumen no trae las zonas (Champions, descenso…): las de la clasificación aparte, por
+      // puesto, para los corchetes de la tabla del vídeo
+      try {
+        const table = await espnFetch(`/${game.league}/standings`, ESPN_TABLES);
+        const t = tableOf(table.children || (table.standings ? [table] : []), [m.home.id, m.away.id], m.league);
+        const byRank = new Map((t?.rows || []).map(r => [r.rank, r]));
+        m.standings.forEach(r => { const z = byRank.get(r.rank); if (z?.zone) Object.assign(r, { zone: z.zone, zoneName: z.zoneName }); });
+      } catch (e) { /* sin zonas */ }
     }
     return m;
   }
@@ -1326,12 +1336,12 @@
       moved.push(out.splice(out.indexOf(r), 1)[0]);
     }
     if (!moved.length) return null;
-    const zones = rows.map(r => r.zone);
+    const zones = rows.map(r => [r.zone, r.zoneName]);
     for (const r of moved) {
       const i = out.findIndex(x => (x.pts ?? 0) < r.pts || ((x.pts ?? 0) === r.pts && (x.gd ?? 0) <= (r.gd ?? 0)));
       out.splice(i < 0 ? out.length : i, 0, r);
     }
-    return out.map((r, i) => ({ ...r, rank: i + 1, zone: zones[i] }));
+    return out.map((r, i) => ({ ...r, rank: i + 1, zone: zones[i][0], zoneName: zones[i][1] }));
   }
 
   // ----------------------------------------------------------
@@ -3630,6 +3640,13 @@
     return said.length <= 60 ? said : `${m[dato.side] ? `${m[dato.side].short}: ` : ''}${big} ${unit}`;
   }
 
+  // Las zonas de la clasificación, en corto (los corchetes del vídeo)
+  function zoneLabel(desc) {
+    const d = String(desc || '');
+    return /champions/i.test(d) ? L('CHAMPIONS', 'UCL') : /europa/i.test(d) ? L('EUROPA LEAGUE', 'UEL') : /conference/i.test(d) ? L('CONFERENCE', 'UECL')
+      : /relegation/i.test(d) ? L('DESCENSO', 'RELEGATION') : /promotion/i.test(d) ? L('ASCENSO', 'PROMOTION') : '';
+  }
+
   // El pulso del partido: lo que apretaba cada equipo en cada minuto, suavizado (una campana de
   // unos 3 minutos por suceso). Con pocos sucesos (ESPN no siempre da la narración) o en juego,
   // sin pulso.
@@ -3728,7 +3745,9 @@
         title: L(`Así va ${tableName(m)}`, `${tableName(m)} table`),
         teams: m.standings.length,
         rows: tbl.map(r => r && {
-          rank: r.rank, pts: r.pts, logo: r.logo,
+          rank: r.rank, pts: r.pts, logo: r.logo, zone: r.zone || '', zoneName: zoneLabel(r.zoneName),
+          // El color de cada equipo (los que tiene el Studio a mano), para su barra
+          color: r.id === m.home.id ? videoStyle(m.home).bg : r.id === m.away.id ? videoStyle(m.away).bg : CLUB_COLORS[r.id]?.bg || null,
           name: r.id === m.home.id ? m.home.short : r.id === m.away.id ? m.away.short : r.name,
           me: r.id === m.home.id ? 'home' : r.id === m.away.id ? 'away' : null,
         }),
@@ -3754,7 +3773,7 @@
         forma: L('CÓMO LLEGABAN', 'FORM COMING IN'), h2h: L('CARA A CARA', 'HEAD TO HEAD'), draws: L('EMPATES', 'DRAWS'), wdl: L(['G', 'E', 'P'], ['W', 'D', 'L']),
         halftime: L('DESCANSO', 'HALF-TIME'), extraTime: L('PRÓRROGA', 'EXTRA TIME'), now: L('AHORA', 'NOW'), fullTime: L('FINAL', 'FULL TIME'),
         onPens: L('EN LOS PENALTIS', 'ON PENALTIES'),
-        live: L('EN JUEGO', 'LIVE'), shots: L('TIROS', 'SHOTS'),
+        live: L('EN JUEGO', 'LIVE'), shots: L('TIROS', 'SHOTS'), pts: L('PUNTOS', 'POINTS'),
         comments: L('TE LEO EN COMENTARIOS', 'LET ME KNOW IN THE COMMENTS'),
         follow: L('Sígueme para más fútbol', 'Follow for more football'),
       },
@@ -3940,7 +3959,9 @@
         title: L(`Así llegan en ${tableName(m)}`, `${tableName(m)} table`),
         teams: m.standings.length,
         rows: tbl.map(r => r && {
-          rank: r.rank, pts: r.pts, logo: r.logo,
+          rank: r.rank, pts: r.pts, logo: r.logo, zone: r.zone || '', zoneName: zoneLabel(r.zoneName),
+          // El color de cada equipo (los que tiene el Studio a mano), para su barra
+          color: r.id === m.home.id ? videoStyle(m.home).bg : r.id === m.away.id ? videoStyle(m.away).bg : CLUB_COLORS[r.id]?.bg || null,
           name: r.id === m.home.id ? m.home.short : r.id === m.away.id ? m.away.short : r.name,
           me: r.id === m.home.id ? 'home' : r.id === m.away.id ? 'away' : null,
         }),
