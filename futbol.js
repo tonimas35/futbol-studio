@@ -3775,10 +3775,12 @@
     btn.classList.add('btn-loading');
     document.activeElement?.blur();
     try {
-      const opts = { ...videoOptions(), captions: document.getElementById('videoSubs').checked };
+      const opts = { ...videoOptions() };
       const data = videoData(m);
       if (window.fsVoz) label.textContent = 'Poniendo la voz…';
       opts.voiceClips = await robotVoice(data, opts.script);
+      // El guion solo sale en subtítulos si se dice (o si los enciendes tú)
+      opts.captions = document.getElementById('videoSubs').checked || !!opts.voiceClips;
       const out = await window.StudioVideo.render(data, (p, stage) => {
         label.textContent = stage || `Creando el vídeo… ${Math.round(p * 100)}%`;
       }, opts);
@@ -3955,7 +3957,7 @@
       const voiceClips = await robotVoice(data, script);
       const out = await window.StudioVideo.render(data, (p, stage) => {
         label.textContent = stage || `Creando la previa… ${Math.round(p * 100)}%`;
-      }, { ...videoOptions(), captions: document.getElementById('videoSubs').checked, script, voiceClips });
+      }, { ...videoOptions(), captions: document.getElementById('videoSubs').checked || !!voiceClips, script, voiceClips });
       resetVideo();
       videoUrl = URL.createObjectURL(out.blob);
       document.getElementById('videoPreview').src = videoUrl;
@@ -4543,9 +4545,9 @@
       if (Number.isFinite(saved.music)) document.getElementById('musicVol').value = saved.music;
       // El estilo guardado antes de la urbana nueva (v < 2) era la épica por defecto: no cuenta.
       if (saved.v >= 2 && MUSIC_STYLES[saved.style]) setMusicStyle(saved.style);
-      // Los subtítulos (el guion que cuenta el partido) van encendidos desde la v3: lo guardado antes,
-      // con los apagados de entonces, no cuenta.
-      if (saved.v >= 3 && typeof saved.subs === 'boolean') document.getElementById('videoSubs').checked = saved.subs;
+      // Los subtítulos van apagados por defecto: salen solos con la voz. Lo guardado antes de la v4
+      // (con la v3 iban encendidos por defecto) no cuenta.
+      if (saved.v >= 4 && typeof saved.subs === 'boolean') document.getElementById('videoSubs').checked = saved.subs;
       if (typeof saved.long === 'boolean') document.getElementById('videoLong').checked = saved.long;
       // Sin música por defecto (en TikTok se pone un sonido en tendencia); si la activas, se recuerda.
       if (typeof saved.musicOn === 'boolean') document.getElementById('videoMusic').checked = saved.musicOn;
@@ -4559,7 +4561,7 @@
     player.hidden = true;
     try {
       localStorage.setItem(MIX_KEY, JSON.stringify({
-        v: 3, music: Number(document.getElementById('musicVol').value), style: musicStyle(),
+        v: 4, music: Number(document.getElementById('musicVol').value), style: musicStyle(),
         subs: document.getElementById('videoSubs').checked, musicOn: document.getElementById('videoMusic').checked,
         long: document.getElementById('videoLong').checked,
       }));
