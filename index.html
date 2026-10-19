@@ -40,7 +40,7 @@
       <div class="robot-actions">
         <button class="btn btn-primary" id="robotShare" type="button" hidden>Compartir vídeo</button>
         <a class="btn btn-ghost" id="robotDl" hidden>Descargar</a>
-        <a class="btn btn-ghost" id="robotNoVoice" hidden>Sin voz ni subtítulos</a>
+        <a class="btn btn-ghost" id="robotOtherType" hidden></a>
       </div>
       <div class="caption-box" id="robotCaptionBox" hidden>
         <div class="caption-head">
@@ -274,11 +274,11 @@
           </svg>
         </button>
         <label class="check"><input type="checkbox" id="videoMusic" /> Con música</label>
-        <!-- La voz y los subtítulos van juntos: con los dos (por defecto) o sin ninguno -->
+        <!-- La voz y los subtítulos van juntos: con los dos o sin ninguno (por defecto, mientras se mejora la voz) -->
         <div class="mix-style voice-mode"><span>Voz</span>
           <div class="lang-switch" id="voiceMode" role="radiogroup" aria-label="Voz y subtítulos">
-            <button class="lang-opt" type="button" role="radio" data-voz="si" aria-checked="true">Con voz y subtítulos</button>
-            <button class="lang-opt" type="button" role="radio" data-voz="no" aria-checked="false">Sin voz ni subtítulos</button>
+            <button class="lang-opt" type="button" role="radio" data-voz="si" aria-checked="false">Con voz y subtítulos</button>
+            <button class="lang-opt" type="button" role="radio" data-voz="no" aria-checked="true">Sin voz ni subtítulos</button>
           </div>
         </div>
         <label class="check"><input type="checkbox" id="videoIntro" checked /> Apertura con el aviso del móvil</label>
@@ -351,6 +351,6 @@
   <script src="audio.js?v=3"></script>
   <script src="campo3d.js?v=1"></script>
   <script src="video.js?v=22"></script>
-  <script src="futbol.js?v=43"></script>
+  <script src="futbol.js?v=44"></script>
 </body>
 </html>

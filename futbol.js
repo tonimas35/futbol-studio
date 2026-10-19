@@ -3899,17 +3899,18 @@
     videoUrl = null;
     audioUrl = null;
   }
-  // LA VOZ · dos tipos de vídeo (el selector «Voz»): con voz y subtítulos (por defecto) o sin
-  // ninguna de las dos cosas. Cada frase del guion se dice con la voz clonada y el vídeo se ajusta a
-  // lo que dura. La pone el robot (tools/piloto.mjs le da window.fsVoz) o, en el Studio a mano, el
-  // servicio de voz en Modal (tools/voz_modal.py) con tu clave, que se guarda solo en este
-  // navegador. Si no hay voz o falla, el vídeo sale sin voz ni subtítulos y lo dice.
+  // LA VOZ · dos tipos de vídeo (el selector «Voz»): con voz y subtítulos o sin ninguna de las dos
+  // cosas (por defecto, también en el robot, mientras se mejora la voz). Cada frase del guion se
+  // dice con la voz clonada y el vídeo se ajusta a lo que dura. La pone el robot (tools/piloto.mjs
+  // le da window.fsVoz) o, en el Studio a mano, el servicio de voz en Modal (tools/voz_modal.py)
+  // con tu clave, que se guarda solo en este navegador. Si no hay voz o falla, el vídeo sale sin
+  // voz ni subtítulos y lo dice.
   const VOICE_KEY = 'fc-voice-key';
   const VOICE_URL = 'https://tonimas35--jornada90-voz-navegador.us-east.modal.run';
   const voiceKey = () => {
     try { return (localStorage.getItem(VOICE_KEY) || '').trim(); } catch (e) { return ''; }
   };
-  const withVoice = () => document.querySelector('.lang-opt[data-voz][aria-checked="true"]')?.dataset.voz !== 'no';
+  const withVoice = () => document.querySelector('.lang-opt[data-voz][aria-checked="true"]')?.dataset.voz === 'si';
   const setVoiceMode = (on) => document.querySelectorAll('.lang-opt[data-voz]')
     .forEach(b => b.setAttribute('aria-checked', String((b.dataset.voz === 'si') === on)));
   // Los marcadores, dichos: «4-1» → «4 a 1»
@@ -4740,7 +4741,7 @@
   let mixBusy = false;
   let mixUrl = null;
   // El estilo de la música: «urbana» (por defecto: el trap que va con los cortes) o «épica».
-  // La voz y los subtítulos, juntos y encendidos por defecto; las dos cosas se recuerdan en este navegador.
+  // La voz y los subtítulos, juntos y apagados por defecto; las dos cosas se recuerdan en este navegador.
   const MUSIC_STYLES = { epica: 'épica', trap: 'urbana' };
   const musicStyle = () => document.querySelector('.lang-opt[data-music][aria-checked="true"]')?.dataset.music || 'trap';
   const setMusicStyle = (style) => document.querySelectorAll('.lang-opt[data-music]')
@@ -4760,8 +4761,9 @@
       if (Number.isFinite(saved.music)) document.getElementById('musicVol').value = saved.music;
       // El estilo guardado antes de la urbana nueva (v < 2) era la épica por defecto: no cuenta.
       if (saved.v >= 2 && MUSIC_STYLES[saved.style]) setMusicStyle(saved.style);
-      // Con voz y subtítulos por defecto. Lo de antes de la v5 (los subtítulos sueltos) no cuenta.
-      if (saved.v >= 5 && typeof saved.voz === 'boolean') setVoiceMode(saved.voz);
+      // Sin voz ni subtítulos por defecto. Lo de antes de la v6 (los subtítulos sueltos y la voz
+      // encendida por defecto, mientras se probaba) no cuenta.
+      if (saved.v >= 6 && typeof saved.voz === 'boolean') setVoiceMode(saved.voz);
       if (typeof saved.long === 'boolean') document.getElementById('videoLong').checked = saved.long;
       // Sin música por defecto (en TikTok se pone un sonido en tendencia); si la activas, se recuerda.
       if (typeof saved.musicOn === 'boolean') document.getElementById('videoMusic').checked = saved.musicOn;
@@ -4775,7 +4777,7 @@
     player.hidden = true;
     try {
       localStorage.setItem(MIX_KEY, JSON.stringify({
-        v: 5, music: Number(document.getElementById('musicVol').value), style: musicStyle(),
+        v: 6, music: Number(document.getElementById('musicVol').value), style: musicStyle(),
         voz: withVoice(), musicOn: document.getElementById('videoMusic').checked,
         long: document.getElementById('videoLong').checked,
       }));
@@ -6103,8 +6105,8 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
     const previa = params.has('previa');
     const [league, id] = (params.get(previa ? 'previa' : 'partido') || '').split('/');
     if (!COMP[league] || !/^\d+$/.test(id || '')) return false;
-    // &voz=no (el botón «Sin voz ni subtítulos» del aviso): esta vez, sin las dos cosas (no se guarda)
-    if (params.get('voz') === 'no') setVoiceMode(false);
+    // &voz=si o &voz=no (el botón del otro tipo, en el aviso): esta vez, con o sin las dos cosas (no se guarda)
+    if (['si', 'no'].includes(params.get('voz'))) setVoiceMode(params.get('voz') === 'si');
     // Que al recargar (o volver a abrir la pestaña) no lo repita.
     history.replaceState(null, '', location.pathname);
     const day = /^\d{4}-\d{2}-\d{2}$/.test(params.get('dia') || '') ? params.get('dia') : null;
@@ -6171,10 +6173,13 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
         Object.assign($('robotVideo'), { src: url, hidden: false });
         $('robotVideo').play().catch(() => {});
         Object.assign($('robotDl'), { href: url, download: files[0].name, hidden: false });
-        // El otro tipo: el mismo partido en el Studio, sin voz ni subtítulos (si este lleva voz)
+        // El otro tipo: el mismo partido en el Studio, con voz y subtítulos (si este va sin ellos) o sin ellos
         const [match, previa] = String(info.id || id).split('-');
-        if (COMP[info.league] && /^\d{4}-\d{2}-\d{2}$/.test(info.day || '') && info.voz !== false) {
-          Object.assign($('robotNoVoice'), { href: `?${previa ? 'previa' : 'partido'}=${info.league}/${match}&dia=${info.day}&voz=no`, hidden: false });
+        if (COMP[info.league] && /^\d{4}-\d{2}-\d{2}$/.test(info.day || '')) {
+          Object.assign($('robotOtherType'), {
+            href: `?${previa ? 'previa' : 'partido'}=${info.league}/${match}&dia=${info.day}&voz=${info.voz ? 'no' : 'si'}`,
+            textContent: info.voz ? 'Sin voz ni subtítulos' : 'Con voz y subtítulos', hidden: false,
+          });
         }
       }
       $('robotCaption').value = info.caption || '';

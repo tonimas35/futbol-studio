@@ -357,8 +357,8 @@ try {
     return a.duration;
   });
   check(await page.getAttribute('.lang-opt[data-music="trap"]', 'aria-checked') === 'true' && await page.isHidden('#mixResetBtn'), 'la música, urbana por defecto');
-  check(await page.getAttribute('.lang-opt[data-voz="si"]', 'aria-checked') === 'true' && await page.inputValue('#voiceKeyInput') === '',
-    'y «Con voz y subtítulos» por defecto (la voz, con tu clave)');
+  check(await page.getAttribute('.lang-opt[data-voz="no"]', 'aria-checked') === 'true' && await page.inputValue('#voiceKeyInput') === '',
+    'y «Sin voz ni subtítulos» por defecto, mientras se mejora la voz');
   check(!(await page.isChecked('#videoMusic')) && await page.isDisabled('#musicVol'), 'y sin música por defecto (en TikTok se pone un sonido)');
   await page.check('#videoMusic');
   await page.click('#mixPreviewBtn');
@@ -376,6 +376,7 @@ try {
     return r.fulfill(json(JSON.stringify(Object.fromEntries(body.lines.map((l) => [l.id, { audio: wavTone(1), times: null }])))));
   });
   await page.fill('#voiceKeyInput', 'clave-de-prueba');
+  await page.click('.lang-opt[data-voz="si"]');
   // Cuántos canvas se crean mientras se hace el vídeo: con uno nuevo por fotograma (los fondos
   // cacheados por el tamaño de la pantalla, que cambia con la cámara) el iPhone se quedaba sin
   // memoria y Safari cerraba la página.
@@ -493,14 +494,15 @@ try {
   check(asc === '11 90', `con el AAC de Safari, el MP4 lleva la configuración buena y suena (${asc})`);
   check(await page.textContent('#videoMeta') === 'Lleva música épica y la apertura con el aviso.' && voiceAsked.length === 1,
     `«Sin voz ni subtítulos»: sin pedir la voz, y el vídeo lo dice (${await page.textContent('#videoMeta')})`);
+  await page.click('.lang-opt[data-voz="si"]');
   await page.reload();
   await page.waitForSelector('#slide-portada');
   await page.waitForTimeout(500);
   check(await page.inputValue('#scriptLines textarea[data-scene="outro"]') === '¿Mbappé o Malen?', 'al recargar sigue el guion retocado');
-  check(await page.getAttribute('.lang-opt[data-music="epica"]', 'aria-checked') === 'true' && await page.getAttribute('.lang-opt[data-voz="no"]', 'aria-checked') === 'true'
+  check(await page.getAttribute('.lang-opt[data-music="epica"]', 'aria-checked') === 'true' && await page.getAttribute('.lang-opt[data-voz="si"]', 'aria-checked') === 'true'
     && await page.isChecked('#videoMusic') && await page.inputValue('#voiceKeyInput') === 'clave-de-prueba',
-    'y la música (activada y la elegida), «Sin voz ni subtítulos» y tu clave de la voz');
-  await page.click('.lang-opt[data-voz="si"]');
+    'y la música (activada y la elegida), «Con voz y subtítulos» y tu clave de la voz');
+  await page.click('.lang-opt[data-voz="no"]');
   await page.click('#mixResetBtn');
   check(await page.getAttribute('.lang-opt[data-music="trap"]', 'aria-checked') === 'true' && await page.isHidden('#mixResetBtn'), '«↺ Por defecto» vuelve a la urbana');
 
@@ -665,11 +667,12 @@ try {
       e.status = { ...e.status, displayClock: "90'+4'", type: { ...e.status.type, name: 'STATUS_FULL_TIME', state: 'post', completed: true, description: 'Full Time' } };
       e.competitions[0].status = e.status;
     }
-    // Con la voz del robot (ElevenLabs, en tools/piloto.mjs): aquí, un tono por frase, la de los
-    // goles de 30 s (no cabe en su escena) y las demás de 1,2 s, con el tiempo de cada palabra
+    // Con la voz del robot (tools/piloto.mjs; con &voz=si, el botón «Con voz y subtítulos» del
+    // aviso): aquí, un tono por frase, la de los goles de 30 s (no cabe en su escena) y las demás de
+    // 1,2 s, con el tiempo de cada palabra
     const asked = [];
     const { ctx: c7, page: p7 } = await open({
-      url: `${base}/?partido=esp.1/401882844&dia=2026-10-16`,
+      url: `${base}/?partido=esp.1/401882844&dia=2026-10-16&voz=si`,
       before: async (ctx) => {
         ctx.on('page', (pg) => pg.on('dialog', (d) => d.accept()));
         await ctx.exposeFunction('fsVoz', async (lines) => {
@@ -717,10 +720,10 @@ try {
     check(voiced.meta === 'Lleva la voz, subtítulos y la apertura con el aviso.' && voiced.audio && grow > 0 && Math.abs(voiced.duration - plain - grow) < 0.6,
       `y el vídeo la lleva: la escena de los goles dura lo que su frase, en compases (${voiced.meta} · ${voiced.duration?.toFixed(1)} s, sin voz ${plain} s, +${grow.toFixed(1)} s)`);
     await c7.close();
-    // «Sin voz ni subtítulos» (el botón del aviso, &voz=no): el mismo partido, sin pedir la voz
+    // Y por defecto, sin voz ni subtítulos (mientras se mejora la voz): el robot no la pide
     const askedNo = [];
     const { ctx: c7n, page: p7n } = await open({
-      url: `${base}/?partido=esp.1/401882844&dia=2026-10-16&voz=no`,
+      url: `${base}/?partido=esp.1/401882844&dia=2026-10-16`,
       before: async (ctx) => {
         ctx.on('page', (pg) => pg.on('dialog', (d) => d.accept()));
         await ctx.exposeFunction('fsVoz', async (lines) => { askedNo.push(lines); return null; });
@@ -731,8 +734,8 @@ try {
     await p7n.waitForFunction(() => !document.getElementById('videoOut').hidden || /No se pudo/.test(document.getElementById('toast').textContent), null, { timeout: 400000 });
     const nv = await p7n.evaluate(() => ({ meta: document.getElementById('videoMeta').textContent, voz: document.getElementById('videoOut').dataset.voz,
       mode: document.querySelector('.lang-opt[data-voz="no"]').getAttribute('aria-checked'), saved: localStorage.getItem('fc-mix') || '' }));
-    check(askedNo.length === 0 && nv.voz === 'no' && !/voz|subtítulos/.test(nv.meta) && nv.mode === 'true' && !nv.saved.includes('"voz":false'),
-      `«Sin voz ni subtítulos» desde el aviso: el mismo partido sin voz ni subtítulos, sin cambiar lo que tengas elegido (${nv.meta})`);
+    check(askedNo.length === 0 && nv.voz === 'no' && !/voz|subtítulos/.test(nv.meta) && nv.mode === 'true' && !nv.saved.includes('"voz"'),
+      `por defecto, el robot hace el vídeo sin voz ni subtítulos: no la pide (${nv.meta})`);
     await c7n.close();
     // Un partido que no está: lo dice y deja el Studio como siempre.
     const { ctx: c7b, page: p7b } = await open({ url: `${base}/?partido=esp.1/999`, before: async (ctx) => { await ctx.clock.setFixedTime(new Date('2026-10-16T22:00:00+02:00')); } });
@@ -897,11 +900,12 @@ try {
       const render = window.StudioVideo.render;
       window.StudioVideo.render = (data, cb, opts) => { window.__previaOpts = opts; return render(data, cb, opts); };
     });
+    await pp.click('.lang-opt[data-voz="si"]');
     await pp.click('#previaBtn');
     await pp.waitForFunction(() => !document.getElementById('videoOut').hidden || /No se pudo/.test(document.getElementById('toast').textContent), null, { timeout: 400000 });
     const said = await pp.evaluate(() => ({ captions: window.__previaOpts?.captions, toast: document.getElementById('toast').textContent, ...window.__previaOpts?.script }));
     check(said.captions === false && /sin voz ni subtítulos: falta tu clave de la voz/.test(said.toast),
-      `sin tu clave de la voz, la previa sale sin voz ni subtítulos y lo dice (${said.toast})`);
+      `con voz pero sin tu clave de la voz, la previa sale sin voz ni subtítulos y lo dice (${said.toast})`);
     check(said.forma === 'El Real Madrid llega con cuatro victorias de cinco.' && said.h2h === 'El Real Madrid ganó los cinco últimos.'
       && said.goleadores === 'Los que más marcan: Mbappé, 7; Sierra, 2.' && /^El Real Madrid, cuarto, a nueve del líder/.test(said.tabla)
       && said.outro === '¿Quién gana? Te leo en comentarios.',
@@ -934,12 +938,13 @@ try {
       caption: document.getElementById('robotCaption').value,
       share: !document.getElementById('robotShare').hidden,
       dl: document.getElementById('robotDl').download,
-      noVoice: !document.getElementById('robotNoVoice').hidden && document.getElementById('robotNoVoice').getAttribute('href'),
+      other: !document.getElementById('robotOtherType').hidden && [document.getElementById('robotOtherType').textContent, document.getElementById('robotOtherType').getAttribute('href')],
       url: location.search,
     }));
     check(rv.open && rv.title === info.title && rv.caption === info.caption && rv.share && rv.dl === info.file && rv.url === '',
       `el aviso abre el vídeo con su descripción, para compartir o descargar (${rv.title})`);
-    check(rv.noVoice === '?partido=esp.1/401882844&dia=2026-10-16&voz=no', `y, como lleva voz, el botón para hacerlo sin voz ni subtítulos en el Studio (${rv.noVoice})`);
+    check(rv.other?.[0] === 'Sin voz ni subtítulos' && rv.other[1] === '?partido=esp.1/401882844&dia=2026-10-16&voz=no',
+      `y, como lleva voz, el botón para hacerlo sin voz ni subtítulos en el Studio (${rv.other})`);
     await pv.click('#robotShare');
     await pv.waitForTimeout(300);
     // (en Windows, el portapapeles devuelve los saltos de línea como \r\n)
@@ -948,6 +953,19 @@ try {
     await pv.click('#robotClose');
     check(await pv.$eval('#robotBox', (b) => b.hidden) && !!(await pv.$('.game-card, .games-empty')), '«Cerrar» deja el Studio de siempre');
     await cv.close();
+    // Y una previa sin voz: el botón para hacerla con voz y subtítulos
+    const pinfo = { ...info, id: '401882839-previa', day: '2026-10-18', voz: false };
+    const { ctx: cvp, page: pvp } = await open({
+      url: `${base}/?video=401882839-previa`,
+      before: async (c) => {
+        await c.route('**/v/401882839-previa.json', (r) => r.fulfill(json(JSON.stringify(pinfo))));
+        await c.route('**/v/401882839-previa.mp4', (r) => r.fulfill({ status: 200, contentType: 'video/mp4', body: Buffer.from('mp4 de prueba') }));
+      },
+    });
+    await pvp.waitForFunction(() => !document.getElementById('robotOtherType').hidden, null, { timeout: 15000 }).catch(() => {});
+    const po = await pvp.$eval('#robotOtherType', (a) => [a.textContent, a.getAttribute('href')]);
+    check(po[0] === 'Con voz y subtítulos' && po[1] === '?previa=esp.1/401882839&dia=2026-10-18&voz=si', `y, sin voz, el botón para hacerla con voz y subtítulos (${po})`);
+    await cvp.close();
     // Si el vídeo ya no está (se guardan unos días), lo dice
     const { ctx: cw, page: pw } = await open({ url: `${base}/?video=401882845` });
     await pw.waitForFunction(() => document.getElementById('robotTitle').textContent !== 'Cargando el vídeo…', null, { timeout: 15000 }).catch(() => {});

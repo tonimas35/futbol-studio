@@ -259,8 +259,9 @@ export function serve() {
   return new Promise(ok => server.listen(0, '127.0.0.1', () => ok(server)));
 }
 
-// LA VOZ · el Studio le pide al robot cada frase del guion dicha con la voz clonada (window.fsVoz) y
-// el vídeo dura lo que pide cada una. Dos motores (piloto.json → voz.motor; si el elegido no está
+// LA VOZ · con «Con voz y subtítulos» (por defecto va sin ellos mientras se mejora la voz; el botón
+// del aviso hace el partido con ellos), el Studio le pide al robot cada frase del guion dicha con la
+// voz clonada (window.fsVoz) y el vídeo dura lo que pide cada una. Dos motores (piloto.json → voz.motor; si el elegido no está
 // puesto, el otro):
 //  · «qwen»: Qwen3-TTS (Apache-2.0) en Modal (tools/voz_modal.py), con VOZ_URL (una variable del
 //    repo: la dirección del servicio) y MODAL_KEY y MODAL_SECRET (secretos: su Proxy Auth Token).
