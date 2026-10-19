@@ -31,6 +31,14 @@ import { pathToFileURL } from 'node:url';
 
 const REPO = resolve(new URL('..', import.meta.url).pathname);
 const FIX = join(REPO, 'tests', 'fixtures');
+// Un tono de tantos segundos, en WAV y base64 (la voz de mentira del robot)
+const wavTone = (secs, rate = 22050) => {
+  const n = Math.round(secs * rate), b = Buffer.alloc(44 + n * 2);
+  b.write('RIFF', 0); b.writeUInt32LE(36 + n * 2, 4); b.write('WAVEfmt ', 8); b.writeUInt32LE(16, 16); b.writeUInt16LE(1, 20); b.writeUInt16LE(1, 22);
+  b.writeUInt32LE(rate, 24); b.writeUInt32LE(rate * 2, 28); b.writeUInt16LE(2, 32); b.writeUInt16LE(16, 34); b.write('data', 36); b.writeUInt32LE(n * 2, 40);
+  for (let i = 0; i < n; i++) b.writeInt16LE(Math.round(6000 * Math.sin((2 * Math.PI * 220 * i) / rate)), 44 + i * 2);
+  return b.toString('base64');
+};
 
 async function loadChromium() {
   for (const name of ['playwright-core', 'playwright']) {
@@ -608,10 +616,20 @@ try {
       e.status = { ...e.status, displayClock: "90'+4'", type: { ...e.status.type, name: 'STATUS_FULL_TIME', state: 'post', completed: true, description: 'Full Time' } };
       e.competitions[0].status = e.status;
     }
+    // Con la voz del robot (ElevenLabs, en tools/piloto.mjs): aquí, un tono por frase, la de los
+    // goles de 8 s (no cabe en su escena) y las demás de 1,2 s, con el tiempo de cada palabra
+    const asked = [];
     const { ctx: c7, page: p7 } = await open({
       url: `${base}/?partido=esp.1/401882844&dia=2026-10-16`,
       before: async (ctx) => {
         ctx.on('page', (pg) => pg.on('dialog', (d) => d.accept()));
+        await ctx.exposeFunction('fsVoz', async (lines) => {
+          asked.push(lines);
+          return Object.fromEntries(lines.map((l) => {
+            const secs = l.id === 'goals' ? 8 : 1.2, n = l.text.split(/\s+/).length;
+            return [l.id, { audio: wavTone(secs), times: [...Array(n)].map((_, i) => [(i * secs) / n, ((i + 1) * secs) / n]) }];
+          }));
+        });
         await ctx.clock.setFixedTime(new Date('2026-10-17T10:00:00+02:00'));
         await ctx.route('https://site.api.espn.com/apis/site/v2/sports/soccer/esp.1/scoreboard?dates=20261016', (r) => r.fulfill(json(JSON.stringify(sbEnded))));
       },
@@ -629,6 +647,24 @@ try {
     await p7.waitForSelector('#videoBtn.btn-loading', { timeout: 20000 }).catch(() => {});
     check(!!(await p7.$('#slide-portada')) && /Depor 1-0 Levante/.test(link.caption) && !!(await p7.$('#videoBtn.btn-loading')),
       `genera el carrusel, la descripción y empieza el vídeo (${link.caption})`);
+    await p7.waitForFunction(() => !document.getElementById('videoOut').hidden || /No se pudo/.test(document.getElementById('toast').textContent), null, { timeout: 400000 });
+    const voiced = await p7.evaluate(async () => {
+      const v = document.getElementById('videoPreview');
+      if (!v.src) return { toast: document.getElementById('toast').textContent };
+      await new Promise((r) => (v.readyState >= 1 ? r() : v.addEventListener('loadedmetadata', r, { once: true })));
+      const b = new Uint8Array(await (await fetch(v.src)).arrayBuffer());
+      return { meta: document.getElementById('videoMeta').textContent, duration: v.duration, total: document.getElementById('scriptTotal').textContent,
+        goals: parseFloat(document.querySelector('#scriptLines .script-line[data-scene="goals"] small').textContent.replace(',', '.')),
+        audio: /mp4a|Opus/.test(new TextDecoder('latin1').decode(b)) }; // AAC, u Opus en el Chromium sin códecs propietarios
+    });
+    // Sin voz, lo de siempre (redondeado); con ella, la escena de los goles crece en compases (1,6 s)
+    // hasta que caben sus 8 s de frase
+    const plain = Number(voiced.total?.match(/(\d+) s/)?.[1]);
+    const grow = Math.ceil((0.15 + 8 + 0.35 - voiced.goals) / 1.6 - 1e-6) * 1.6;
+    check(asked.length === 1 && asked[0][0].id === 'score' && asked[0].some((l) => l.id === 'goals') && asked[0].every((l) => l.text),
+      `el robot pone la voz a cada frase del guion (${asked[0]?.map((l) => l.id).join(', ')})`);
+    check(voiced.meta === 'Lleva tu voz, subtítulos y la apertura con los escudos.' && voiced.audio && grow > 0 && Math.abs(voiced.duration - plain - grow) < 0.6,
+      `y el vídeo la lleva: la escena de los goles dura lo que su frase, en compases (${voiced.meta} · ${voiced.duration?.toFixed(1)} s, sin voz ${plain} s, +${grow.toFixed(1)} s)`);
     await c7.close();
     // Un partido que no está: lo dice y deja el Studio como siempre.
     const { ctx: c7b, page: p7b } = await open({ url: `${base}/?partido=esp.1/999`, before: async (ctx) => { await ctx.clock.setFixedTime(new Date('2026-10-16T22:00:00+02:00')); } });
@@ -638,6 +674,23 @@ try {
 
     // El piloto automático (tools/piloto.mjs): qué partidos hace y el aviso al móvil, con datos de ESPN.
     const pl = await import(join(REPO, 'tools/piloto.mjs'));
+    // La voz: los marcadores dichos, los tiempos de cada palabra del guion y lo que se pide a ElevenLabs
+    const sw = pl.spokenWords('Exhibición del Real Madrid: 4-1 al Sevilla.');
+    const letters = [...sw.text];
+    const times = pl.wordTimes({ characters: letters, character_start_times_seconds: letters.map((_, i) => i / 10), character_end_times_seconds: letters.map((_, i) => (i + 1) / 10) }, sw.counts);
+    check(sw.text === 'Exhibición del Real Madrid: 4 a 1 al Sevilla.' && times?.length === 7 && times[4][0] === 2.8 && times[4][1] === 3.3
+      && pl.wordTimes({ characters: ['a'] }, sw.counts) === null,
+      `voz: «4-1» se dice «4 a 1» y su subtítulo dura lo que las tres palabras (${times?.[4]})`);
+    const calls = [];
+    const fakeFetch = async (url, o) => { calls.push({ url, o, body: JSON.parse(o.body) }); return { ok: true, json: async () => ({ audio_base64: 'QUJD', alignment: null }) }; };
+    const clips = await pl.voiceLines([{ id: 'score', text: 'Victoria del Depor: 1-0 al Levante.' }, { id: 'outro', text: '¿Quién fue el mejor?' }], { key: 'k', voice: 'v1', fetchFn: fakeFetch });
+    check(calls.length === 2 && /\/v1\/text-to-speech\/v1\/with-timestamps/.test(calls[0].url) && calls[0].o.headers['xi-api-key'] === 'k'
+      && calls[0].body.text === 'Victoria del Depor: 1 a 0 al Levante.' && calls[0].body.next_text === '¿Quién fue el mejor?' && calls[1].body.previous_text === calls[0].body.text
+      && clips.score.audio === 'QUJD' && clips.outro.times === null,
+      'y a ElevenLabs le pide cada frase con la de antes y la de después, con la clave solo en el robot');
+    let failed = '';
+    await pl.voiceLines([{ id: 'score', text: 'Hola.' }], { key: 'k', voice: 'v', fetchFn: async () => ({ ok: false, status: 401, text: async () => 'quota_exceeded' }) }).catch((e) => { failed = e.message; });
+    check(/ElevenLabs 401: quota_exceeded/.test(failed), `si ElevenLabs falla (sin saldo), lo dice y el vídeo sale sin voz (${failed})`);
     // En juego (minuto 74, empezó a las 21:00): a partir de los 80 minutos desde el inicio, el robot
     // se queda vigilándolo para avisar nada más acabar
     const live = [{ league: 'esp.1', day: '2026-10-16', data: JSON.parse(readFileSync(join(FIX, 'sb-esp.1-20261016.json'))) }];

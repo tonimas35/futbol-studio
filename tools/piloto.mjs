@@ -257,6 +257,60 @@ export function serve() {
   return new Promise(ok => server.listen(0, '127.0.0.1', () => ok(server)));
 }
 
+// LA VOZ · con ELEVENLABS_API_KEY (un secreto del repo) y ELEVENLABS_VOICE_ID (una variable: la voz
+// de Toni clonada en ElevenLabs, o una de su biblioteca), el Studio le pide al robot cada frase del
+// guion dicha con esa voz (window.fsVoz) y el vídeo dura lo que pide cada una. Sin ellas, o si
+// ElevenLabs falla (sin saldo, caído), el vídeo sale como siempre, con subtítulos. La clave solo
+// está aquí, en Node: la página no la ve.
+const VOZ = { modelo: 'eleven_multilingual_v2', velocidad: 1.05, ...CONFIG.voz };
+
+// Lo que se le manda a ElevenLabs: los marcadores dichos («4-1» → «4 a 1»). Cada palabra del guion
+// sabe cuántas dichas le tocan, para poner los subtítulos con lo que suena.
+export function spokenWords(text) {
+  const said = String(text || '').trim().split(/\s+/).filter(Boolean).map(w => w.replace(/^(\d+)-(\d+)([.,:;!?…]*)$/, '$1 a $2$3'));
+  return { text: said.join(' '), counts: said.map(w => w.split(' ').length) };
+}
+
+// De los tiempos de cada letra (los da ElevenLabs) a los de cada palabra del guion. Si no
+// cuadran, null: el Studio las reparte por lo que dura la frase.
+export function wordTimes(alignment, counts) {
+  const ch = alignment?.characters || [], st = alignment?.character_start_times_seconds || [], en = alignment?.character_end_times_seconds || [];
+  const said = [];
+  let cur = null;
+  ch.forEach((c, i) => {
+    if (/\s/.test(c)) cur = null;
+    else if (cur) cur[1] = en[i];
+    else said.push(cur = [st[i], en[i]]);
+  });
+  if (!said.length || said.length !== counts.reduce((a, b) => a + b, 0)) return null;
+  let k = 0;
+  return counts.map(n => [said[k][0], said[(k += n) - 1][1]]);
+}
+
+// Las frases, una a una (con la de antes y la de después, para que suenen seguidas):
+// { idDeEscena: { audio (MP3 en base64), times } }. Si una falla, ninguna: o todo con voz o nada.
+export async function voiceLines(lines, { key, voice, fetchFn = fetch } = {}) {
+  const said = lines.map(l => spokenWords(l.text));
+  const out = {};
+  for (const [i, l] of lines.entries()) {
+    const res = await fetchFn(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voice)}/with-timestamps?output_format=mp3_44100_128`, {
+      method: 'POST',
+      headers: { 'xi-api-key': key, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        text: said[i].text, model_id: VOZ.modelo,
+        previous_text: said[i - 1]?.text || null, next_text: said[i + 1]?.text || null,
+        voice_settings: { stability: 0.45, similarity_boost: 0.8, style: 0.2, use_speaker_boost: true, speed: VOZ.velocidad },
+      }),
+      signal: AbortSignal.timeout(60000),
+    });
+    if (!res.ok) throw new Error(`ElevenLabs ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const j = await res.json();
+    if (!j.audio_base64) throw new Error('ElevenLabs no ha devuelto el audio');
+    out[l.id] = { audio: j.audio_base64, times: wordTimes(j.alignment, said[i].counts) };
+  }
+  return out;
+}
+
 // El vídeo de un partido, como lo haría Toni: el enlace del pitido final (?partido=) genera el
 // carrusel y el vídeo con lo que tenga el Studio por defecto (sin música, la firma y el logo de
 // Jornada90). Luego, a H.264 para el iPhone y TikTok.
@@ -278,6 +332,19 @@ async function studio(browser) {
 export async function makeVideo(browser, base, p, dir) {
   const { ctx, page } = await studio(browser);
   try {
+    const key = process.env.ELEVENLABS_API_KEY, voice = process.env.ELEVENLABS_VOICE_ID;
+    if (key && voice) {
+      await page.exposeFunction('fsVoz', async (lines) => {
+        try {
+          const clips = await voiceLines(lines, { key, voice });
+          console.log(`  voz: ${lines.length} frases, ${lines.reduce((n, l) => n + l.text.length, 0)} caracteres`);
+          return clips;
+        } catch (e) {
+          console.warn(`  sin voz: ${e.message}`);
+          return null;
+        }
+      });
+    }
     const previa = p.kind === 'previa';
     const file = previa ? `${p.id}-previa` : p.id;
     // Sin esperar a todas las imágenes: lo que importa es el vídeo, y el Studio espera a sus letras

@@ -4,6 +4,10 @@
   "ntfy": "jornada90-40dc7171c6b9c5a9",
   "web": "https://tonimas35.github.io/futbol-studio/",
   "diasEnLaWeb": 3,
+  "voz": {
+    "modelo": "eleven_multilingual_v2",
+    "velocidad": 1.05
+  },
   "previas": {
     "equipos": ["86", "83", "1068"],
     "competiciones": ["uefa.champions"],

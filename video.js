@@ -1782,11 +1782,13 @@
     if (need <= 0 || !order.length) return scenes;
     const extra = scenes.map(() => 0);
     for (let k = 0; need > 0; k++, need--) extra[order[k % order.length]] += BAR;
-    return scenes.map((sc, i) => {
-      if (!extra[i]) return sc;
-      const end = sc.dur;
-      return { ...sc, dur: end + extra[i], draw: (ctx, t) => sc.draw(ctx, t < end ? t : t < end + extra[i] ? end : t - extra[i]) };
-    });
+    return scenes.map((sc, i) => (extra[i] ? hold(sc, extra[i]) : sc));
+  }
+  // Una escena que se queda más en pantalla: su animación va a su ritmo y luego se queda quieta
+  // (la cámara se sigue acercando); el paso a la siguiente, igual que siempre.
+  function hold(sc, extra) {
+    const end = sc.dur;
+    return { ...sc, dur: end + extra, draw: (ctx, t) => sc.draw(ctx, t < end ? t : t < end + extra ? end : t - extra) };
   }
   // Lo que dura la apertura (para colocar la voz si se grabó con ella o sin ella).
   const leadOf = (scenes) => (scenes[0]?.id === 'intro' ? scenes[0].dur : 0);
@@ -1807,14 +1809,22 @@
   const sayTime = (w) => 0.1 + 0.05 * (w.match(/\p{L}/gu) || []).length + 0.17 * (w.match(/\d/g) || []).length
     + (/[.,:;!?…]$/.test(w) ? 0.15 : 0);
 
-  function captionWords(scenes, starts, script) {
+  // clips: la voz de cada escena (la del robot). Con los tiempos de cada palabra, los suyos; si
+  // no, repartidas por lo que dura la frase.
+  function captionWords(scenes, starts, script, clips = null) {
     const words = [];
     scenes.forEach((sc, i) => {
       const tokens = String(script?.[sc.id] || '').trim().split(/\s+/).filter(Boolean);
       if (!tokens.length || sc.noScript) return;
-      const room = sc.dur - SPEAK_FROM - SPEAK_END;
+      const clip = clips?.[sc.id];
+      if (clip?.times?.length === tokens.length) {
+        const t0 = starts[i] + SPEAK_FROM;
+        tokens.forEach((w, j) => words.push({ text: w, start: t0 + clip.times[j][0], end: t0 + clip.times[j][1], scene: i }));
+        return;
+      }
+      const room = clip ? clip.buffer.duration : sc.dur - SPEAK_FROM - SPEAK_END;
       const need = tokens.reduce((sum, w) => sum + sayTime(w), 0);
-      const k = Math.min(1, room / need);
+      const k = clip ? room / need : Math.min(1, room / need);
       let t = starts[i] + SPEAK_FROM;
       for (const w of tokens) {
         const dd = sayTime(w) * k;
@@ -2334,6 +2344,47 @@
     return out;
   }
 
+  // ─── La voz del robot (ElevenLabs, desde tools/piloto.mjs): una frase por escena ───
+  // voiceClips: { idDeEscena: { audio (base64), times: [[inicio, fin], …] (una por palabra del
+  // guion) o null } }. Cada escena dura lo que pide su frase, en compases enteros (para que la
+  // música siga cuadrando), y los subtítulos van con lo que suena.
+  const VOICE_TAIL = 0.35;
+  async function decodeClips(clips) {
+    const out = {};
+    for (const [id, c] of Object.entries(clips || {})) {
+      try {
+        const bytes = Uint8Array.from(atob(c.audio), ch => ch.charCodeAt(0));
+        out[id] = { buffer: await new OfflineAudioContext(1, 1, MIX_RATE).decodeAudioData(bytes.buffer), times: c.times || null };
+      } catch (e) {
+        console.warn(`Voz de «${id}»: ${e.message}`);
+      }
+    }
+    return out;
+  }
+  function fitVoice(scenes, clips) {
+    return scenes.map(sc => {
+      const c = !sc.noScript && clips[sc.id];
+      const need = c ? SPEAK_FROM + c.buffer.duration + VOICE_TAIL - sc.dur : 0;
+      return need > 0 ? hold(sc, Math.ceil(need / BAR - 1e-6) * BAR) : sc;
+    });
+  }
+  // Todas las frases en una pista, cada una al empezar su escena
+  function voiceTrack(scenes, starts, clips, duration) {
+    const n = Math.round(duration * MIX_RATE);
+    const track = new AudioBuffer({ length: n, numberOfChannels: 1, sampleRate: MIX_RATE });
+    const v = track.getChannelData(0);
+    scenes.forEach((sc, i) => {
+      const c = !sc.noScript && clips[sc.id];
+      if (!c) return;
+      const at = Math.round((starts[i] + SPEAK_FROM) * MIX_RATE);
+      for (let ch = 0; ch < c.buffer.numberOfChannels; ch++) {
+        const dd = c.buffer.getChannelData(ch);
+        for (let k = 0; k < dd.length && at + k < n; k++) v[at + k] += dd[k] / c.buffer.numberOfChannels;
+      }
+    });
+    return track;
+  }
+
   // Cuánto va la voz por detrás de los subtítulos: en cada frase se busca dónde empieza a
   // sonar de verdad cerca de donde debería, y se toma la mediana (segundos; positivo = tarde).
   async function measureVoiceLag(blob, words) {
@@ -2374,7 +2425,8 @@
   // ============================================================
   // API
   // · StudioVideo.render(datos, onProgress, { music, script, captions, voice, intro, voiceLead,
-  //     voiceShift, musicVolume, voiceVolume, musicStyle }) → { blob, ext, note, audio, mix }
+  //     voiceShift, musicVolume, voiceVolume, musicStyle, voiceClips }) → { blob, ext, note, audio, mix }
+  //     voiceClips: la voz del robot, una frase por escena (ver decodeClips).
   //     intro: con la apertura de los escudos. voiceLead: la apertura con la que se grabó la voz
   //     (prepare(…).lead). voiceShift: cuánto se mueve la voz (negativo = antes).
   //     musicStyle: 'trap' (la urbana, por defecto) o 'epica'.
@@ -2387,13 +2439,16 @@
   // ============================================================
   async function render(data, onProgress = () => {}, {
     music = true, script = null, captions = true, voice = null, musicVolume = 1, voiceVolume = 1,
-    intro = true, voiceLead = null, voiceShift = 0, musicStyle = 'trap',
+    intro = true, voiceLead = null, voiceShift = 0, musicStyle = 'trap', voiceClips = null,
   } = {}) {
-    const live = ((music && window.StudioAudio) || voice) && typeof AudioContext !== 'undefined' ? new AudioContext() : null;
+    const live = ((music && window.StudioAudio) || voice || voiceClips) && typeof AudioContext !== 'undefined' ? new AudioContext() : null;
     try {
       const assets = await loadAssets(data);
-      const scenes = buildScenes(data, assets, intro);
-      const words = captionWords(scenes, sceneStarts(scenes), script);
+      let scenes = buildScenes(data, assets, intro);
+      const clips = voiceClips ? await decodeClips(voiceClips) : {};
+      const voiced = Object.keys(clips).length > 0;
+      if (voiced) scenes = fitVoice(scenes, clips);
+      const words = captionWords(scenes, sceneStarts(scenes), script, voiced ? clips : null);
       const withCaptions = !!(captions && words.length);
       const delay = (voiceLead == null ? 0 : leadOf(scenes) - voiceLead) + (voiceShift || 0);
       const drawer = makeDrawer(scenes, withCaptions ? captionPages(words) : null, assets.brandImg);
@@ -2403,11 +2458,14 @@
         audioBuffer = await window.StudioAudio.render(soundTimeline(drawer, seedOf(data), musicStyle));
       }
       const audioOut = audioBuffer ? window.StudioAudio.toWav(audioBuffer, drawer.duration) : null;
-      if (voice || (audioBuffer && musicVolume !== 1)) {
+      if (voiced) {
+        onProgress(0, 'Mezclando la voz…');
+        audioBuffer = mixAudio(audioBuffer, voiceTrack(scenes, drawer.starts, clips, drawer.duration), drawer.duration, words, { musicVolume, voiceVolume });
+      } else if (voice || (audioBuffer && musicVolume !== 1)) {
         if (voice) onProgress(0, 'Mezclando tu voz…');
         audioBuffer = mixAudio(audioBuffer, voice && await decodeVoice(voice), drawer.duration, words, { musicVolume, voiceVolume, delay });
       }
-      const mix = { music: !!(music && window.StudioAudio), captions: withCaptions, voice: !!voice, intro: leadOf(scenes) > 0, lead: leadOf(scenes) };
+      const mix = { music: !!(music && window.StudioAudio), captions: withCaptions, voice: !!voice || voiced, intro: leadOf(scenes) > 0, lead: leadOf(scenes) };
       const codec = await pickCodec();
       const acodec = audioBuffer ? await pickAudioCodec(audioBuffer.sampleRate) : null;
       if (codec && (!audioBuffer || acodec)) {
