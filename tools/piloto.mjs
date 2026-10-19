@@ -402,7 +402,7 @@ export async function makeVideo(browser, base, p, dir) {
     writeFileSync(join(dir, `${file}.json`), JSON.stringify({
       id: file, league: p.league, day: p.day, title, caption, voz, file: dl.suggestedFilename(), made: new Date().toISOString(),
     }, null, 2));
-    return { id: file, kind: p.kind || 'final', title, caption, files: [`${file}.mp4`, `${file}.json`] };
+    return { id: file, kind: p.kind || 'final', league: p.league, day: p.day, title, caption, files: [`${file}.mp4`, `${file}.json`] };
   } finally {
     await ctx.close();
   }
@@ -492,14 +492,19 @@ async function web(dir) {
 // El aviso al móvil: el resultado y, al tocarlo, el vídeo (o las fotos de la jornada) listo para
 // compartir. Si la web no se ha podido publicar (GitHub Pages sin activar), el vídeo tal cual,
 // desde la release (o la release entera, con las fotos).
+// El aviso al móvil. El de un partido acabado abre el Studio con ese partido (&preparar=1): tu
+// móvil pide las notas a API-Football con tu clave (el robot no puede) y te deja en «Crear vídeo»;
+// el vídeo del robot (sin notas), en su botón. Las previas y la jornada, lo del robot.
 export function notice(v, topic, web, webOk = true) {
   const photos = v.kind === 'jornada';
   const url = webOk ? `${web}?video=${v.id}`
     : `https://github.com/${repo()}/releases/${photos ? `tag/${RELEASE}` : `download/${RELEASE}/${v.id}.mp4`}`;
+  const studio = webOk && !photos && v.kind !== 'previa' && v.league && v.day ? `${web}?partido=${v.league}/${v.id}&dia=${v.day}&preparar=1` : null;
   return {
     topic, title: `${{ previa: '🔥', jornada: '📊' }[v.kind] || '⚽'} ${v.title}`, message: v.caption || (photos ? 'Tus fotos están listas' : 'Tu vídeo está listo'),
-    click: url, tags: [photos ? 'frame_with_picture' : 'movie_camera'], priority: 4,
-    actions: [{ action: 'view', label: photos ? 'Abrir las fotos' : 'Abrir el vídeo', url }],
+    click: studio || url, tags: [photos ? 'frame_with_picture' : 'movie_camera'], priority: 4,
+    actions: studio ? [{ action: 'view', label: 'Crear el vídeo con notas', url: studio }, { action: 'view', label: 'Vídeo del robot', url }]
+      : [{ action: 'view', label: photos ? 'Abrir las fotos' : 'Abrir el vídeo', url }],
   };
 }
 

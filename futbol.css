@@ -1367,3 +1367,8 @@ body.zoom-open { overflow: hidden; }
 .robot-actions .btn { flex: 1; }
 .robot-close { display: block; width: 100%; margin-top: 16px; padding: 12px; border: 0; background: none; color: var(--mute); font: 600 15px var(--body); text-decoration: underline; cursor: pointer; }
 
+
+/* El aviso del robot te deja aquí (&preparar=1): «Crear vídeo», resaltado hasta que lo pulsas */
+@keyframes ready-glow { 0%, 100% { box-shadow: 0 0 0 0 rgba(200, 245, 60, 0); } 50% { box-shadow: 0 0 0 10px rgba(200, 245, 60, 0.35); } }
+.btn-ready { animation: ready-glow 1.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .btn-ready { animation: none; box-shadow: 0 0 0 4px rgba(200, 245, 60, 0.5); } }
