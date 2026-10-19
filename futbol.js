@@ -3713,14 +3713,30 @@
   // de arriba. La posesión minuto a minuto no la da nadie gratis: esto es dónde jugó cada uno.
   function territoryOf(m, total) {
     if (live(m) || !(m.spots?.length >= 25)) return null;
-    const push = Array.from({ length: total + 1 }, (_, i) => {
+    const raw = Array.from({ length: total + 1 }, (_, i) => {
       let h = 0.6, a = 0.6;
       for (const e of m.spots) {
         if (e.t > i + 0.5) continue;
         const w = Math.exp(-(i - e.t) / 6);
         if (e.owner === 'home') h += w * (0.4 + e.x / 100); else a += w * (0.4 + (100 - e.x) / 100);
       }
-      return Math.round((100 * h) / (h + a));
+      return (100 * h) / (h + a);
+    });
+    // Cuando no aprieta nadie (los ratos sin nada o muy igualados), la ola se quedaría clavada en el
+    // medio: ahí, un vaivén suave (inventado, pero siempre el mismo para el mismo partido) algo
+    // inclinado hacia el que tuvo más el balón. Cuanto más cerca del medio, más se nota; cuando uno
+    // aprieta de verdad, mandan los datos
+    const pos = Number(m.stats?.home?.possessionPct);
+    const lean = Number.isFinite(pos) ? (pos - 50) * 0.4 : 0;
+    const seed = [...String(m.id)].reduce((s, c) => (s * 31 + c.charCodeAt(0)) % 997, 7);
+    const sway = (i) => lean + 12 * (0.65 * Math.sin((2 * Math.PI * i) / 21 + seed) + 0.35 * Math.sin((2 * Math.PI * i) / 8.5 + seed * 1.7));
+    const mixed = raw.map((v, i) => v + sway(i) * Math.max(0, 1 - Math.abs(v - 50) / 20));
+    // Y sin saltos de un minuto al siguiente: la media de los dos de antes y los dos de después
+    const W = [1, 2, 3, 2, 1];
+    const push = mixed.map((_, i) => {
+      let sum = 0, n = 0;
+      W.forEach((w, k) => { const j = i + k - 2; if (j >= 0 && j < mixed.length) { sum += w * mixed[j]; n += w; } });
+      return Math.round(Math.max(5, Math.min(95, sum / n)));
     });
     const round = (v) => Math.round(v * 10) / 10;
     return { total, push, spots: m.spots.map(e => [round(e.t), Math.round(e.x), Math.round(e.y), e.owner === 'home' ? 1 : -1, e.size]) };
