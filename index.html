@@ -24,7 +24,7 @@
     rel="stylesheet"
   />
 
-  <link rel="stylesheet" href="futbol.css?v=21" />
+  <link rel="stylesheet" href="futbol.css?v=22" />
 </head>
 
 <body>
@@ -225,8 +225,11 @@
         <small>Para que el vídeo que hagas aquí lleve la voz y los subtítulos (el robot ya los pone solo). Es la de Modal: Secrets → jornada90-voz-token. Se guarda solo en este navegador. Sin clave, el vídeo sale sin voz ni subtítulos.</small>
       </label>
       <div class="sign-field faces-field" id="facesField" hidden>
-        <button class="btn btn-ghost" id="facesBtn" type="button">Caras para el robot</button>
-        <small>Baja las plantillas de LaLiga de API-Football (unas 25 de tus peticiones del día; tarda unos 3 minutos) en <b>laliga.json</b>. Súbelo a la carpeta <b>caras</b> del repo y el robot pondrá la cara de cada jugador. Repítelo cuando cambien las plantillas (en septiembre y en enero).</small>
+        <div class="faces-btns">
+          <button class="btn btn-ghost" id="facesBtn" type="button">Caras de LaLiga</button>
+          <button class="btn btn-ghost" id="facesUclBtn" type="button">Caras de la Champions</button>
+        </div>
+        <small>Las caras para el robot: bajan las plantillas de API-Football en <b>laliga.json</b> (unas 25 de tus peticiones del día) o en <b>champions.json</b> (los rivales de la Champions, unas 35; mejor un día de Champions, cuando juegan todos). Tardan unos 3 o 4 minutos. Súbelo a la carpeta <b>caras</b> del repo y el robot pondrá la cara de cada jugador. Repítelo cuando cambien las plantillas (en septiembre y en enero).</small>
       </div>
     </section>
 
@@ -352,6 +355,6 @@
   <script src="audio.js?v=3"></script>
   <script src="campo3d.js?v=2"></script>
   <script src="video.js?v=25"></script>
-  <script src="futbol.js?v=49"></script>
+  <script src="futbol.js?v=50"></script>
 </body>
 </html>
