@@ -988,7 +988,8 @@
       const h = cs.find(c => c.homeAway === 'home') || {}, a = cs.find(c => c.homeAway === 'away') || {};
       const name = (c) => (sideOf(c.team?.id) ? m[sideOf(c.team.id)].short : c.team?.displayName || c.team?.abbreviation || '');
       const winner = h.winner ? sideOf(h.team?.id) : a.winner ? sideOf(a.team?.id) : null;
-      return { date: e.date, homeName: name(h), awayName: name(a), homeScore: h.score ?? '', awayScore: a.score ?? '', winner };
+      // hs: cuál de los dos de hoy jugaba en casa
+      return { date: e.date, homeName: name(h), awayName: name(a), homeScore: h.score ?? '', awayScore: a.score ?? '', winner, hs: sideOf(h.team?.id) };
     }).sort((x, y) => Date.parse(y.date) - Date.parse(x.date)).slice(0, 5);
     const leader = (side) => {
       const t = (sum.leaders || []).find(x => sideOf(x.team?.id) === side);
@@ -997,7 +998,7 @@
       const nums = Object.fromEntries([...String(top.displayValue || '').matchAll(/(\w+):\s*(\d+)/g)].map(([, k, v]) => [k.toLowerCase(), Number(v)]));
       const goals = nums.goals ?? num(top.value);
       if (!goals) return null;
-      return { name: top.athlete.displayName || '', last: top.athlete.lastName || '', goals, games: nums.matches ?? null };
+      return { id: String(top.athlete.id || ''), name: top.athlete.displayName || '', last: top.athlete.lastName || '', goals, games: nums.matches ?? null };
     };
     return { forma, h2h: games, goleadores: { home: leader('home'), away: leader('away') } };
   }
@@ -3852,11 +3853,8 @@
       stats: rows.length >= 3 ? rows.slice(0, 5).map(r => ({ label: r.label, v: r.v, more: r.more, pct: !!r.fmt })) : null,
       statsMore: rows.length > 6 ? rows.slice(5).map(r => ({ label: r.label, v: r.v, more: r.more, pct: !!r.fmt })) : null,
       forma: m.prev?.forma,
-      h2h: h.n ? {
-        home: h.home, away: h.away, draws: h.draws,
-        label: L(h.n === 1 ? 'El anterior' : `Los ${h.n} anteriores`, h.n === 1 ? 'Previous meeting' : `Previous ${h.n} meetings`),
-        games: m.prev.h2h.map(g => ({ ...g, date: asDate(g.date).toLocaleDateString(outLocale(), { month: 'short', year: 'numeric' }) })),
-      } : null,
+      h2h: h2hVideo(m, L(h.n === 1 ? 'El anterior' : `Los ${h.n} anteriores`, h.n === 1 ? 'Previous meeting' : `Previous ${h.n} meetings`),
+        h.n === 1 ? L('Cara a cara · el anterior', 'Head to head · previous') : L(`Cara a cara · los ${h.n} anteriores`, `Head to head · previous ${h.n}`)),
       table: tbl && {
         title: L(`Así va ${tableName(m)}`, `${tableName(m)} table`),
         teams: m.standings.length,
@@ -3887,6 +3885,7 @@
         stats: L('ESTADÍSTICAS', 'STATS'),
         dato: L('EL DATO', 'THE STAT'), polemica: L('LA POLÉMICA', 'THE CONTROVERSY'), atTheTime: L('ASÍ IBA', 'AT THE TIME'),
         forma: L('CÓMO LLEGABAN', 'FORM COMING IN'), h2h: L('CARA A CARA', 'HEAD TO HEAD'), draws: L('EMPATES', 'DRAWS'), wdl: L(['G', 'E', 'P'], ['W', 'D', 'L']),
+        wins: L('Victorias', 'Wins'),
         halftime: L('DESCANSO', 'HALF-TIME'), extraTime: L('PRÓRROGA', 'EXTRA TIME'), now: L('AHORA', 'NOW'), fullTime: L('FINAL', 'FULL TIME'),
         territory: L('TERRITORIO', 'TERRITORY'), post: L('AL PALO', 'OFF THE POST'),
         onPens: L('EN LOS PENALTIS', 'ON PENALTIES'),
@@ -4055,6 +4054,41 @@
     const home = g.filter(x => x.winner === 'home').length, away = g.filter(x => x.winner === 'away').length;
     return { home, away, draws: g.length - home - away, n: g.length };
   }
+  // El cara a cara para el vídeo (la previa y la versión larga del partido): lo que ganó cada uno
+  // y, de cada partido, el mes, los goles de los dos de hoy (el local de hoy, a la izquierda, como
+  // en la fila de arriba) y en casa de quién se jugó. tab: la pestaña de arriba.
+  function h2hVideo(m, label, tab) {
+    const h = h2hCount(m);
+    if (!h.n) return null;
+    const month = (iso) => {
+      const d = asDate(iso);
+      return `${d.toLocaleDateString(outLocale(), { month: 'long' })} ${d.getFullYear()}`;
+    };
+    return {
+      home: h.home, away: h.away, draws: h.draws, label, tab,
+      games: m.prev.h2h.map(g => {
+        const homeLeft = g.hs ? g.hs === 'home' : g.homeName === m.home.short;
+        return {
+          ...g, date: asDate(g.date).toLocaleDateString(outLocale(), { month: 'short', year: 'numeric' }), month: month(g.date),
+          left: homeLeft ? g.homeScore : g.awayScore, right: homeLeft ? g.awayScore : g.homeScore,
+          where: g.hs ? L(`En casa ${ofTeam(m[g.hs])}`, `At ${m[g.hs].short}`) : '',
+        };
+      }),
+    };
+  }
+  // La cara de los que más marcan (la previa): las de LaLiga que guarda el repo (caras/), por su
+  // nombre, como en los onces. Sin ella, el vídeo pone el escudo.
+  async function scorerFaces(m) {
+    const data = await savedSquads();
+    const out = {};
+    for (const side of ['home', 'away']) {
+      const p = m.prev?.goleadores?.[side];
+      const team = (data?.equipos || []).find(t => String(t.espn) === m[side].id);
+      const hit = p && team ? squadPlayer(team.jugadores || [], { name: p.name, jersey: null }) : null;
+      out[side] = hit ? `caras/${hit.id}.png` : null;
+    }
+    return out;
+  }
   // El gancho de la previa: el cara a cara si uno los gana todos; si no, cómo llega el que mejor llega
   function previaHook(m) {
     const h = h2hCount(m);
@@ -4083,26 +4117,25 @@
       if (!p) return null;
       const first = p.last && p.name.endsWith(p.last) ? p.name.slice(0, -p.last.length).trim() : '';
       return {
-        first, last: p.last || p.name, goals: p.goals,
+        first, last: p.last || p.name, goals: p.goals, played: p.games || null,
         unit: p.goals === 1 ? L('gol', 'goal') : L('goles', 'goals'),
         games: p.games ? L(`en ${p.games} partidos`, `in ${p.games} games`) : '',
+        face: m.prev?.faces?.[side] || null,
       };
     };
-    const monthYear = (iso) => asDate(iso).toLocaleDateString(outLocale(), { month: 'short', year: 'numeric' });
     return {
       kind: 'previa',
       home: team('home'), away: team('away'),
       lang: state.lang, dark: dark(),
       comp: [compName(m.league), phaseOut(m.phase), legLabel(m)].filter(Boolean).join(' · '),
+      // La portada: «Previa · LaLiga | Hoy» y «21:00 | Santiago Bernabéu», por el borde de las franjas
+      compName: compName(m.league), when: k.when, hhmm: k.hhmm, venue: m.venue || '',
       date: asDate(m.date).toLocaleDateString(outLocale(), { day: 'numeric', month: 'long', year: 'numeric' }),
       introLine: `${k.when} · ${k.hhmm}`.toLocaleUpperCase('es'),
       hook: { tag: L('Previa', 'Preview'), text: previaHook(m) },
       forma: m.prev?.forma,
-      h2h: h.n ? {
-        home: h.home, away: h.away, draws: h.draws,
-        label: L(`Los últimos ${h.n} partidos`, `Last ${h.n} meetings`),
-        games: m.prev.h2h.map(g => ({ ...g, date: monthYear(g.date) })),
-      } : null,
+      h2h: h2hVideo(m, L(`Los últimos ${h.n} partidos`, `Last ${h.n} meetings`),
+        h.n === 1 ? L('Cara a cara · el último', 'Head to head · last one') : L(`Cara a cara · los ${h.n} últimos`, `Head to head · last ${h.n}`)),
       goleadores: { home: scorer('home'), away: scorer('away') },
       table: tbl && {
         title: L(`Así llegan en ${tableName(m)}`, `${tableName(m)} table`),
@@ -4121,6 +4154,9 @@
       t: {
         forma: L('CÓMO LLEGAN', 'FORM'), h2h: L('CARA A CARA', 'HEAD TO HEAD'), draws: L('EMPATES', 'DRAWS'), wdl: L(['G', 'E', 'P'], ['W', 'D', 'L']),
         scorers: L('SUS GOLEADORES', 'TOP SCORERS'),
+        scorersTag: L(`Los que más marcan · ${compName(m.league)}`, `Top scorers · ${compName(m.league)}`), and: L('y', 'and'),
+        between: L('Entre los dos', 'Combined'), goalsWord: L('Goles', 'Goals'), gamesWord: L('Partidos', 'Games'),
+        wins: L('Victorias', 'Wins'), previa: L('Previa', 'Preview'),
         comments: L('TE LEO EN COMENTARIOS', 'LET ME KNOW IN THE COMMENTS'),
         follow: L('Sígueme para más fútbol', 'Follow for more football'),
       },
@@ -4156,6 +4192,7 @@
     btn.classList.add('btn-loading');
     try {
       const m = await fetchMatch(game);
+      if (m.prev) m.prev.faces = await scorerFaces(m);
       const data = previaData(m);
       const script = previaScript(data);
       if (withVoice()) label.textContent = 'Poniendo la voz…';

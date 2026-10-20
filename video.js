@@ -2988,13 +2988,259 @@
     };
   }
 
-  // El cara a cara: las victorias de cada uno y los empates en grande, y los últimos partidos
+  // ─── La previa nueva (inspirada en tres pines de Pinterest) ───
+  // Saira, ancha e inclinada (la de los textos de la portada), y Barlow, la de las cifras del cara
+  // a cara. Sin fontStretch (Safari), Saira sale igual de ancha: es la única anchura que se carga.
+  const SAIRA = (size) => `italic 800 ${size}px Saira`;
+  const DIN = (size, weight = 800) => `${weight} ${size}px Barlow`;
+  const wide = (ctx, on) => { if ('fontStretch' in ctx) ctx.fontStretch = on ? 'expanded' : 'normal'; };
+  // Texto con espacio entre letras (sin letterSpacing, el navegador lo pone junto)
+  function spaced(ctx, px, fn) {
+    const has = 'letterSpacing' in ctx;
+    if (has) ctx.letterSpacing = `${px}px`;
+    try { return fn(); } finally { if (has) ctx.letterSpacing = '0px'; }
+  }
+
+  // El papel de la portada: sin grano (TikTok lo recomprime y se ve borroso), con arrugas suaves de
+  // luz y sombra y los dos dobleces en cruz de un póster
+  function paperLayer(dark) {
+    return layer(`paper|${dark}`, W, H, (c) => {
+      c.fillStyle = dark ? '#12151b' : '#f6f3ec';
+      c.fillRect(0, 0, W, H);
+      let s = 20261020;
+      const rnd = () => { s = (s + 0x6d2b79f5) | 0; let x = Math.imul(s ^ (s >>> 15), 1 | s); x ^= x + Math.imul(x ^ (x >>> 7), 61 | x); return ((x ^ (x >>> 14)) >>> 0) / 4294967296; };
+      for (let k = 0; k < 10; k++) {
+        const x = rnd() * W, y = rnd() * H, r = 260 + rnd() * 520;
+        const g = c.createRadialGradient(x, y, 0, x, y, r);
+        g.addColorStop(0, k % 2 ? (dark ? 'rgba(255,255,255,.03)' : 'rgba(255,255,255,.35)') : (dark ? 'rgba(0,0,0,.12)' : 'rgba(0,0,0,.025)'));
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        c.fillStyle = g;
+        c.fillRect(0, 0, W, H);
+      }
+      c.fillStyle = dark ? 'rgba(255,255,255,.05)' : 'rgba(255,255,255,.7)';
+      c.fillRect(W / 2 - 2, 0, 3, H);
+      c.fillRect(0, H / 2 - 2, W, 3);
+      c.fillStyle = dark ? 'rgba(0,0,0,.25)' : 'rgba(0,0,0,.05)';
+      c.fillRect(W / 2 + 1, 0, 2, H);
+      c.fillRect(0, H / 2 + 1, W, 2);
+    });
+  }
+
+  // PORTADA (el pin «Blue vs Blue»): papel, dos franjas en diagonal del color de cada equipo con su
+  // escudo de fondo, los textos por su borde, los escudos en las esquinas y el «VS» verde en el
+  // hueco. Es el primer fotograma (la portada que pone TikTok si no eliges otra): todo está desde
+  // el principio y se mueve poco; en el primer pulso, el golpe del «VS» y los escudos.
+  const SLOPE = 0.58, TILT = Math.atan(SLOPE);
+  const edgeY = (x, b) => SLOPE * x + b;
+  function scenePrevPortada(d, A) {
+    // Los bordes de las franjas (y = SLOPE·x + b): local arriba, visitante abajo, y el hueco del «VS»
+    const L1 = -113, L2 = 489, L3 = 525, L4 = 1127, VS = [540, 820];
+    // Sobre el papel, el color de cada equipo que se lea; la franja de un equipo claro (blanco), en
+    // papel claro, con su segundo color, y en oscuro, blanca
+    const ink = (st) => (d.dark ? st.night || st.ink : st.ink);
+    const bandOf = (st) => (st.fg === '#111111' && !d.dark ? st.ink : st.bg);
+    const top = up(`${d.t?.previa || 'Previa'} · ${d.compName || d.comp} | ${d.when || ''}`);
+    const bottom = up([d.hhmm, d.venue].filter(Boolean).join(' | '));
+    return {
+      id: 'intro',
+      noScript: true,
+      dur: 2 * BAR,
+      accent: ACCENT,
+      music: { energy: 'intro' },
+      cues: [
+        { t: 0, kind: 'riser', dur: BEAT, vel: 0.6 },
+        { t: BEAT, kind: 'impact', vel: 1 },
+        { t: BEAT, kind: 'slam' },
+        { t: BAR, kind: 'hit', vel: 0.6 },
+      ],
+      draw(ctx, t) {
+        ctx.drawImage(paperLayer(!!d.dark), ...bleed(ctx, 0, 0, W, H));
+        // Las franjas (de lado a lado de la pantalla), con el escudo de fondo que se desliza por ellas
+        const drift = 40 * easeInOut(prog(t, 0, 2 * BAR));
+        const band = (b0, b1, st, img, cx, dir) => {
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(-800, edgeY(-800, b0)); ctx.lineTo(1900, edgeY(1900, b0));
+          ctx.lineTo(1900, edgeY(1900, b1)); ctx.lineTo(-800, edgeY(-800, b1));
+          ctx.closePath();
+          ctx.fillStyle = bandOf(st);
+          ctx.fill();
+          ctx.clip();
+          if (img) {
+            const x = cx + dir * drift * Math.cos(TILT);
+            ctx.globalCompositeOperation = 'luminosity';
+            ctx.globalAlpha = 0.2;
+            ctx.translate(x, edgeY(x, (b0 + b1) / 2));
+            ctx.rotate(TILT);
+            logo(ctx, img, 0, 0, 1100);
+          }
+          ctx.restore();
+        };
+        band(L1, L2, d.home.style, A.homeLogo, 470, 1);
+        band(L3, L4, d.away.style, A.awayLogo, 760, -1);
+        // Las rayas finas, paralelas a las franjas, cortadas por los escudos
+        ctx.lineWidth = 6;
+        const ray = (x0, x1, b, color) => {
+          ctx.strokeStyle = color;
+          ctx.beginPath(); ctx.moveTo(x0, edgeY(x0, b)); ctx.lineTo(x1, edgeY(x1, b)); ctx.stroke();
+        };
+        ray(530, 790, L1 - 192, ink(d.home.style));
+        ray(1100, 1500, L1 - 192, ink(d.home.style));
+        ray(-400, 30, L4 + 205, ink(d.away.style));
+        ray(330, 590, L4 + 205, ink(d.away.style));
+        // Los textos, por el borde de fuera de cada franja, corriendo un poco por él
+        const edgeText = (str, x, b, dy, size, maxLen, color, run) => {
+          if (!str) return;
+          ctx.save();
+          wide(ctx, true);
+          spaced(ctx, 2, () => {
+            ctx.font = SAIRA(size);
+            while (ctx.measureText(str).width > maxLen && size > 28) { size -= 2; ctx.font = SAIRA(size); }
+            const r = run * easeOut(prog(t, 0, 2 * BAR));
+            ctx.translate(x + r * Math.cos(TILT), edgeY(x, b) + dy + r * Math.sin(TILT));
+            ctx.rotate(TILT);
+            ctx.fillStyle = color;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'alphabetic';
+            ctx.fillText(str, 0, 0);
+          });
+          wide(ctx, false);
+          ctx.restore();
+        };
+        edgeText(top, 300, L1, -28, 54, 880, ink(d.home.style), 24);
+        edgeText(bottom, 40, L4, 74, 51, 830, ink(d.away.style), -24);
+        // Los escudos en las esquinas de papel, con un golpe en el primer pulso
+        const k = 1 + 0.08 * Math.sin(Math.PI * prog(t, BEAT, 0.3));
+        logo(ctx, A.homeLogo, 940, 141, 270 * k);
+        logo(ctx, A.awayLogo, 180, 1539, 270 * k);
+        // El «VS», verde, en el hueco: crece de golpe en el primer pulso y deja una onda
+        const ring = prog(t, BEAT, 0.6);
+        if (ring > 0 && ring < 1) {
+          ctx.save();
+          ctx.globalAlpha = 1 - ring;
+          ctx.strokeStyle = ACCENT;
+          ctx.lineWidth = 24 * (1 - ring) + 2;
+          ctx.beginPath(); ctx.arc(VS[0], VS[1], 90 + 520 * easeOut(ring), 0, Math.PI * 2); ctx.stroke();
+          ctx.restore();
+        }
+        const s = 1 + 0.3 * Math.sin(Math.PI * prog(t, BEAT, 0.35));
+        ctx.save();
+        ctx.translate(VS[0], VS[1]);
+        ctx.scale(s, s);
+        ctx.beginPath();
+        [[-59, -56], [59, -56], [82, -33], [82, 33], [59, 56], [-59, 56], [-82, 33], [-82, -33]].forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+        ctx.closePath();
+        ctx.fillStyle = ACCENT;
+        ctx.shadowColor = 'rgba(0,0,0,.25)';
+        ctx.shadowBlur = 18;
+        ctx.shadowOffsetY = 6;
+        ctx.fill();
+        ctx.shadowColor = 'transparent';
+        wide(ctx, true);
+        text(ctx, 'VS', -3, 23, SAIRA(64), '#111111', 'center');
+        wide(ctx, false);
+        ctx.restore();
+        const flash = 1 - prog(t, BEAT, 0.14);
+        if (t >= BEAT && flash > 0) fillAll(ctx, `rgba(255,255,255,${0.25 * flash})`);
+      },
+    };
+  }
+
+  // CARA A CARA (el pin de Goal de los grandes derbis): fondo oscuro y filas con el color de cada
+  // equipo en los extremos de la barra y su escudo encima. Arriba, en grande, el total (victorias
+  // de cada uno y empates, que suben contando); debajo, cada partido, con el local de hoy a la
+  // izquierda: la cifra del que perdió, en gris, y en casa de quién se jugó.
+  function h2hBg(ctx) {
+    const [bx, by, bw, bh] = bleed(ctx, 0, 0, W, H);
+    ctx.drawImage(layer('h2h|goal', W, H, (c) => {
+      const g = c.createRadialGradient(W / 2, H * 0.42, 0, W / 2, H * 0.42, H * 0.75);
+      g.addColorStop(0, '#4b4c50'); g.addColorStop(0.55, '#333438'); g.addColorStop(1, '#1f2023');
+      c.fillStyle = g;
+      c.fillRect(0, 0, W, H);
+      c.save();
+      c.translate(W / 2, H / 2);
+      c.rotate(-0.44);
+      c.fillStyle = 'rgba(255,255,255,.025)';
+      for (let x = -1500; x < 1500; x += 26) c.fillRect(x, -1500, 3, 3000);
+      c.restore();
+    }), bx, by, bw, bh);
+  }
+  // Una fila: y = el borde de arriba de su pestaña. o: { big, tab, l, mid, r, lLose, rLose, sub,
+  // tabA, bar, crest, subA } (bar, crest: lo que se ve, de 0 a 1)
+  function h2hRow(ctx, A, d, y, o) {
+    const big = o.big, barY = y + (big ? 45 : 35), barH = big ? 188 : 120, cy = barY + barH / 2;
+    if (o.bar > 0) {
+      ctx.save();
+      ctx.translate(W / 2, 0);
+      ctx.scale(o.bar, 1);
+      ctx.translate(-W / 2, 0);
+      const L = d.home.style.bg, R = d.away.style.bg;
+      const g = ctx.createLinearGradient(-80, 0, W + 80, 0);
+      g.addColorStop(0, rgba(L, 0)); g.addColorStop(0.1, L); g.addColorStop(0.16, L);
+      g.addColorStop(0.4, '#26272b'); g.addColorStop(0.5, '#1d1e21'); g.addColorStop(0.6, '#26272b');
+      g.addColorStop(0.84, R); g.addColorStop(0.9, R); g.addColorStop(1, rgba(R, 0));
+      ctx.fillStyle = g;
+      ctx.fillRect(-80, barY, W + 160, barH);
+      ctx.fillStyle = 'rgba(255,255,255,.12)';
+      ctx.fillRect(-80, barY, W + 160, 4);
+      ctx.fillStyle = 'rgba(0,0,0,.35)';
+      ctx.fillRect(-80, barY + barH - 4, W + 160, 4);
+      ctx.restore();
+    }
+    // Los escudos, encima de los extremos (entran desde los lados)
+    if (o.crest > 0) {
+      const size = big ? 227 : 160, x = big ? 124 : 128, off = (1 - Math.min(1, o.crest)) * 320;
+      ctx.save();
+      ctx.globalAlpha *= Math.min(1, o.crest);
+      ctx.shadowColor = 'rgba(0,0,0,.45)';
+      ctx.shadowBlur = 16;
+      ctx.shadowOffsetY = 8;
+      logo(ctx, A.homeLogo, x - off, cy - (big ? 8 : 6), size);
+      logo(ctx, A.awayLogo, W - x + off, cy - (big ? 8 : 6), size);
+      ctx.restore();
+    }
+    // La pestaña, por encima de la barra
+    if (o.tabA > 0 && o.tab) {
+      ctx.save();
+      ctx.globalAlpha *= o.tabA;
+      const size = big ? 42 : 36, pad = big ? 65 : 59, th = big ? 64 : 57;
+      spaced(ctx, big ? 6.7 : 7.9, () => {
+        ctx.font = BARLOW(size, 700);
+        const tw = ctx.measureText(o.tab).width + 2 * pad, x0 = W / 2 - tw / 2, cut = tw * 0.05;
+        ctx.beginPath();
+        ctx.moveTo(x0 + cut, y); ctx.lineTo(x0 + tw - cut, y); ctx.lineTo(x0 + tw, y + th); ctx.lineTo(x0, y + th);
+        ctx.closePath();
+        ctx.fillStyle = '#1b1c1f';
+        ctx.fill();
+        text(ctx, o.tab, W / 2, y + th * 0.72, BARLOW(size, 700), '#e9e9ea', 'center');
+      });
+      ctx.restore();
+    }
+    // Las cifras: las dos grandes y, en medio, la pequeña (los empates o el guion)
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,.45)';
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetY = 5;
+    ctx.font = DIN(big ? 86 : 60, 700);
+    const mw = ctx.measureText(String(o.mid)).width, gap = big ? 34 : 30, base = cy + (big ? 57 : 40);
+    text(ctx, String(o.mid), W / 2, cy + (big ? 30 : 21), DIN(big ? 86 : 60, 700), '#cfd0d3', 'center');
+    text(ctx, String(o.l), W / 2 - mw / 2 - gap, base, DIN(big ? 162 : 113), o.lLose ? '#9a9ba0' : '#ffffff', 'right');
+    text(ctx, String(o.r), W / 2 + mw / 2 + gap, base, DIN(big ? 162 : 113), o.rLose ? '#9a9ba0' : '#ffffff', 'left');
+    ctx.restore();
+    if (o.subA > 0 && o.sub) {
+      ctx.save();
+      ctx.globalAlpha *= o.subA;
+      spaced(ctx, big ? 5.3 : 5, () => text(ctx, o.sub, W / 2, big ? y + 277 : y + 185, BARLOW(big ? 33 : 31, 600), big ? '#d6d7da' : '#b9babe', 'center'));
+      ctx.restore();
+    }
+  }
   function scenePrevH2H(d, A) {
     const h = d.h2h;
     const games = h.games.slice(0, 5);
     const rowAt = (i) => BAR + i * STEP * 2;
-    // Los partidos acaban en 1450: debajo van los subtítulos
-    const TOP = 820, ROW = 130, MID = (ROW - 20) / 2;
+    // Arriba a la derecha va tu logo; las filas acaban en 1420: debajo van los subtítulos
+    const TOP = 130, ROW0 = 432, ROW = 200;
+    const wins = up(d.t?.wins || 'Victorias');
     return {
       id: 'h2h',
       dur: 3 * BAR,
@@ -3002,84 +3248,134 @@
       music: { energy: 'full' },
       cues: [{ t: BEAT, kind: 'slam' }, ...games.map((_, i) => ({ t: rowAt(i), kind: 'tick', p: i / 5, vel: 0.6 }))],
       draw(ctx, t) {
-        const P = sheet(d);
-        sheetBg(ctx, d);
-        const k = easeOut(prog(t, 0.1, 0.4));
-        ctx.save();
-        ctx.globalAlpha = k;
-        text(ctx, d.t?.h2h || 'CARA A CARA', M, 230, ANTON(110), P.ink);
-        text(ctx, up(h.label), M, 300, BARLOW(40), P.mute);
-        ctx.restore();
-        // Las tres cifras: victorias del local, empates, victorias del visitante
-        const cols = [
-          [d.home.style, h.home, A.homeLogo, W / 6],
-          [null, h.draws, null, W / 2],
-          [d.away.style, h.away, A.awayLogo, (5 * W) / 6],
-        ];
-        cols.forEach(([st, v, img, cx], i) => {
-          const a = easeBack(prog(t, BEAT + i * STEP, 0.4));
-          if (a <= 0) return;
-          ctx.save();
-          ctx.globalAlpha = Math.min(1, a);
-          ctx.translate(cx, 620);
-          ctx.scale(a, a);
-          if (img) logo(ctx, img, 0, -170, 130);
-          else text(ctx, d.t?.draws || 'EMPATES', 0, -150, BARLOW(40), P.mute, 'center');
-          text(ctx, String(v), 0, 90, ANTON(200), st ? P.team(st) : P.ink, 'center');
-          ctx.restore();
+        h2hBg(ctx);
+        const c = easeOut(prog(t, BEAT, 0.6));
+        h2hRow(ctx, A, d, TOP, {
+          big: true, tab: up(h.tab || d.t?.h2h || 'CARA A CARA'), tabA: easeOut(prog(t, 0.05, 0.3)),
+          bar: easeOut(prog(t, 0.1, 0.4)), crest: easeBack(prog(t, BEAT, 0.4)),
+          l: countText(h.home, c), mid: countText(h.draws, c), r: countText(h.away, c), lLose: h.home < h.away, rLose: h.away < h.home,
+          sub: `${wins} · ${up(d.t?.draws || 'EMPATES')} · ${wins}`, subA: easeOut(prog(t, BEAT + 0.3, 0.4)),
         });
         games.forEach((g, i) => {
           const a = easeOut(prog(t, rowAt(i), 0.35));
           if (a <= 0) return;
-          const y = TOP + i * ROW;
+          const l = Number(g.left), r = Number(g.right);
           ctx.save();
           ctx.globalAlpha = a;
-          ctx.translate((1 - a) * 200, 0);
-          ctx.fillStyle = P.zebra;
-          roundRect(ctx, M - 16, y, W - 2 * M + 32, ROW - 20, 16);
-          ctx.fill();
-          text(ctx, up(g.date), M + 10, y + MID + 13, BARLOW(34), P.mute);
-          const mid = W / 2 + 120;
-          const win = (side) => (g.winner === side ? P.ink : P.faint);
-          text(ctx, up(g.homeName), mid - 90, y + MID + 15, BARLOW(fit(ctx, up(g.homeName), (z) => BARLOW(z), 40, 300)), win('home'), 'right');
-          text(ctx, `${g.homeScore}-${g.awayScore}`, mid, y + MID + 21, ANTON(60), P.ink, 'center');
-          text(ctx, up(g.awayName), mid + 90, y + MID + 15, BARLOW(fit(ctx, up(g.awayName), (z) => BARLOW(z), 40, 300)), win('away'), 'left');
+          ctx.translate((1 - a) * (i % 2 ? -180 : 180), 0);
+          h2hRow(ctx, A, d, ROW0 + i * ROW, {
+            big: false, tab: up(g.month || g.date), tabA: 1, bar: 1, crest: 1,
+            l: g.left ?? '', mid: '–', r: g.right ?? '', lLose: l < r, rLose: r < l, sub: up(g.where || ''), subA: 1,
+          });
           ctx.restore();
         });
       },
     };
   }
 
-  // Los que más marcan de cada uno («7 goles en 8 partidos»)
+  // LOS QUE MÁS MARCAN (el pin de Kane y Lewandowski): uno a cada lado de una línea verde, con su
+  // cara (o su escudo) pegada a ella y sus goles y partidos en círculos: verdes los del de casa y
+  // negros (blancos, en oscuro) los del de fuera, que crecen de golpe y suben contando. Abajo, los
+  // de los dos juntos.
   function scenePrevGoles(d, A) {
+    const g = d.goleadores;
+    const both = !!(g.home && g.away);
+    const sum = both ? { goals: g.home.goals + g.away.goals, played: g.home.played && g.away.played ? g.home.played + g.away.played : null } : null;
+    const T = d.t || {};
+    const title = up([g.home?.last, g.away?.last].filter(Boolean).join(` ${T.and || 'y'} `));
     return {
       id: 'goleadores',
       dur: 2 * BAR,
-      accent: d.away.style.acc,
+      accent: ACCENT,
       music: { energy: 'full' },
-      cues: [{ t: BEAT, kind: 'hit', vel: 0.9 }, { t: BEAT + STEP * 2, kind: 'hit', vel: 0.9 }],
+      cues: [{ t: BEAT, kind: 'hit', vel: 0.9 }, { t: BEAT + STEP * 2, kind: 'hit', vel: 0.9 }, ...(both ? [{ t: BAR, kind: 'hit', vel: 0.8 }] : [])],
       draw(ctx, t) {
-        halvesBg(ctx, d, A);
-        ctx.save();
-        ctx.globalAlpha = easeOut(prog(t, 0.1, 0.4));
-        pill(ctx, d.t?.scorers || 'SUS GOLEADORES');
-        ctx.restore();
-        [['home', 0, 0], ['away', W / 2, 1]].forEach(([side, x0, j]) => {
-          const p = d.goleadores[side];
-          if (!p) return;
-          const st = d[side].style;
-          const a = easeOut(prog(t, BEAT + j * STEP * 2, 0.45));
+        sheetBg(ctx, d);
+        const P = sheet(d);
+        const dkFill = d.dark ? '#ffffff' : '#0d0f13', dkText = d.dark ? '#0d0f13' : ACCENT;
+        const tag = (str, cy, a) => {
+          if (a <= 0) return;
           ctx.save();
-          ctx.globalAlpha = a;
-          ctx.translate(0, (1 - a) * 60);
-          const cx = x0 + W / 4;
-          if (p.first) text(ctx, up(p.first), cx, 760, BARLOW(fit(ctx, up(p.first), (z) => BARLOW(z), 48, W / 2 - 60)), st.fg, 'center');
-          text(ctx, up(p.last), cx, 880, ANTON(fit(ctx, up(p.last), ANTON, 110, W / 2 - 60)), st.fg, 'center');
-          text(ctx, String(p.goals), cx, 1180, ANTON(260), st.fg, 'center');
-          text(ctx, up(p.unit), cx, 1260, BARLOW(42), st.fg, 'center');
-          if (p.games) text(ctx, up(p.games), cx, 1320, BARLOW(36), st.fg, 'center');
+          ctx.globalAlpha *= a;
+          spaced(ctx, 4, () => {
+            ctx.font = BARLOW(40, 700);
+            const w = ctx.measureText(str).width + 70;
+            ctx.fillStyle = ACCENT;
+            ctx.fillRect(W / 2 - w / 2, cy - 33, w, 66);
+            text(ctx, str, W / 2, cy + 14, BARLOW(40, 700), '#111111', 'center');
+          });
           ctx.restore();
+        };
+        const circle = (cx, cy, r, v, label, lime, at) => {
+          const a = easeBack(prog(t, at, 0.4));
+          if (a <= 0) return;
+          const c = easeOut(prog(t, at, 0.6));
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.scale(a, a);
+          ctx.beginPath();
+          ctx.arc(0, 0, r, 0, Math.PI * 2);
+          ctx.fillStyle = lime ? ACCENT : dkFill;
+          ctx.fill();
+          const ink = lime ? '#111111' : dkText;
+          text(ctx, countText(v, c), 0, 32, ANTON(fit(ctx, String(v), ANTON, 140, r * 1.6)), ink, 'center');
+          spaced(ctx, 4, () => text(ctx, up(label), 0, 70, BARLOW(36, 700), ink, 'center'));
+          ctx.restore();
+        };
+        const k = easeOut(prog(t, 0.05, 0.4));
+        ctx.save();
+        ctx.globalAlpha = k;
+        text(ctx, title, W / 2, 250, ANTON(fit(ctx, title, ANTON, 112, W - 80)), P.ink, 'center');
+        ctx.restore();
+        tag(up(T.scorersTag || T.scorers || 'SUS GOLEADORES'), 318, k);
+        // La línea del medio, que baja
+        const ax = easeOut(prog(t, 0.1, 0.5));
+        ctx.fillStyle = ACCENT;
+        ctx.fillRect(W / 2 - 3, 360, 6, (both ? 1090 : 660) * ax);
+        [['home', -1, true], ['away', 1, false]].forEach(([side, dir, lime], j) => {
+          const p = g[side];
+          if (!p) return;
+          // La cara, pegada a la línea (en papel, sin su fondo blanco; en oscuro, en un círculo); sin
+          // cara, su escudo
+          const fa = easeOut(prog(t, 0.25 + j * 0.1, 0.4));
+          const face = A.scorerFaces?.[side], cx = W / 2 + dir * 145;
+          ctx.save();
+          ctx.globalAlpha = fa;
+          if (face && !d.dark) {
+            ctx.globalCompositeOperation = 'multiply';
+            ctx.drawImage(face, cx - 140, 405, 280, 280);
+          } else if (face) {
+            ctx.beginPath();
+            ctx.arc(cx, 545, 135, 0, Math.PI * 2);
+            ctx.fillStyle = '#e9e6df';
+            ctx.fill();
+            ctx.clip();
+            ctx.drawImage(face, cx - 135, 410, 270, 270);
+          } else {
+            logo(ctx, side === 'home' ? A.homeLogo : A.awayLogo, cx, 545, 230);
+          }
+          ctx.restore();
+          // Su apellido y su equipo, junto a la línea
+          ctx.save();
+          ctx.globalAlpha = easeOut(prog(t, BEAT + 0.2 + j * 0.1, 0.4));
+          const align = dir < 0 ? 'right' : 'left', nx = W / 2 + dir * 20;
+          text(ctx, up(p.last), nx, 865, ANTON(fit(ctx, up(p.last), ANTON, 70, 220)), P.ink, align);
+          spaced(ctx, 3, () => text(ctx, up(d[side].short), nx, 910, BARLOW(fit(ctx, up(d[side].short), (z) => BARLOW(z, 700), 33, 220), 700), P.mute, align));
+          ctx.restore();
+          // Sus goles y sus partidos, a su lado
+          const ox = dir < 0 ? 145 : W - 145;
+          circle(ox, 545, 145, p.goals, T.goalsWord || 'Goles', lime, BEAT + j * STEP);
+          if (p.played) circle(ox, 865, 145, p.played, T.gamesWord || 'Partidos', lime, BEAT + 2 * STEP + j * STEP);
         });
+        if (both) {
+          tag(up(T.between || 'Entre los dos'), 1083, easeOut(prog(t, BAR - 0.1, 0.35)));
+          if (sum.played) {
+            circle(W / 2 - 150, 1300, 150, sum.goals, T.goalsWord || 'Goles', true, BAR);
+            circle(W / 2 + 150, 1300, 150, sum.played, T.gamesWord || 'Partidos', false, BAR + STEP);
+          } else {
+            circle(W / 2, 1300, 150, sum.goals, T.goalsWord || 'Goles', true, BAR);
+          }
+        }
       },
     };
   }
@@ -3088,7 +3384,7 @@
   function buildScenes(d, A, intro = true) {
     if (d.kind === 'previa') {
       return [
-        sceneIntro(d, A),
+        scenePrevPortada(d, A),
         d.forma && (d.forma.home.length || d.forma.away.length) && scenePrevForma(d, A),
         d.h2h?.games.length && scenePrevH2H(d, A),
         d.goleadores && (d.goleadores.home || d.goleadores.away) && scenePrevGoles(d, A),
@@ -3547,6 +3843,17 @@
     return faces;
   }
 
+  // Las caras de los que más marcan (la previa), ampliadas con cuidado
+  async function scorerFaces(d) {
+    const out = {};
+    await Promise.all(['home', 'away'].map(async (side) => {
+      const url = d.goleadores?.[side]?.face;
+      const img = url ? await loadImage(url) : null;
+      if (img && !isSilhouette(img)) out[side] = crisp(img, 280, 0.5);
+    }));
+    return out;
+  }
+
   async function loadAssets(d) {
     await Promise.all([
       document.fonts.load('100px Anton'),
@@ -3555,6 +3862,7 @@
       document.fonts.load('600 50px "Barlow Condensed"'),
       document.fonts.load('500 50px "Barlow Condensed"'),
       document.fonts.load('900 84px Montserrat'),
+      ...(d.kind === 'previa' ? [document.fonts.load('italic 800 54px Saira'), document.fonts.load('800 100px Barlow'), document.fonts.load('700 100px Barlow')] : []),
     ]);
     const [homeLogo, awayLogo, jugadorPhoto, jugadorFace, jugadorLogo, closingPhoto, brandImg, ...tableLogos] = await Promise.all([
       loadImage(d.home.logo), loadImage(d.away.logo), loadImage(d.jugador?.photo), loadImage(d.jugador?.face), loadImage(d.jugador?.logo),
@@ -3562,7 +3870,7 @@
       ...(d.table?.rows || []).map(r => loadImage(r?.logo)),
     ]);
     const closingLogo = d.closing.side === 'away' ? awayLogo : homeLogo;
-    return { homeLogo, awayLogo, jugadorPhoto, jugadorFace: crisp(jugadorFace, 2 * FACE_R), jugadorLogo, closingPhoto, closingLogo, brandImg, tableLogos, faces: d.kind === 'previa' ? {} : await loadFaces(d), world: await world3d(d, homeLogo, awayLogo) };
+    return { homeLogo, awayLogo, jugadorPhoto, jugadorFace: crisp(jugadorFace, 2 * FACE_R), jugadorLogo, closingPhoto, closingLogo, brandImg, tableLogos, faces: d.kind === 'previa' ? {} : await loadFaces(d), scorerFaces: d.kind === 'previa' ? await scorerFaces(d) : {}, world: await world3d(d, homeLogo, awayLogo) };
   }
   // El campo en 3D de la escena del partido (campo3d.js): si el navegador tiene WebGL y Three.js
   // carga en unos segundos; si no, null y la escena va en 2D. Las líneas, del color que se lea

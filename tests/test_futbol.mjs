@@ -916,7 +916,13 @@ try {
   // ── Previa: con un partido sin empezar, un vídeo con cómo llegan, el cara a cara y sus goleadores ──
   // (datos reales de ESPN del Real Madrid–Sevilla del 18-10-2026, movido al 29-11 para no pisar otras pruebas)
   {
-    const { ctx: cp, page: pp } = await open({ before: async (c) => { await c.clock.setFixedTime(new Date('2026-11-29T12:00:00+01:00')); } });
+    const { ctx: cp, page: pp } = await open({ before: async (c) => {
+      await c.clock.setFixedTime(new Date('2026-11-29T12:00:00+01:00'));
+      // Las caras del repo: la de Mbappé (la del Sevilla, Sierra, no está)
+      await c.route(`${base}/caras/laliga.json`, (r) => r.fulfill(json(JSON.stringify({ liga: 'esp.1', equipos: [
+        { espn: '86', af: 541, nombre: 'Real Madrid', jugadores: [{ id: 278, nombre: 'Kylian Mbappé', dorsal: 10 }, { id: 730, nombre: 'T. Courtois', dorsal: 1 }] },
+        { espn: '243', af: 536, nombre: 'Sevilla', jugadores: [{ id: 327536, nombre: 'R. Ure', dorsal: 9 }] }] }))));
+    } });
     await pickLeague(pp, 'esp.1');
     await pickDate(pp, '2026-11-29');
     await pp.click('.game-card[data-game-id="401882839"]');
@@ -926,7 +932,7 @@ try {
     // Lo que le llega al vídeo: con su guion y los subtítulos
     await pp.evaluate(() => {
       const render = window.StudioVideo.render;
-      window.StudioVideo.render = (data, cb, opts) => { window.__previaOpts = opts; return render(data, cb, opts); };
+      window.StudioVideo.render = (data, cb, opts) => { window.__previaOpts = opts; window.__previaData = data; return render(data, cb, opts); };
     });
     await pp.click('.lang-opt[data-voz="si"]');
     await pp.click('#previaBtn');
@@ -938,6 +944,22 @@ try {
       && said.goleadores === 'Los que más marcan: Mbappé, 7; Sierra, 2.' && /^El Real Madrid, cuarto, a nueve del líder/.test(said.tabla)
       && said.outro === '¿Quién gana? Te leo en comentarios.',
       `y su guion (para la voz; sin ella, sin subtítulos): cómo llegan, el cara a cara, los goleadores y la tabla (${[said.forma, said.h2h, said.goleadores, said.tabla].join(' · ')})`);
+    // La previa nueva: la portada en diagonal (con la competición, el día, la hora y el estadio), el
+    // cara a cara en filas (el local de hoy a la izquierda, el mes y en casa de quién) y los que más
+    // marcan en círculos, con su cara si está en el repo
+    const pd = await pp.evaluate(() => {
+      const d = window.__previaData;
+      return { where: [d.compName, d.when, d.hhmm, d.venue], tab: d.h2h.tab, games: d.h2h.games.map((g) => `${g.month}: ${g.left}-${g.right} ${g.where}`),
+        scorers: ['home', 'away'].map((s) => `${d.goleadores[s].last} ${d.goleadores[s].goals}/${d.goleadores[s].played} ${d.goleadores[s].face}`),
+        plan: window.StudioVideo.plan(d, null).map((x) => `${x.id} ${x.dur.toFixed(1)}`).join(', '),
+        // lo que dura la portada: todo, menos las escenas con guion y tu marca
+        cover: Math.round(10 * (window.StudioVideo.length(d) - window.StudioVideo.plan(d, null).reduce((a, x) => a + x.dur, 0) - (d.brand ? 1.6 : 0))) / 10 };
+    });
+    check(pd.where.join(' | ') === 'LaLiga | Hoy | 21:00 | Santiago Bernabéu' && pd.cover === 3.2 && pd.tab === 'Cara a cara · los 5 últimos'
+      && pd.games[0] === 'mayo 2026: 1-0 En casa del Sevilla' && pd.games[3] === 'diciembre 2024: 4-2 En casa del Real Madrid',
+      `la previa: la portada de dos compases (${pd.where.join(' | ')}) y el cara a cara, con el Madrid a la izquierda (${pd.games.slice(0, 2).join(' · ')})`);
+    check(pd.scorers.join(' · ') === 'Mbappé 7/8 caras/278.png · Sierra 2/8 null' && pd.plan === 'forma 4.8, h2h 4.8, goleadores 3.2, tabla 3.2, outro 3.2',
+      `sus goleadores, con la cara de Mbappé del repo y Sierra con su escudo (${pd.scorers.join(' · ')}), y las escenas (${pd.plan})`);
     const pv = await pp.evaluate(() => ({ title: document.getElementById('videoOut').dataset.title, caption: document.getElementById('captionText').value.split('\n'),
       dl: document.getElementById('videoDlBtn').download, box: !document.getElementById('captionBox').hidden }));
     check(pv.title === 'Previa · Real Madrid – Sevilla' && pv.dl === 'futbol-rma-sev-2026-11-29-previa.mp4' && pv.box,

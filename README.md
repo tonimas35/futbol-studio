@@ -73,11 +73,13 @@ Sin nada de eso, todo sale como siempre. El robot lo hace igual, sin hacer nada.
 
 Con un partido que aún no ha empezado, en vez de «Generar carrusel» sale **«Crear previa (vídeo)»**: un vídeo de unos 20 segundos para subir antes del partido, con lo de ESPN del propio partido:
 
-- **Apertura:** «PREVIA», el gancho («El Real Madrid ganó los 5 últimos» si uno ganó todos los cara a cara; si no, «… llega con 4 victorias en 5» si uno llega muy bien; si no, los dos equipos) y cuándo («HOY · 21:00»).
+- **Portada** (como el pin «Blue vs Blue»): papel con dobleces y dos franjas en diagonal, del color de cada equipo y con su escudo de fondo; por el borde, «PREVIA · LALIGA | HOY» y «21:00 | SANTIAGO BERNABÉU»; los escudos en las esquinas y el «VS» verde en el hueco. Es el primer fotograma (la portada de TikTok), así que está entera desde el principio; en el primer pulso, el golpe del «VS». En oscuro, el papel es casi negro y la franja de un equipo blanco, blanca.
 - **Cómo llegan:** los últimos 5 partidos oficiales de cada uno (sin amistosos: si había alguno, quedan menos y la descripción no dice «Últimos 5»), con el resultado, el rival y la cuenta («4G · 0E · 1P»).
-- **Cara a cara:** los ganados por cada uno y los empates en grande, y los últimos 5 partidos entre ellos.
-- **Sus goleadores:** el que más marca de cada uno esta temporada («Mbappé, 7 goles en 8 partidos»).
+- **Cara a cara** (como el de Goal de los grandes derbis): fondo oscuro y filas con el color de cada equipo en los extremos y su escudo encima. Arriba, el total (victorias de cada uno y empates, que suben contando); debajo, los últimos 5 partidos, siempre con el local de hoy a la izquierda: el mes, la cifra del que perdió en gris y «En casa del Sevilla». La versión larga del partido usa la misma escena.
+- **Los que más marcan** (como el de Kane y Lewandowski de Bleacher Report): uno a cada lado de una línea verde, con sus goles y sus partidos en círculos (verdes los del de casa, negros los del de fuera) y, abajo, «Entre los dos». Su cara, si está en las caras de LaLiga del repo (`caras/`); si no, su escudo.
 - **La clasificación** («Así llegan en LaLiga») y el cierre: **«¿Quién gana?»**.
+
+La portada y las cifras usan dos letras más de Google Fonts: Saira (ancha e inclinada) y Barlow.
 
 Con su descripción para TikTok: «🔥 PREVIA · Real Madrid – Sevilla», la hora, cómo llegan, el cara a cara, la pregunta y los hashtags (con `#previa`). `?previa=esp.1/401882839` (y `&dia=` si no es de hoy ni de mañana) la crea sola.
 
@@ -237,7 +239,7 @@ El partido en 30 a 40 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
 - **Versión larga (+1 min):** TikTok solo paga (Creator Rewards) los vídeos de más de un minuto. Con «Versión larga (+1 min)» (se recuerda) el vídeo suma lo que haya de:
   - **Más estadísticas:** las que no caben en la primera (faltas, amarillas…).
   - **Cómo llegaban:** los 5 partidos de antes de cada uno, como en la previa.
-  - **Cara a cara:** los anteriores entre los dos, sin contar el de hoy.
+  - **Cara a cara:** los anteriores entre los dos, sin contar el de hoy (la misma escena que la previa).
 
   Si aún no llega a 62 s, cada escena se queda más en pantalla, en compases enteros (primero el minuto a minuto, la clasificación y el cara a cara). Su animación va a su ritmo y luego se queda quieta mientras la cámara se sigue acercando. El guion tiene frase para las escenas nuevas y el archivo se llama `…-largo.mp4`. El robot sigue haciendo el corto.
 - **Sin música por defecto:** el vídeo sale mudo y en TikTok se le pone un sonido en tendencia (ayuda a que te descubran). «Con música» activa la música propia (se recuerda).
