@@ -6101,11 +6101,22 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
   }
 
   // Todo de una vez: el carrusel y, en cuanto está, el vídeo (con la descripción para TikTok
-  // ya escrita). Lo usan «Generar →» del directo y el enlace del pitido final.
-  async function generateAll(id) {
+  // ya escrita). Lo usan «Generar →» del directo y el enlace del pitido final. Con video: false (el
+  // aviso del robot, &preparar=1), el carrusel, con tus notas, y te deja en «Crear vídeo».
+  async function generateAll(id, { video = true } = {}) {
     selectGame(id);
     await generateCarousel();
     if (state.rendered?.id !== id) return;
+    if (!video) {
+      const btn = document.getElementById('videoBtn');
+      btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      btn.classList.add('btn-ready');
+      btn.addEventListener('click', () => btn.classList.remove('btn-ready'), { once: true });
+      // (si API-Football ha fallado, se queda su aviso, que dice por qué)
+      if (ratedPlayers(state.rendered, 'home').length) showToast('Listo, con las notas: pulsa «Crear vídeo»', 'success');
+      else if (!afOn()) showToast('Listo, pero sin notas: pega tu clave de API-Football (paso 2) y vuelve a abrir el aviso', 'error');
+      return;
+    }
     document.getElementById('slidesPreview').scrollIntoView({ behavior: 'smooth', block: 'start' });
     await makeVideo();
     if (state.rendered?.id === id && !document.getElementById('videoOut').hidden) {
@@ -6115,8 +6126,8 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
 
   // ─── Al pitido final: un enlace que lo hace todo solo ───
   // ?partido=esp.1/401882846 (y &dia=2026-10-17 si no es de hoy ni de ayer): elige la
-  // competición, busca el partido, genera el carrusel y crea el vídeo. Es el enlace del aviso
-  // al móvil cuando acaba un partido.
+  // competición, busca el partido, genera el carrusel y crea el vídeo (lo que hace el robot). Con
+  // &preparar=1 (el aviso al móvil cuando acaba un partido), el carrusel y te deja en «Crear vídeo».
   async function openFromLink(params) {
     const previa = params.has('previa');
     const [league, id] = (params.get(previa ? 'previa' : 'partido') || '').split('/');
@@ -6139,7 +6150,7 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
       selectGame(id);
       await makePrevia();
     } else {
-      await generateAll(id);
+      await generateAll(id, { video: params.get('preparar') !== '1' });
     }
     return true;
   }

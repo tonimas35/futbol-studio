@@ -741,6 +741,23 @@ try {
     check(askedNo.length === 0 && nv.voz === 'no' && !/voz|subtítulos/.test(nv.meta) && nv.mode === 'true' && !nv.saved.includes('"voz"'),
       `por defecto, el robot hace el vídeo sin voz ni subtítulos: no la pide (${nv.meta})`);
     await c7n.close();
+    // El aviso al móvil (&preparar=1): el carrusel y te deja en «Crear vídeo», sin crearlo; sin tu
+    // clave de API-Football, avisa de que va sin notas
+    const { ctx: c7p, page: p7p } = await open({
+      url: `${base}/?partido=esp.1/401882844&dia=2026-10-16&preparar=1`,
+      before: async (ctx) => {
+        ctx.on('page', (pg) => pg.on('dialog', (d) => d.accept()));
+        await ctx.clock.setFixedTime(new Date('2026-10-17T10:00:00+02:00'));
+        await ctx.route('https://site.api.espn.com/apis/site/v2/sports/soccer/esp.1/scoreboard?dates=20261016', (r) => r.fulfill(json(JSON.stringify(sbEnded))));
+      },
+    });
+    await p7p.waitForSelector('#videoBtn.btn-ready', { timeout: 60000 }).catch(() => {});
+    await p7p.waitForTimeout(1500);
+    const pr = await p7p.evaluate(() => ({ ready: document.getElementById('videoBtn').classList.contains('btn-ready'), busy: document.getElementById('videoBtn').classList.contains('btn-loading'),
+      out: !document.getElementById('videoOut').hidden, slides: !!document.getElementById('slide-portada'), toast: document.getElementById('toast').textContent, url: location.search }));
+    check(pr.slides && pr.ready && !pr.busy && !pr.out && pr.url === '' && /sin notas: pega tu clave de API-Football/.test(pr.toast),
+      `desde el aviso, el carrusel y te deja en «Crear vídeo» sin crearlo; sin tu clave de API-Football, avisa de que va sin notas (${pr.toast})`);
+    await c7p.close();
     // Un partido que no está: lo dice y deja el Studio como siempre.
     const { ctx: c7b, page: p7b } = await open({ url: `${base}/?partido=esp.1/999`, before: async (ctx) => { await ctx.clock.setFixedTime(new Date('2026-10-16T22:00:00+02:00')); } });
     await p7b.waitForFunction(() => /ni hoy ni ayer/.test(document.getElementById('toast').textContent), null, { timeout: 15000 }).catch(() => {});
@@ -816,6 +833,13 @@ try {
       `y el aviso al móvil lleva el resultado, la descripción y el enlace al vídeo (${n.click})`);
     check(pl.notice({ id: '401882844', title: 'x' }, 'tema', 'https://tonimas35.github.io/futbol-studio/', false).click === 'https://github.com/tonimas35/futbol-studio/releases/download/videos/401882844.mp4',
       'y si la web no se ha podido publicar, el vídeo tal cual');
+    // Con su liga y su día (los vídeos de ahora): el aviso abre el Studio con el partido, para
+    // hacerlo con tus notas, y el del robot en su botón
+    const nn = pl.notice({ id: '401882844', kind: 'final', league: 'esp.1', day: '2026-10-16', title: 'Deportivo 1-0 Levante', caption: 'x' }, 'tema', 'https://tonimas35.github.io/futbol-studio/');
+    check(nn.click === 'https://tonimas35.github.io/futbol-studio/?partido=esp.1/401882844&dia=2026-10-16&preparar=1'
+      && nn.actions.map((a) => a.label).join(' | ') === 'Crear el vídeo con notas | Vídeo del robot' && nn.actions[1].url === 'https://tonimas35.github.io/futbol-studio/?video=401882844'
+      && pl.notice({ id: '1-previa', kind: 'previa', league: 'esp.1', day: '2026-10-16', title: 'x' }, 't', 'https://w/').click === 'https://w/?video=1-previa',
+      `el aviso de un partido abre el Studio para hacerlo con tus notas, y el del robot en su botón (${nn.click})`);
     // Las previas: 3 horas antes de los partidos grandes (los del Madrid, el Barça y el Atlético) y de
     // todos los de la Champions, una vez y nunca a menos de 10 minutos del inicio
     const pre = (id, home, away, iso) => ({ id, date: iso, status: { type: { state: 'pre' } },
