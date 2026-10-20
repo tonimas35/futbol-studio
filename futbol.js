@@ -1519,7 +1519,7 @@
   const AF_LALIGA = 140;
   const FACE_COMPS = {
     'esp.1': { name: 'LaLiga', af: AF_LALIGA, country: 'Spain', file: 'laliga.json' },
-    'uefa.champions': { name: 'la Champions', af: 2, country: null, file: 'champions.json', skip: 'laliga.json' },
+    'uefa.champions': { name: 'la Champions', af: 2, country: null, file: 'champions.json', skip: 'esp.1' },
   };
   const facesPace = () => window.fsFacesPace ?? 6500;
   const teamScore = (a, b) => {
@@ -1549,8 +1549,13 @@
       say(`los equipos de ${cfg.name}…`);
       // De la clasificación: la lista de equipos de ESPN (/teams) no deja leerla desde el navegador
       const table = await espnFetch(`/${league}/standings`, ESPN_TABLES);
-      // (en la Champions, sin los que ya tienen sus caras en otro archivo: los de LaLiga)
-      const skip = new Set(((cfg.skip && (await facesFile(cfg.skip))?.equipos) || []).map(t => String(t.espn)));
+      // (en la Champions, sin los de LaLiga, que ya tienen sus caras en laliga.json: se miran en su
+      // clasificación de ESPN, que funciona también desde la web publicada)
+      const skip = new Set();
+      if (cfg.skip) {
+        const liga = await espnFetch(`/${cfg.skip}/standings`, ESPN_TABLES).catch(() => null);
+        (liga ? liga.children || [liga] : []).flatMap(g => g.standings?.entries || []).forEach(e => e.team?.id && skip.add(String(e.team.id)));
+      }
       const espn = (table.children || [table]).flatMap(g => g.standings?.entries || []).map(e => e.team || {})
         .map(t => ({ espn: String(t.id || ''), nombre: t.displayName || t.name || '' })).filter(t => t.espn && t.nombre && !skip.has(t.espn));
       if (!espn.length) throw new Error(`ESPN no da los equipos de ${cfg.name}`);
@@ -1561,17 +1566,24 @@
           if (f.league?.id === cfg.af) [f.teams?.home, f.teams?.away].forEach(t => t?.id && afTeams.set(t.id, t.name));
         }
       }
-      const best = (name, list) => list.map(([id, n]) => ({ id, n, w: teamScore(name, n) })).sort((a, b) => b.w - a.w)[0];
-      const found = espn.map(t => {
-        const b = best(t.nombre, [...afTeams]);
-        return { ...t, af: b && b.w >= 0.5 ? b.id : null };
-      });
+      // Sin los equipos de mujeres, los filiales ni los juveniles («Bayern Munich W», «Real Madrid II»,
+      // «Barcelona U19»): el que más se parece por el nombre o, si ninguno se parece bastante, el único
+      // que comparte con él una palabra larga («Bayern Munich» y «Bayern München», «Internazionale» e
+      // «Inter»). Si hay dos así, ninguno: mejor sin caras que con las de otro equipo.
+      const firstTeam = (n) => !/\s(W|II|B|U\d{2})$/i.test(String(n || '').trim());
+      const best = (name, list) => {
+        const ok = list.filter(([, n]) => firstTeam(n));
+        const top = ok.map(([id, n]) => ({ id, w: teamScore(name, n) })).sort((a, b) => b.w - a.w)[0];
+        if (top && top.w >= 0.5) return top.id;
+        const near = ok.filter(([, n]) => sameTeam(name, n));
+        return near.length === 1 ? near[0][0] : null;
+      };
+      const found = espn.map(t => ({ ...t, af: best(t.nombre, [...afTeams]) }));
       for (const t of found.filter(x => !x.af)) {
         say(`buscando ${t.nombre}…`);
         const q = plain(teamWords(t.nombre).sort((a, b) => b.length - a.length)[0] || t.nombre);
         const list = (await af('teams', { search: q })).filter(x => !cfg.country || x.team?.country === cfg.country).map(x => [x.team.id, x.team.name]);
-        const b = best(t.nombre, list);
-        if (b && b.w >= 0.5) t.af = b.id;
+        t.af = best(t.nombre, list);
       }
       const old = await facesFile(cfg.file);
       const equipos = [];

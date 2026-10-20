@@ -1357,17 +1357,22 @@ try {
       await c.route(/site\.api\.espn\.com\/.*\/teams$/, (r) => r.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
       // La Champions: el Madrid y el Betis (ya en laliga.json) y el PSG
       await c.route(/site\.api\.espn\.com\/.*\/uefa\.champions\/standings$/, (r) => r.fulfill(json(JSON.stringify({ children: [{ standings: { entries: [
-        { team: { id: '86', displayName: 'Real Madrid' } }, { team: { id: '244', displayName: 'Real Betis' } }, { team: { id: '160', displayName: 'Paris Saint-Germain' } }] } }] }))));
+        { team: { id: '86', displayName: 'Real Madrid' } }, { team: { id: '244', displayName: 'Real Betis' } }, { team: { id: '160', displayName: 'Paris Saint-Germain' } },
+        { team: { id: '132', displayName: 'Bayern Munich' } }, { team: { id: '110', displayName: 'Internazionale' } }] } }] }))));
       await c.route('https://v3.football.api-sports.io/**', (r) => {
         const u = new URL(r.request().url());
         asked.push(`${u.pathname.slice(1)}?${u.searchParams}`);
         const team = (id, name) => ({ id, name });
         const res = u.pathname === '/fixtures' ? [{ league: { id: 140 }, teams: { home: team(541, 'Real Madrid'), away: team(530, 'Atletico Madrid') } },
-          { league: { id: 2 }, teams: { home: team(85, 'Paris Saint Germain'), away: team(529, 'Barcelona') } }]
+          { league: { id: 2 }, teams: { home: team(85, 'Paris Saint Germain'), away: team(529, 'Barcelona') } },
+          { league: { id: 2 }, teams: { home: team(157, 'Bayern München'), away: team(42, 'Arsenal') } }]
+          : u.pathname === '/teams' && u.searchParams.get('search') === 'internazionale' ? [{ team: { id: 7903, name: 'Inter W', country: 'Italy' } }, { team: { id: 505, name: 'Inter', country: 'Italy' } }]
           : u.pathname === '/teams' ? [{ team: { id: 9001, name: 'Barcelona SC', country: 'Ecuador' } }, { team: { id: 529, name: 'Barcelona', country: 'Spain' } }]
             : u.searchParams.get('team') === '541' ? [{ players: [{ id: 1003, name: 'K. Mbappé', number: 10 }, { id: 1006, name: 'J. Bellingham', number: 5 }] }]
               : u.searchParams.get('team') === '529' ? [{ players: [{ id: 3001, name: 'Pedri', number: 8 }] }]
-                : u.searchParams.get('team') === '85' ? [{ players: [{ id: 4001, name: 'O. Dembélé', number: 10 }] }] : [];
+                : u.searchParams.get('team') === '85' ? [{ players: [{ id: 4001, name: 'O. Dembélé', number: 10 }] }]
+                  : u.searchParams.get('team') === '157' ? [{ players: [{ id: 5001, name: 'J. Musiala', number: 42 }] }]
+                    : u.searchParams.get('team') === '505' ? [{ players: [{ id: 6001, name: 'L. Martínez', number: 10 }] }] : [];
         return r.fulfill(json(JSON.stringify({ errors: [], response: res })));
       });
     } });
@@ -1404,9 +1409,10 @@ try {
     const ucl = JSON.parse(readFileSync(await dlu.path(), 'utf8'));
     const uq = ucl.equipos.map((t) => `${t.espn}→${t.af}:${t.jugadores.map((p) => `${p.id}/${p.dorsal}`).join(',')}`).join(' · ');
     const more = asked.slice(before);
-    check(dlu.suggestedFilename() === 'champions.json' && ucl.liga === 'uefa.champions' && uq === '160→85:4001/10'
-      && more.filter((a) => a.startsWith('fixtures')).length === 0 && more.filter((a) => a.startsWith('players/squads')).length === 1 && !more.some((a) => a.startsWith('teams')),
-      `«Caras de la Champions»: los rivales en champions.json, sin los de LaLiga y con los partidos ya pedidos (${uq} · ${more.length} peticiones)`);
+    check(dlu.suggestedFilename() === 'champions.json' && ucl.liga === 'uefa.champions' && uq === '160→85:4001/10 · 132→157:5001/42 · 110→505:6001/10'
+      && more.filter((a) => a.startsWith('fixtures')).length === 0 && more.filter((a) => a.startsWith('players/squads')).length === 3
+      && more.filter((a) => a.startsWith('teams')).join() === 'teams?search=internazionale',
+      `«Caras de la Champions»: los rivales en champions.json, sin los de LaLiga (de su clasificación de ESPN), con los partidos ya pedidos, el Bayern por «Bayern» y el Inter sin el femenino (${uq} · ${more.length} peticiones)`);
     await cf.close();
   }
 
