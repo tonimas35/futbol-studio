@@ -3990,16 +3990,18 @@
     }
     return null;
   }
+  // Un guion que no vale: se dice en el aviso (no es un fallo del Studio)
+  const guionError = (msg) => Object.assign(new Error(msg), { guion: true });
   function respuestaData(m, g = {}) {
     const d = videoData(m);
     const escenas = (Array.isArray(g.escenas) && g.escenas.length ? g.escenas : ['jugador', 'dato', 'pregunta', 'marca']).map(plain);
     const wrong = escenas.find(x => !RESPUESTA_ESCENAS.includes(x));
-    if (wrong) throw new Error(`No hay escena «${wrong}» (son ${RESPUESTA_ESCENAS.join(', ')})`);
+    if (wrong) throw guionError(`No hay escena «${wrong}» (son ${RESPUESTA_ESCENAS.join(', ')})`);
     const side = g.equipo ? respuestaSide(m, g.equipo) : null;
-    if (g.equipo && !side) throw new Error(`«${g.equipo}» no juega este partido`);
+    if (g.equipo && !side) throw guionError(`«${g.equipo}» no juega este partido`);
     if (g.jugador) {
       const p = respuestaPlayer(m, g.jugador);
-      if (!p) throw new Error(`No encuentro a «${g.jugador}» en el partido`);
+      if (!p) throw guionError(`No encuentro a «${g.jugador}» en el partido`);
       d.jugador = videoJugador(m, p, keyNumbers(m, p), afPhoto(m, p) || null);
     }
     if (d.jugador && Array.isArray(g.numeros) && g.numeros.length) {
@@ -4023,7 +4025,7 @@
     const lost = escenas.filter(x => x in has && !has[x]);
     const kept = escenas.filter(x => !lost.includes(x));
     const missing = lost.map(x => names[x]);
-    if (!kept.length) throw new Error(`Este partido no tiene ${listEs(missing)}`);
+    if (!kept.length) throw guionError(`Este partido no tiene ${listEs(missing)}`);
     return { ...d, kind: 'respuesta', escenas: kept, missing, long: false, hook: g.titular ? { tag: '', text: String(g.titular) } : d.hook };
   }
 
@@ -4163,7 +4165,7 @@
       else if (voice.why) showToast(`Vídeo listo, sin voz ni subtítulos: ${voice.why}`, 'error');
       else showToast(out.note || 'Vídeo listo · revísalo y descárgalo', out.note ? '' : 'success');
     } catch (e) {
-      console.error('Vídeo:', e);
+      if (!e.guion) console.error('Vídeo:', e);
       showToast(`No se pudo crear el vídeo: ${e.message}`, 'error');
     } finally {
       videoBusy = false;
