@@ -1469,16 +1469,19 @@
 
   // ----------------------------------------------------------
   // CARAS PARA EL ROBOT · el robot no puede pedir nada a API-Football (le suspenderían la cuenta a
-  // Toni), así que las caras se guardan en el repo: caras/laliga.json (las plantillas de LaLiga de
-  // API-Football, que hace «Caras para el robot» con tu clave, desde este navegador) y las fotos,
-  // caras/<id>.png (las baja .github/workflows/caras.yml: van sin clave y no gastan peticiones).
-  // Sin las notas de API-Football, la cara de cada jugador sale de ahí.
+  // Toni), así que las caras se guardan en el repo: caras/laliga.json y caras/champions.json (las
+  // plantillas de API-Football, que hacen «Caras de LaLiga» y «Caras de la Champions» con tu clave,
+  // desde este navegador) y las fotos, caras/<id>.png (las baja .github/workflows/caras.yml: van sin
+  // clave y no gastan peticiones). Sin las notas de API-Football, la cara de cada jugador sale de ahí.
   // ----------------------------------------------------------
-  const FACES_FILE = 'caras/laliga.json';
+  const FACES_FILES = ['laliga.json', 'champions.json'];
   let facesJob = null;
   // (abierto como archivo, el navegador no deja leerlo: sin caras)
-  const savedSquads = () => (facesJob ||= location.protocol === 'file:' ? Promise.resolve(null)
-    : fetch(FACES_FILE, { cache: 'no-cache' }).then(r => (r.ok ? r.json() : null)).catch(() => null));
+  const facesFile = (name) => (location.protocol === 'file:' ? Promise.resolve(null)
+    : fetch(`caras/${name}`, { cache: 'no-cache' }).then(r => (r.ok ? r.json() : null)).catch(() => null));
+  // Todas las plantillas juntas (las de LaLiga, primero)
+  const savedSquads = () => (facesJob ||= Promise.all(FACES_FILES.map(facesFile))
+    .then(files => (files.some(f => f?.equipos?.length) ? { equipos: files.flatMap(f => f?.equipos || []) } : null)));
   const lastWord = (s) => plain(String(s || '').trim().split(/\s+/).pop());
   // El de la plantilla con el mismo apellido (y, si hay dos, el mismo dorsal). Si no, con el mismo
   // nombre y el apellido de uno dentro del nombre del otro («Pau Cubarsí» y «Pau Cubarsí Paredes»,
@@ -1507,11 +1510,17 @@
     return Object.keys(players).length ? { players, local: true } : null;
   }
 
-  // «Caras para el robot»: los equipos de LaLiga de ESPN (de su clasificación), su id en API-Football (de los partidos
-  // de LaLiga de ayer, hoy y mañana, que es lo que deja el plan gratis; los que no jueguen, por su
-  // nombre) y la plantilla de cada uno. Unas 25 peticiones, despacio (el plan gratis deja 10 por
-  // minuto). Lo que ya hubiera en el repo se mantiene si ahora no sale.
+  // «Caras de LaLiga» y «Caras de la Champions»: los equipos de ESPN (de su clasificación), su id en
+  // API-Football (de los partidos de esa competición de ayer, hoy y mañana, que es lo que deja el
+  // plan gratis; los que no jueguen, por su nombre) y la plantilla de cada uno. En la Champions, sin
+  // los de LaLiga (ya están en laliga.json). Unas 25 o 35 peticiones, despacio (el plan gratis deja 10
+  // por minuto): la de la Champions, mejor un día de Champions, cuando juegan todos. Lo que ya
+  // hubiera en el repo se mantiene si ahora no sale.
   const AF_LALIGA = 140;
+  const FACE_COMPS = {
+    'esp.1': { name: 'LaLiga', af: AF_LALIGA, country: 'Spain', file: 'laliga.json' },
+    'uefa.champions': { name: 'la Champions', af: 2, country: null, file: 'champions.json', skip: 'laliga.json' },
+  };
   const facesPace = () => window.fsFacesPace ?? 6500;
   const teamScore = (a, b) => {
     if (plain(a) === plain(b)) return 2;
@@ -1519,10 +1528,11 @@
     const both = [...x].filter(w => y.has(w)).length;
     return both / (new Set([...x, ...y]).size || 1);
   };
-  async function makeFacesFile(btn) {
-    if (!afOn() || btn.disabled) return;
+  async function makeFacesFile(btn, league = 'esp.1') {
+    const cfg = FACE_COMPS[league];
+    if (!afOn() || btn.disabled || !cfg) return;
     btn.disabled = true;
-    const say = (t) => showToast(`Caras para el robot · ${t}`, '', true);
+    const say = (t) => showToast(`Caras de ${cfg.name} · ${t}`, '', true);
     // Una petición que falla (un día que el plan no deja, el límite por minuto…) solo deja fuera
     // ese equipo: se queda el de antes
     let calls = 0, problem = '';
@@ -1536,17 +1546,19 @@
       }
     };
     try {
-      say('los equipos de LaLiga…');
+      say(`los equipos de ${cfg.name}…`);
       // De la clasificación: la lista de equipos de ESPN (/teams) no deja leerla desde el navegador
-      const table = await espnFetch('/esp.1/standings', ESPN_TABLES);
+      const table = await espnFetch(`/${league}/standings`, ESPN_TABLES);
+      // (en la Champions, sin los que ya tienen sus caras en otro archivo: los de LaLiga)
+      const skip = new Set(((cfg.skip && (await facesFile(cfg.skip))?.equipos) || []).map(t => String(t.espn)));
       const espn = (table.children || [table]).flatMap(g => g.standings?.entries || []).map(e => e.team || {})
-        .map(t => ({ espn: String(t.id || ''), nombre: t.displayName || t.name || '' })).filter(t => t.espn && t.nombre);
-      if (!espn.length) throw new Error('ESPN no da los equipos de LaLiga');
+        .map(t => ({ espn: String(t.id || ''), nombre: t.displayName || t.name || '' })).filter(t => t.espn && t.nombre && !skip.has(t.espn));
+      if (!espn.length) throw new Error(`ESPN no da los equipos de ${cfg.name}`);
       const afTeams = new Map();
       for (const d of [-1, 0, 1]) {
         const day = new Date(Date.now() + d * 86400e3).toISOString().slice(0, 10);
         for (const f of await af('fixtures', { date: day })) {
-          if (f.league?.id === AF_LALIGA) [f.teams?.home, f.teams?.away].forEach(t => t?.id && afTeams.set(t.id, t.name));
+          if (f.league?.id === cfg.af) [f.teams?.home, f.teams?.away].forEach(t => t?.id && afTeams.set(t.id, t.name));
         }
       }
       const best = (name, list) => list.map(([id, n]) => ({ id, n, w: teamScore(name, n) })).sort((a, b) => b.w - a.w)[0];
@@ -1557,11 +1569,11 @@
       for (const t of found.filter(x => !x.af)) {
         say(`buscando ${t.nombre}…`);
         const q = plain(teamWords(t.nombre).sort((a, b) => b.length - a.length)[0] || t.nombre);
-        const list = (await af('teams', { search: q })).filter(x => x.team?.country === 'Spain').map(x => [x.team.id, x.team.name]);
+        const list = (await af('teams', { search: q })).filter(x => !cfg.country || x.team?.country === cfg.country).map(x => [x.team.id, x.team.name]);
         const b = best(t.nombre, list);
         if (b && b.w >= 0.5) t.af = b.id;
       }
-      const old = await savedSquads();
+      const old = await facesFile(cfg.file);
       const equipos = [];
       for (const [i, t] of found.entries()) {
         let jugadores = null;
@@ -1576,12 +1588,12 @@
       }
       if (!equipos.length) throw Object.assign(new Error(problem || 'no ha salido ninguna plantilla'), { api: !!problem });
       const missing = espn.filter(t => !equipos.some(x => x.espn === t.espn)).map(t => t.nombre);
-      const file = { hecho: localIso(), liga: 'esp.1', equipos };
-      triggerDownload(new Blob([JSON.stringify(file, null, 1)], { type: 'application/json' }), 'laliga.json');
+      const file = { hecho: localIso(), liga: league, equipos };
+      triggerDownload(new Blob([JSON.stringify(file, null, 1)], { type: 'application/json' }), cfg.file);
       const n = equipos.reduce((sum, t) => sum + t.jugadores.length, 0);
-      showToast(`laliga.json: ${equipos.length} equipos y ${n} jugadores${missing.length ? ` (faltan ${missing.join(', ')}${problem ? ` · API-Football: ${problem}` : ''})` : ''}. Súbelo a la carpeta caras del repo.`, missing.length ? 'error' : 'success', true);
+      showToast(`${cfg.file}: ${equipos.length} equipos y ${n} jugadores${missing.length ? ` (faltan ${missing.join(', ')}${problem ? ` · API-Football: ${problem}` : ''})` : ''}. Súbelo a la carpeta caras del repo.`, missing.length ? 'error' : 'success', true);
     } catch (e) {
-      showToast(`Caras para el robot: ${e.api ? `API-Football: ${e.message}` : e.message}`, 'error', true);
+      showToast(`Caras de ${cfg.name}: ${e.api ? `API-Football: ${e.message}` : e.message}`, 'error', true);
     } finally {
       btn.disabled = false;
     }
@@ -6631,7 +6643,9 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
       afCache.clear();
       document.getElementById('facesField').hidden = !afOn();
     });
-    facesBtn.addEventListener('click', () => makeFacesFile(facesBtn));
+    facesBtn.addEventListener('click', () => makeFacesFile(facesBtn, 'esp.1'));
+    const facesUclBtn = document.getElementById('facesUclBtn');
+    facesUclBtn.addEventListener('click', () => makeFacesFile(facesUclBtn, 'uefa.champions'));
     const voiceInput = document.getElementById('voiceKeyInput');
     voiceInput.value = voiceKey();
     voiceInput.addEventListener('input', () => {

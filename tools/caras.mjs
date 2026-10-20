@@ -1,9 +1,10 @@
-// Las fotos de los jugadores de caras/laliga.json (las plantillas de LaLiga de API-Football que
-// hace el Studio con «Caras para el robot»), guardadas en caras/<id>.png para que el robot las use
+// Las fotos de los jugadores de caras/*.json (laliga.json y champions.json: las plantillas de
+// API-Football que hace el Studio con «Caras de LaLiga» y «Caras de la Champions»), guardadas en
+// caras/<id>.png para que el robot las use
 // sin pedir nada a API-Football. Las fotos se bajan sin clave y no gastan peticiones; solo las que
 // faltan, despacio.
 //   node tools/caras.mjs
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 const DIR = resolve(new URL('../caras', import.meta.url).pathname);
@@ -16,9 +17,10 @@ export function photoIds(file) {
 }
 
 async function main() {
-  const file = JSON.parse(readFileSync(join(DIR, 'laliga.json'), 'utf8'));
-  const todo = photoIds(file).filter(id => !existsSync(join(DIR, `${id}.png`)));
-  console.log(`${photoIds(file).length} jugadores; faltan ${todo.length} fotos`);
+  const files = readdirSync(DIR).filter(n => n.endsWith('.json')).map(n => JSON.parse(readFileSync(join(DIR, n), 'utf8')));
+  const all = [...new Set(files.flatMap(photoIds))];
+  const todo = all.filter(id => !existsSync(join(DIR, `${id}.png`)));
+  console.log(`${files.length} plantillas, ${all.length} jugadores; faltan ${todo.length} fotos`);
   let got = 0;
   for (const id of todo) {
     try {

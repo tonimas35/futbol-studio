@@ -122,8 +122,9 @@ async function open({ strip = [], viewport = { width: 1280, height: 900 }, url =
     const key = Object.keys(LIBS).find((k) => r.request().url().includes(`/${k}@`));
     return key ? r.fulfill({ status: 200, contentType: 'application/javascript', body: LIBS[key] }) : r.abort();
   });
-  // Las caras guardadas en el repo (caras/laliga.json), fuera: la prueba que las usa pone las suyas
+  // Las caras guardadas en el repo (caras/laliga.json y caras/champions.json), fuera: la prueba que las usa pone las suyas
   await ctx.route(`${base}/caras/laliga.json`, (r) => r.fulfill({ status: 404, body: '' }));
+  await ctx.route(`${base}/caras/champions.json`, (r) => r.fulfill({ status: 404, body: '' }));
   if (before) await before(ctx);
   const page = await ctx.newPage();
   page.on('pageerror', (e) => errors.push(e.message));
@@ -1354,14 +1355,19 @@ try {
       await c.route(/site\.api\.espn\.com\/.*\/esp\.1\/standings$/, (r) => r.fulfill(json(JSON.stringify({ children: [{ standings: { entries: [
         { team: { id: '86', displayName: 'Real Madrid' } }, { team: { id: '83', displayName: 'Barcelona' } }, { team: { id: '244', displayName: 'Real Betis' } }] } }] }))));
       await c.route(/site\.api\.espn\.com\/.*\/teams$/, (r) => r.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
+      // La Champions: el Madrid y el Betis (ya en laliga.json) y el PSG
+      await c.route(/site\.api\.espn\.com\/.*\/uefa\.champions\/standings$/, (r) => r.fulfill(json(JSON.stringify({ children: [{ standings: { entries: [
+        { team: { id: '86', displayName: 'Real Madrid' } }, { team: { id: '244', displayName: 'Real Betis' } }, { team: { id: '160', displayName: 'Paris Saint-Germain' } }] } }] }))));
       await c.route('https://v3.football.api-sports.io/**', (r) => {
         const u = new URL(r.request().url());
         asked.push(`${u.pathname.slice(1)}?${u.searchParams}`);
         const team = (id, name) => ({ id, name });
-        const res = u.pathname === '/fixtures' ? [{ league: { id: 140 }, teams: { home: team(541, 'Real Madrid'), away: team(530, 'Atletico Madrid') } }]
+        const res = u.pathname === '/fixtures' ? [{ league: { id: 140 }, teams: { home: team(541, 'Real Madrid'), away: team(530, 'Atletico Madrid') } },
+          { league: { id: 2 }, teams: { home: team(85, 'Paris Saint Germain'), away: team(529, 'Barcelona') } }]
           : u.pathname === '/teams' ? [{ team: { id: 9001, name: 'Barcelona SC', country: 'Ecuador' } }, { team: { id: 529, name: 'Barcelona', country: 'Spain' } }]
             : u.searchParams.get('team') === '541' ? [{ players: [{ id: 1003, name: 'K. Mbappé', number: 10 }, { id: 1006, name: 'J. Bellingham', number: 5 }] }]
-              : u.searchParams.get('team') === '529' ? [{ players: [{ id: 3001, name: 'Pedri', number: 8 }] }] : [];
+              : u.searchParams.get('team') === '529' ? [{ players: [{ id: 3001, name: 'Pedri', number: 8 }] }]
+                : u.searchParams.get('team') === '85' ? [{ players: [{ id: 4001, name: 'O. Dembélé', number: 10 }] }] : [];
         return r.fulfill(json(JSON.stringify({ errors: [], response: res })));
       });
     } });
@@ -1392,6 +1398,15 @@ try {
     check(asked.filter((a) => a.startsWith('fixtures')).length === 3 && asked.includes('teams?search=barcelona') && asked.filter((a) => a.startsWith('players/squads')).length === 2
       && /laliga\.json: 3 equipos y 4 jugadores\. Súbelo/.test(await pf.textContent('#toast')),
       `con los partidos de ayer, hoy y mañana, el nombre del que no juega y una plantilla por equipo (${asked.length} peticiones · ${await pf.textContent('#toast')})`);
+    // «Caras de la Champions»: los rivales, en champions.json, sin los que ya están en laliga.json
+    const before = asked.length;
+    const [dlu] = await Promise.all([pf.waitForEvent('download', { timeout: 30000 }), pf.click('#facesUclBtn')]);
+    const ucl = JSON.parse(readFileSync(await dlu.path(), 'utf8'));
+    const uq = ucl.equipos.map((t) => `${t.espn}→${t.af}:${t.jugadores.map((p) => `${p.id}/${p.dorsal}`).join(',')}`).join(' · ');
+    const more = asked.slice(before);
+    check(dlu.suggestedFilename() === 'champions.json' && ucl.liga === 'uefa.champions' && uq === '160→85:4001/10'
+      && more.filter((a) => a.startsWith('fixtures')).length === 0 && more.filter((a) => a.startsWith('players/squads')).length === 1 && !more.some((a) => a.startsWith('teams')),
+      `«Caras de la Champions»: los rivales en champions.json, sin los de LaLiga y con los partidos ya pedidos (${uq} · ${more.length} peticiones)`);
     await cf.close();
   }
 
