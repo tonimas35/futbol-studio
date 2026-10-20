@@ -1386,7 +1386,7 @@
   const AF_KEY = 'fc-af-key';
   // Lo que se guarda en memoria, para no gastar peticiones del plan (el gratis da 100 al día) si
   // se rehace el mismo partido: los partidos de un día, 10 minutos; los jugadores, 6 horas.
-  const AF_TTL = { fixtures: 600e3, 'fixtures/players': 6 * 3600e3 };
+  const AF_TTL = { fixtures: 600e3, 'fixtures/players': 6 * 3600e3, 'fixtures/lineups': 600e3 };
   const afCache = new Map();
   const afKey = () => {
     try { return (localStorage.getItem(AF_KEY) || '').trim(); } catch (e) { return ''; }
@@ -3174,6 +3174,7 @@
     const g = state.selectedGame;
     document.getElementById('generateBtn').disabled = !!state.generating || !g || !['final', 'live'].includes(gamePhase(g));
     document.getElementById('previaBtn').hidden = !g || gamePhase(g) !== 'pre';
+    document.getElementById('oncesBtn').hidden = !g || gamePhase(g) !== 'pre';
   }
 
   // ----------------------------------------------------------
@@ -4227,6 +4228,170 @@
     } finally {
       videoBusy = false;
       label.textContent = 'Crear previa (vídeo)';
+      btn.classList.remove('btn-loading');
+      updateVideoBtn();
+    }
+  }
+
+  // ----------------------------------------------------------
+  // ONCES CONFIRMADOS · en cuanto ESPN da las alineaciones (una hora antes, más o menos): los dos
+  // onces en el campo, como en el FIFA, y la pregunta para los comentarios. El robot lo hace solo
+  // en los partidos con un equipo de LaLiga (?onces=liga/id); con &preparar=1 (su aviso), te deja
+  // en «Crear onces» para hacerlo desde tu móvil con las caras de API-Football.
+  // ----------------------------------------------------------
+  const BIG_TEAMS = ['86', '83', '1068']; // el Real Madrid, el Barça y el Atlético
+  const lineupsOut = (m) => lineupOk(m.home) && lineupOk(m.away);
+  // Las caras de los onces: las de API-Football (con tu clave: su alineación, que suele salir media
+  // hora antes del partido) y, las que falten, las del repo (caras/, las de LaLiga). problem: por qué
+  // no están las de API-Football.
+  async function oncesFaces(m) {
+    const local = await localFaces(m);
+    const players = { ...(local?.players || {}) };
+    let problem = '';
+    if (afOn()) {
+      try {
+        const fx = await afFixture(m);
+        const teams = fx ? await afGet('fixtures/lineups', { fixture: fx.fixture.id }) : [];
+        for (const t of teams) {
+          const side = t.team?.id === fx.teams.home.id ? 'home' : t.team?.id === fx.teams.away.id ? 'away' : null;
+          if (!side) continue;
+          for (const { player: p } of t.startXI || []) {
+            const last = plain(String(p?.name || '').split(' ').pop());
+            const espn = m[side].players.find(x => x.jersey && String(x.jersey) === String(p?.number))
+              || (last.length >= 3 && m[side].players.find(x => plain(x.name).endsWith(last)));
+            if (espn && p?.id) players[espn.id] = { rating: null, photo: `https://media.api-sports.io/football/players/${p.id}.png` };
+          }
+        }
+        if (!fx) problem = 'no encuentra el partido';
+        else if (!teams.length) problem = 'aún no tiene la alineación (suele salir media hora antes)';
+      } catch (e) {
+        problem = e.message;
+      }
+    }
+    return { af: Object.keys(players).length ? { players, local: !afOn() } : null, problem };
+  }
+  // De quién es la pregunta del final: del grande (el Madrid, el Barça o el Atlético) si juega; si
+  // no, del de LaLiga (el que tiene sus caras en el repo); si no, del local
+  async function oncesSide(m) {
+    const big = ['home', 'away'].find(s => BIG_TEAMS.includes(m[s].id));
+    if (big) return big;
+    const squads = await savedSquads();
+    return ['home', 'away'].find(s => (squads?.equipos || []).some(t => String(t.espn) === m[s].id)) || 'home';
+  }
+  const oncesQuestion = (t) => L(`¿Te convence el once ${ofTeam(t)}?`, `Happy with ${t.short}'s XI?`);
+  // Cada uno en su sitio del sistema, como en los onces del vídeo del partido (x de 0 a 1, de
+  // izquierda a derecha mirando a la portería contraria; y de 0 a 1, de su portería al medio
+  // campo), con su fila (0, el portero) y su sitio en ella, para que entren por filas
+  function oncesSpots(m, s) {
+    const { gk, rows } = lineupRows(m[s]);
+    const spots = [{ p: gk, x: 0.5, y: 0.07, row: 0, col: 0 }];
+    rows.forEach((row, r) => row.forEach((p, i) => spots.push({ p, x: (i + 1) / (row.length + 1), y: rows.length > 1 ? 0.27 + r * (0.6 / (rows.length - 1)) : 0.55, row: r + 1, col: i })));
+    return spots.map(({ p, ...at }) => ({ ...videoPerson(m, p), ...at }));
+  }
+  function oncesData(m, side) {
+    const team = (s) => {
+      const t = m[s];
+      return { name: t.name, short: t.short, abbr: t.abbr, score: '', logo: t.logo, style: videoStyle(t), won: false, lost: false, lines: [], formation: t.formation || '' };
+    };
+    const k = kickoffOf(m);
+    const lineups = { home: oncesSpots(m, 'home'), away: oncesSpots(m, 'away') };
+    return {
+      kind: 'onces',
+      home: team('home'), away: team('away'),
+      lang: state.lang, dark: dark(),
+      comp: [compName(m.league), phaseOut(m.phase), legLabel(m)].filter(Boolean).join(' · '),
+      compName: compName(m.league), when: k.when, hhmm: k.hhmm, venue: m.venue || '',
+      lineups,
+      people: Object.fromEntries([...lineups.home, ...lineups.away].map(p => [p.id, p])),
+      closing: { question: oncesQuestion(m[side]), style: teamStyle(m[side]), side, photo: null },
+      sign: state.sign,
+      brand: state.brandLogo || null,
+      t: {
+        once: L('Once confirmado', 'Confirmed XI'), title: [L('Onces', 'Line-ups'), L('confirmados', 'confirmed')],
+        comments: L('TE LEO EN COMENTARIOS', 'LET ME KNOW IN THE COMMENTS'),
+        follow: L('Sígueme para más fútbol', 'Follow for more football'),
+      },
+    };
+  }
+  // La descripción para TikTok: los dos onces enteros (es lo que se busca), la hora y la pregunta
+  function oncesCaption(m, side) {
+    const k = kickoffOf(m);
+    const xi = (s) => {
+      const { gk, rows } = lineupRows(m[s]);
+      return `${m[s].short}${m[s].formation ? ` (${m[s].formation})` : ''}: ${[[gk], ...rows].map(r => r.map(p => surname(p)).join(', ')).join('; ')}`;
+    };
+    return [
+      `📋 ${L('ONCES CONFIRMADOS', 'CONFIRMED LINE-UPS')} · ${m.home.short} – ${m.away.short}`,
+      `⏰ ${k.when}, ${k.hhmm} · ${compName(m.league)}`,
+      `🏠 ${xi('home')}`,
+      `✈️ ${xi('away')}`,
+      `${oncesQuestion(m[side])} 👇`,
+      ttTags(m, isEn() ? ['lineups', 'soccer'] : ['alineaciones', 'onces']),
+    ].join('\n');
+  }
+  // El guion (para la voz): el sistema de cada uno y quién va arriba, y la pregunta
+  function oncesScript(d, m) {
+    const line = (s) => {
+      const t = m[s], { rows } = lineupRows(t), top = (rows[rows.length - 1] || []).map(p => surname(p));
+      return L(`${cap(theTeam(t))} sale con ${t.formation || 'su once'}${top.length ? `, con ${listEs(top)} arriba` : ''}.`,
+        `${t.short} line up${t.formation ? ` in a ${t.formation}` : ''}${top.length ? `, with ${listEs(top)} up front` : ''}.`);
+    };
+    return { onces: `${line('home')} ${line('away')}`, outro: `${d.closing.question} ${L('Te leo en comentarios.', 'Let me know in the comments.')}` };
+  }
+
+  async function makeOnces(game = state.selectedGame) {
+    if (!game || videoBusy || !window.StudioVideo) return;
+    const btn = document.getElementById('oncesBtn');
+    const label = btn.querySelector('.label');
+    videoBusy = true;
+    updateVideoBtn();
+    btn.classList.add('btn-loading');
+    btn.classList.remove('btn-ready');
+    try {
+      label.textContent = 'Buscando los onces…';
+      const m = await fetchMatch(game);
+      if (!lineupsOut(m)) {
+        showToast('ESPN aún no tiene los onces: suelen salir una hora antes del partido', 'error');
+        return;
+      }
+      const faces = await oncesFaces(m);
+      m.af = faces.af;
+      const side = await oncesSide(m);
+      const data = oncesData(m, side);
+      const script = oncesScript(data, m);
+      if (withVoice()) label.textContent = 'Poniendo la voz…';
+      const voice = await videoVoice(data, script);
+      const out = await window.StudioVideo.render(data, (p, stage) => {
+        label.textContent = stage || `Creando los onces… ${Math.round(p * 100)}%`;
+      }, { ...videoOptions(), captions: !!voice.clips, script, voiceClips: voice.clips });
+      resetVideo();
+      videoUrl = URL.createObjectURL(out.blob);
+      document.getElementById('videoPreview').src = videoUrl;
+      const dl = document.getElementById('videoDlBtn');
+      dl.href = videoUrl;
+      dl.download = `futbol-${stamp(m)}-onces.${out.ext}`;
+      videoFile = new File([out.blob], dl.download, { type: out.blob.type });
+      document.getElementById('videoShareBtn').hidden = !(navigator.canShare && navigator.canShare({ files: [videoFile] }));
+      document.getElementById('audioDlBtn').hidden = true;
+      document.getElementById('videoMeta').textContent = `Onces de ${m.home.short} – ${m.away.short}.`;
+      const box = document.getElementById('videoOut');
+      box.dataset.title = `${L('Onces', 'Line-ups')} · ${m.home.short} – ${m.away.short}`;
+      box.dataset.voz = voice.clips ? 'si' : 'no';
+      box.hidden = false;
+      state.previa = { id: m.id };
+      document.getElementById('captionText').value = oncesCaption(m, side);
+      document.getElementById('captionBox').hidden = false;
+      captionEdited = false;
+      box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (voice.why) showToast(`Onces listos, sin voz ni subtítulos: ${voice.why}`, 'error');
+      else if (faces.problem) showToast(`Onces listos, sin las caras de API-Football: ${faces.problem}`, 'error');
+      else showToast(out.note || 'Onces listos · revísalos y compártelos', out.note ? '' : 'success');
+    } catch (e) {
+      console.error('Onces:', e);
+      showToast(`No se pudieron crear los onces: ${e.message}`, 'error');
+    } finally {
+      videoBusy = false;
+      label.textContent = 'Crear onces (vídeo)';
       btn.classList.remove('btn-loading');
       updateVideoBtn();
     }
@@ -6166,8 +6331,10 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
   // competición, busca el partido, genera el carrusel y crea el vídeo (lo que hace el robot). Con
   // &preparar=1 (el aviso al móvil cuando acaba un partido), el carrusel y te deja en «Crear vídeo».
   async function openFromLink(params) {
-    const previa = params.has('previa');
-    const [league, id] = (params.get(previa ? 'previa' : 'partido') || '').split('/');
+    // ?onces= (los onces confirmados) y ?previa=: de un partido sin empezar
+    const kind = params.has('onces') ? 'onces' : params.has('previa') ? 'previa' : 'partido';
+    const previa = kind !== 'partido';
+    const [league, id] = (params.get(kind) || '').split('/');
     if (!COMP[league] || !/^\d+$/.test(id || '')) return false;
     // &voz=si o &voz=no (el botón del otro tipo, en el aviso): esta vez, con o sin las dos cosas (no se guarda)
     if (['si', 'no'].includes(params.get('voz'))) setVoiceMode(params.get('voz') === 'si');
@@ -6183,7 +6350,19 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
       showToast('ESPN no da ese partido ni hoy ni ayer', 'error');
       return true;
     }
-    if (previa) {
+    if (kind === 'onces') {
+      selectGame(id);
+      if (params.get('preparar') !== '1') {
+        await makeOnces();
+        return true;
+      }
+      // El aviso de los onces: te deja en «Crear onces», para hacerlo con las caras de API-Football
+      const btn = document.getElementById('oncesBtn');
+      btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      btn.classList.add('btn-ready');
+      btn.addEventListener('click', () => btn.classList.remove('btn-ready'), { once: true });
+      showToast(afOn() ? 'Listo: pulsa «Crear onces», con las caras de API-Football' : 'Listo, pero sin las caras de API-Football: pega tu clave (paso 2) y vuelve a abrir el aviso', afOn() ? 'success' : 'error');
+    } else if (previa) {
       selectGame(id);
       await makePrevia();
     } else {
@@ -6211,7 +6390,7 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
   // de la jornada (?video=jornada-esp-1-2026-10-16), sus fotos (las que diga el .json).
   async function openRobotVideo(params) {
     const id = params.get('video') || '';
-    if (!/^(\d+(-previa)?|jornada-[a-z0-9-]+)$/.test(id)) return false;
+    if (!/^(\d+(-previa|-onces)?|jornada-[a-z0-9-]+)$/.test(id)) return false;
     history.replaceState(null, '', location.pathname);
     const $ = (x) => document.getElementById(x);
     $('robotBox').hidden = false;
@@ -6238,10 +6417,10 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
         $('robotVideo').play().catch(() => {});
         Object.assign($('robotDl'), { href: url, download: files[0].name, hidden: false });
         // El otro tipo: el mismo partido en el Studio, con voz y subtítulos (si este va sin ellos) o sin ellos
-        const [match, previa] = String(info.id || id).split('-');
+        const [match, kind] = String(info.id || id).split('-');
         if (COMP[info.league] && /^\d{4}-\d{2}-\d{2}$/.test(info.day || '')) {
           Object.assign($('robotOtherType'), {
-            href: `?${previa ? 'previa' : 'partido'}=${info.league}/${match}&dia=${info.day}&voz=${info.voz ? 'no' : 'si'}`,
+            href: `?${kind || 'partido'}=${info.league}/${match}&dia=${info.day}&voz=${info.voz ? 'no' : 'si'}`,
             textContent: info.voz ? 'Sin voz ni subtítulos' : 'Con voz y subtítulos', hidden: false,
           });
         }
@@ -6485,6 +6664,7 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
     document.getElementById('videoBtn').addEventListener('click', makeVideo);
     document.getElementById('videoShareBtn').addEventListener('click', shareVideo);
     document.getElementById('previaBtn').addEventListener('click', () => makePrevia());
+    document.getElementById('oncesBtn').addEventListener('click', () => makeOnces());
     document.getElementById('scriptLines').addEventListener('input', onScriptInput);
     document.getElementById('scriptResetBtn').addEventListener('click', resetScript);
     ['musicVol', 'videoMusic', 'videoIntro'].forEach(id => document.getElementById(id).addEventListener('input', mixChanged));
@@ -6528,7 +6708,7 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
 
     const params = new URLSearchParams(location.search);
     if (params.has('video')) openRobotVideo(params);
-    const link = params.has('jornada') ? openJornadaLink : params.has('partido') || params.has('previa') ? openFromLink : null;
+    const link = params.has('jornada') ? openJornadaLink : params.has('partido') || params.has('previa') || params.has('onces') ? openFromLink : null;
     if (link) {
       link(params).then(done => { if (!done) { loadGames(today); restoreDraft(); } });
     } else {

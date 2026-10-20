@@ -1,8 +1,9 @@
 // PILOTO AUTOMÁTICO · lo lanza GitHub Actions (.github/workflows/piloto.yml) cada 10 minutos en
 // las horas de partidos. Cuando acaba un partido de tus competiciones (piloto.json), hace el vídeo
 // con el mismo Studio, lo deja en la web y te avisa al móvil con ntfy: tocas el aviso y lo
-// compartes a TikTok. También la previa de los partidos grandes y, al acabar la jornada de tu
-// liga, su resumen en fotos.
+// compartes a TikTok. También la previa de los partidos grandes, los onces confirmados de los
+// partidos con un equipo de tu liga en cuanto ESPN los da y, al acabar la jornada de tu liga, su
+// resumen en fotos.
 //
 //   node tools/piloto.mjs buscar         los partidos acabados hace poco que aún no tienen vídeo
 //   node tools/piloto.mjs esperar        si alguno va por el final, vigila ESPN hasta su pitido final
@@ -102,6 +103,30 @@ export function findPrevias(boards, now, done, cfg = CONFIG.previas) {
   return out;
 }
 
+// Los onces confirmados: los partidos con un equipo de tu liga (local; sin la lista, los de tu
+// liga) que empiezan en menos de 80 minutos y aún no tienen su vídeo. Si ESPN ya tiene los onces
+// lo dice lineupsReady, con el resumen de cada uno: suelen salir una hora antes.
+export const ONCES_BEFORE = 80 * 60e3;
+export function findOnces(boards, now, done, local = null) {
+  const out = [];
+  const seen = new Set();
+  for (const { league, day, data } of boards) {
+    for (const e of data?.events || []) {
+      const left = Date.parse(e.date) - now;
+      if (e.status?.type?.state !== 'pre' || seen.has(e.id) || done.has(`${e.id}-onces`)) continue;
+      if (!(left > 2 * 60e3 && left <= ONCES_BEFORE)) continue;
+      const ids = (e.competitions?.[0]?.competitors || []).map(c => String(c.team?.id));
+      if (local ? !ids.some(id => local.has(id)) : league !== CONFIG.liga) continue;
+      seen.add(e.id);
+      out.push({ kind: 'onces', league, id: e.id, day, title: vsLine(e) });
+    }
+  }
+  return out;
+}
+// ¿Tiene ya ESPN los dos onces? (los dos equipos, con 11 titulares)
+export const lineupsReady = (sum) => (sum?.rosters || []).length === 2
+  && sum.rosters.every(r => (r.roster || []).filter(p => p.starter).length >= 11);
+
 // Los acabados hace poco: los que hay que hacer ya.
 export function findFinished(boards, now, done, local = null) {
   return pick(boards, done, local, e => e.status?.type?.state === 'post' && e.status.type.completed && now - Date.parse(e.date) < RECENT);
@@ -166,7 +191,8 @@ async function releaseAssets() {
 
 async function buscar() {
   // A mano (workflow_dispatch): un partido concreto, aunque ya tenga vídeo.
-  // Con «previa:» delante, su previa; con «jornada:liga», el resumen de la jornada de ese día.
+  // Con «previa:» u «onces:» delante, su previa o sus onces; con «jornada:liga», el resumen de la
+  // jornada de ese día.
   const forced = (process.env.PARTIDO || '').trim();
   const day = /^\d{4}-\d{2}-\d{2}$/.test(process.env.DIA || '') ? process.env.DIA : madridIso(Date.now());
   if (/^jornada:/i.test(forced)) {
@@ -176,26 +202,28 @@ async function buscar() {
     return;
   }
   if (forced) {
-    const previa = /^previa:/i.test(forced);
-    const [league, id] = forced.replace(/^previa:/i, '').split('/');
-    if (!league || !/^\d+$/.test(id || '')) throw new Error(`Partido no válido: ${forced} (tiene que ser liga/id, p. ej. esp.1/401882846, previa:esp.1/401882846 o jornada:esp.1)`);
-    output('partidos', JSON.stringify([{ kind: previa ? 'previa' : 'final', league, id, day, title: `${league}/${id}` }]));
+    const kind = (forced.match(/^(previa|onces):/i)?.[1] || 'final').toLowerCase();
+    const [league, id] = forced.replace(/^(previa|onces):/i, '').split('/');
+    if (!league || !/^\d+$/.test(id || '')) throw new Error(`Partido no válido: ${forced} (tiene que ser liga/id, p. ej. esp.1/401882846, previa:esp.1/401882846, onces:esp.1/401882846 o jornada:esp.1)`);
+    output('partidos', JSON.stringify([{ kind, league, id, day, title: `${league}/${id}` }]));
     return;
   }
-  const { found, near, previas, jornadas } = await scan();
+  const { found, near, previas, onces, jornadas } = await scan();
   console.log(found.length ? `Acabados: ${found.map(f => f.title).join(' · ')}`
     : near.length ? `Por el final: ${near.map(f => f.title).join(' · ')}` : 'Ningún partido acabado sin vídeo');
   if (previas.length) console.log(`Previas: ${previas.map(f => f.title).join(' · ')}`);
+  if (onces.length) console.log(`Onces confirmados: ${onces.map(f => f.title).join(' · ')}`);
   if (jornadas.length) console.log(`Jornada acabada: ${jornadas.map(f => f.title).join(' · ')}`);
-  output('partidos', JSON.stringify([...found, ...previas, ...jornadas]));
-  output('cerca', String(!found.length && !previas.length && !jornadas.length && near.length > 0));
+  // Los onces, primero: tienen que llegar antes de que empiece el partido
+  output('partidos', JSON.stringify([...onces, ...found, ...previas, ...jornadas]));
+  output('cerca', String(!found.length && !previas.length && !onces.length && !jornadas.length && near.length > 0));
 }
 
 // Los marcadores de hoy (y, de madrugada, de ayer): los acabados sin vídeo y los que van por el final.
 async function scan(ctx = {}) {
   const now = Date.now();
   const days = [...new Set([madridIso(now), madridIso(now - 6 * 3600e3)])];
-  ctx.done ??= new Set((await releaseAssets()).map(a => (a.name.match(/^(\d+(?:-previa)?)\.mp4$/) || a.name.match(/^(jornada-[\w-]+)\.json$/))?.[1]).filter(Boolean));
+  ctx.done ??= new Set((await releaseAssets()).map(a => (a.name.match(/^(\d+(?:-previa|-onces)?)\.mp4$/) || a.name.match(/^(jornada-[\w-]+)\.json$/))?.[1]).filter(Boolean));
   if (!ctx.local) {
     const teams = await getJson(`${ESPN}/${CONFIG.liga}/teams`);
     const ids = (teams?.sports?.[0]?.leagues?.[0]?.teams || []).map(t => String(t.team?.id));
@@ -216,10 +244,14 @@ async function scan(ctx = {}) {
       .map(async day => (ctx.around[day] ??= await board(CONFIG.liga, day))));
     jornadas = findJornada([...mine, ...around], now, ctx.done);
   }
+  // Los onces: de los que empiezan pronto, los que ESPN ya tiene (su resumen, uno a uno)
+  const soon = findOnces(boards, now, ctx.done, ctx.local);
+  const ready = await Promise.all(soon.map(async o => lineupsReady(await getJson(`${ESPN}/${o.league}/summary?event=${o.id}`))));
   return {
     found: findFinished(boards, now, ctx.done, ctx.local),
     near: findNearEnd(boards, now, ctx.done, ctx.local),
     previas: findPrevias(boards, now, ctx.done),
+    onces: soon.filter((o, i) => ready[i]),
     jornadas,
   };
 }
@@ -380,17 +412,18 @@ export async function makeVideo(browser, base, p, dir) {
         }
       });
     }
-    const previa = p.kind === 'previa';
-    const file = previa ? `${p.id}-previa` : p.id;
+    // La previa y los onces, con su propio vídeo (<id>-previa, <id>-onces)
+    const pre = p.kind === 'previa' || p.kind === 'onces';
+    const file = pre ? `${p.id}-${p.kind}` : p.id;
     // Sin esperar a todas las imágenes: lo que importa es el vídeo, y el Studio espera a sus letras
-    await page.goto(`${base}/?${previa ? 'previa' : 'partido'}=${p.league}/${p.id}&dia=${p.day}`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${base}/?${pre ? p.kind : 'partido'}=${p.league}/${p.id}&dia=${p.day}`, { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => !document.getElementById('videoOut').hidden
-      || /No se pudo|no da ese partido/.test(document.getElementById('toast').textContent), null, { timeout: 20 * 60e3 });
+      || /No se pudo|no da ese partido|aún no tiene los onces/.test(document.getElementById('toast').textContent), null, { timeout: 20 * 60e3 });
     if (await page.$eval('#videoOut', el => el.hidden)) throw new Error(await page.textContent('#toast'));
     const caption = await page.inputValue('#captionText');
     // Si lleva la voz (y los subtítulos): si no, el aviso no ofrece hacerlo «sin voz»
     const voz = await page.$eval('#videoOut', el => el.dataset.voz === 'si');
-    const title = previa ? await page.$eval('#videoOut', el => el.dataset.title || '') || `Previa · ${p.title}`
+    const title = pre ? await page.$eval('#videoOut', el => el.dataset.title || '') || `${p.kind === 'onces' ? 'Onces' : 'Previa'} · ${p.title}`
       : (await page.textContent('#renderedInfo')).split(' · ')[0] || p.title;
     const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#videoDlBtn')]);
     const raw = join(dir, `${file}-raw.mp4`);
@@ -494,16 +527,19 @@ async function web(dir) {
 // desde la release (o la release entera, con las fotos).
 // El aviso al móvil. El de un partido acabado abre el Studio con ese partido (&preparar=1): tu
 // móvil pide las notas a API-Football con tu clave (el robot no puede) y te deja en «Crear vídeo»;
-// el vídeo del robot (sin notas), en su botón. Las previas y la jornada, lo del robot.
+// el vídeo del robot (sin notas), en su botón. El de los onces, igual: te deja en «Crear onces»,
+// para hacerlo con las caras de API-Football de los dos equipos. Las previas y la jornada, lo del robot.
 export function notice(v, topic, web, webOk = true) {
   const photos = v.kind === 'jornada';
   const url = webOk ? `${web}?video=${v.id}`
     : `https://github.com/${repo()}/releases/${photos ? `tag/${RELEASE}` : `download/${RELEASE}/${v.id}.mp4`}`;
-  const studio = webOk && !photos && v.kind !== 'previa' && v.league && v.day ? `${web}?partido=${v.league}/${v.id}&dia=${v.day}&preparar=1` : null;
+  const onces = v.kind === 'onces';
+  const studio = webOk && !photos && v.kind !== 'previa' && v.league && v.day
+    ? `${web}?${onces ? 'onces' : 'partido'}=${v.league}/${String(v.id).replace(/-onces$/, '')}&dia=${v.day}&preparar=1` : null;
   return {
-    topic, title: `${{ previa: '🔥', jornada: '📊' }[v.kind] || '⚽'} ${v.title}`, message: v.caption || (photos ? 'Tus fotos están listas' : 'Tu vídeo está listo'),
-    click: studio || url, tags: [photos ? 'frame_with_picture' : 'movie_camera'], priority: 4,
-    actions: studio ? [{ action: 'view', label: 'Crear el vídeo con notas', url: studio }, { action: 'view', label: 'Vídeo del robot', url }]
+    topic, title: `${{ previa: '🔥', onces: '📋', jornada: '📊' }[v.kind] || '⚽'} ${v.title}`, message: v.caption || (photos ? 'Tus fotos están listas' : 'Tu vídeo está listo'),
+    click: studio || url, tags: [photos ? 'frame_with_picture' : 'movie_camera'], priority: onces ? 5 : 4,
+    actions: studio ? [{ action: 'view', label: onces ? 'Crear los onces con caras' : 'Crear el vídeo con notas', url: studio }, { action: 'view', label: 'Vídeo del robot', url }]
       : [{ action: 'view', label: photos ? 'Abrir las fotos' : 'Abrir el vídeo', url }],
   };
 }

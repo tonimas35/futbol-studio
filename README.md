@@ -81,6 +81,19 @@ Con un partido que aún no ha empezado, en vez de «Generar carrusel» sale **«
 
 La portada y las cifras usan dos letras más de Google Fonts: Saira (ancha e inclinada) y Barlow.
 
+## Onces confirmados
+
+Con un partido sin empezar también sale **«Crear onces (vídeo)»**: en cuanto ESPN da las alineaciones (suele ser una hora antes), un vídeo de unos 17 segundos con los dos onces, como en el FIFA:
+
+- **El campo:** sale visto desde arriba, con «ONCES CONFIRMADOS», y la cámara baja hasta detrás de la portería del local. Con WebGL, es el estadio en 3D del vídeo del partido (sin las cubiertas, que taparían el campo); sin él, el campo en 2D.
+- **El once de casa, por filas:** cada fila entra en un pulso de la música: el portero, la defensa, los medios y la delantera. Cada jugador lleva su cara, su dorsal y su apellido. Arriba, «Once confirmado», su escudo, su nombre y el sistema.
+- **El de fuera:** la cámara gira hasta la otra portería y entra igual.
+- **El cierre:** una pregunta sobre la alineación, que es lo que más se discute: «¿Te convence el once del Real Madrid?». Es del Madrid, el Barça o el Atlético si juegan; si no, del equipo de LaLiga.
+
+Las caras son las de API-Football si tienes la clave: su alineación sale media hora antes, y son las de los dos equipos. Las que falten salen del repo (`caras/`, las de LaLiga). Sin cara, el dorsal.
+
+Su descripción lleva la hora, los dos onces enteros (es lo que se busca), la pregunta y `#alineaciones`. Si ESPN aún no los tiene, el botón lo dice. `?onces=esp.1/401882839` (y `&dia=`) lo crea solo; con `&preparar=1`, te deja en «Crear onces».
+
 Con su descripción para TikTok: «🔥 PREVIA · Real Madrid – Sevilla», la hora, cómo llegan, el cara a cara, la pregunta y los hashtags (con `#previa`). `?previa=esp.1/401882839` (y `&dia=` si no es de hoy ni de mañana) la crea sola.
 
 ## Piloto automático: el vídeo hecho y en el móvil al pitido final
@@ -95,7 +108,8 @@ Sin abrir el Studio: cuando acaba un partido, un robot hace el vídeo y te llega
 - **Dónde se guardan:** en la release `videos` del repo (se borran solos a los 7 días; en la web están los de los últimos 3).
 - **La previa, 3 horas antes de los partidos grandes:** los del Real Madrid, el Barça y el Atlético en cualquier competición y todos los de la Champions (`previas` en `piloto.json`: `equipos` y `competiciones`, enteras). En una jornada de Champions son unas 9 por día: tú eliges cuáles subir. Te llega «🔥 Previa · Real Madrid – Sevilla» con el vídeo y su descripción, igual que los del pitido final.
 - **El resumen de la jornada, al acabar su último partido:** cuando termina el último partido de la jornada de LaLiga (la jornada son los partidos de los días de alrededor mientras ningún equipo repita, como en el Studio), el robot hace «Resumen de la jornada» en 9:16 y te llega «📊 Así fue la jornada · LaLiga · 16-19 oct 2026». Al tocarlo, las fotos en orden (portada, resultados, clasificación y cierre) con **«Compartir N fotos»**, que las manda todas a la vez (a TikTok como carrusel de fotos) con la descripción ya copiada. `?jornada=esp.1&dia=2026-10-19` la hace sola en el Studio.
-- **A mano:** en GitHub, **Actions → Piloto automático → Run workflow**, con el partido (`liga/id`, p. ej. `esp.1/401882846`; para su previa, `previa:esp.1/401882846`; para el resumen de la jornada, `jornada:esp.1`) y, si no es de hoy, su día: lo hace (o lo rehace) y avisa.
+- **Los onces confirmados, en cuanto salen:** en cada vuelta, el robot mira los partidos con un equipo de LaLiga (también en la Champions o la Copa) que empiezan en menos de 80 minutos. En cuanto ESPN tiene los dos onces, hace su vídeo, lo primero de la vuelta para que llegue antes del partido. Te llega «📋 Onces · Real Madrid – Sevilla»: al tocarlo se abre el Studio en «Crear onces», para hacerlo desde tu móvil con las caras de API-Football de los dos equipos. El del robot (solo con las caras de LaLiga) está en su botón.
+- **A mano:** en GitHub, **Actions → Piloto automático → Run workflow**, con el partido (`liga/id`, p. ej. `esp.1/401882846`; para su previa, `previa:esp.1/401882846`; para sus onces, `onces:esp.1/401882846`; para el resumen de la jornada, `jornada:esp.1`) y, si no es de hoy, su día: lo hace (o lo rehace) y avisa.
 
 **La voz (y los subtítulos):** el guion de cada vídeo (y de cada previa) se dice con una voz clonada, y la voz y los subtítulos van siempre juntos. Hay dos tipos de vídeo, con el selector **«Voz»** del paso 4: **«Con voz y subtítulos»** y **«Sin voz ni subtítulos»** (se recuerda en ese navegador). Por defecto, y también en el robot, va **sin voz ni subtítulos** mientras se mejora la voz; el botón del aviso hace el mismo partido con ellos. La voz la pone el robot y, en el Studio a mano, el servicio de voz con **«Tu clave de la voz»** (paso 2). Si no hay voz o falla, el vídeo sale sin voz ni subtítulos y el aviso dice por qué. Al publicar en TikTok, marca **«Contenido generado por IA»**: lo pide para el audio realista hecho con IA.
 

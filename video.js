@@ -344,6 +344,18 @@
     ctx.strokeStyle = o.best ? ACCENT : st.bg;
     ctx.stroke();
     if (o.crest) logo(ctx, o.crest, cx + r * 0.72, cy - r * 0.72, r * 0.62);
+    // Con cara, su dorsal en un circulito del color del equipo, abajo a la derecha (los onces)
+    if (o.number && face && person?.number) {
+      const br = r * 0.33, bx = cx + r * 0.72, by = cy + r * 0.62;
+      ctx.beginPath();
+      ctx.arc(bx, by, br, 0, Math.PI * 2);
+      ctx.fillStyle = st.bg;
+      ctx.fill();
+      ctx.lineWidth = Math.max(2, r * 0.04);
+      ctx.strokeStyle = '#ffffff';
+      ctx.stroke();
+      text(ctx, String(person.number), bx, by + br * 0.4, ANTON(br * (String(person.number).length > 1 ? 1.0 : 1.15)), st.fg, 'center');
+    }
     if (o.rating) {
       ctx.font = ANTON(r * 0.62);
       const tw = ctx.measureText(o.rating.text).width + r * 0.32, th = r * 0.74, bx = cx + r * 0.2, by = cy + r * 0.38;
@@ -2586,7 +2598,7 @@
       id: 'outro',
       dur: 2 * BAR,
       accent: st.acc,
-      overlay: d.kind === 'previa' ? null : (ctx, t) => drawBug(ctx, d, A, finalBug(d)()),
+      overlay: d.kind === 'previa' || d.kind === 'onces' ? null : (ctx, t) => drawBug(ctx, d, A, finalBug(d)()),
       music: { energy: 'outro' },
       cues: [{ t: 0.2, kind: 'riser', dur: BAR - 0.2, vel: 0.6 }, ...(d.brand || !d.sign ? [] : [{ t: BAR, kind: 'stab' }, { t: BAR, kind: 'impact', vel: 0.8 }])],
       draw(ctx, t) {
@@ -3380,8 +3392,195 @@
     };
   }
 
+  // ─── ONCES CONFIRMADOS (d.kind === 'onces'): los dos onces en el campo, como en el FIFA ───
+  // El campo sale desde arriba y la cámara baja hasta detrás de la portería del local; su once se
+  // coloca por filas, una en cada pulso (el portero, la defensa, los medios, la delantera), cada uno
+  // con su cara, su dorsal y su apellido. Luego la cámara gira hasta la otra portería y entra el del
+  // visitante. Con WebGL, en el estadio en 3D del vídeo del partido; sin él, el campo en 2D.
+  // El campo: x a lo ancho, z a lo largo (el local defiende z = -52,5), como en campo3d.js.
+  const ONCES_T = {
+    intro: 1.2, // la cámara, de arriba a detrás de la portería
+    home: { head: 1.0, rows: 1.4, out: 6.2 },
+    turn: [6.4, 1.2], // el giro, de una portería a la otra
+    away: { head: 7.4, rows: 7.8, out: 12.2 },
+  };
+  // De la escena 3D a la pantalla, como la cámara de Three.js (fov vertical, en grados): de -1 a 1
+  function lookCam(pos, target, fov) {
+    const sub = (a, b) => a.map((v, i) => v - b[i]);
+    const dotp = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    const nrm = (v) => { const l = Math.hypot(...v) || 1; return v.map(x => x / l); };
+    const crs = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+    const f = nrm(sub(target, pos)), r = nrm(crs(f, [0, 1, 0])), u = crs(r, f), th = Math.tan((fov * Math.PI) / 360);
+    return { pos, target, fov, ndc: (p) => { const d = sub(p, pos), z = Math.max(0.5, dotp(d, f)); return [dotp(d, r) / z / (th * (W / H)), dotp(d, u) / z / th]; } };
+  }
+  function sceneOnces(d, A) {
+    const world = A.world, TH = theme(d), HL = 52.5, PW = 68;
+    const T = ONCES_T;
+    // La cámara de detrás de la portería del local (la del visitante, girada media vuelta)
+    const HOME = { pos: [-3, 110, -102.5], target: [-3, 0, -20] }, TOP = { pos: [-3, 330, -40], target: [-3, 0, -6] }, FOV = 42;
+    const rotY = (v, a) => [v[0] * Math.cos(a) + v[2] * Math.sin(a), v[1], -v[0] * Math.sin(a) + v[2] * Math.cos(a)];
+    const lerpV = (p, q, k) => p.map((v, i) => v + (q[i] - v) * k);
+    const camAt = (t) => {
+      if (t < T.intro) {
+        const q = easeInOut(prog(t, 0, T.intro));
+        return lookCam(lerpV(TOP.pos, HOME.pos, q), lerpV(TOP.target, HOME.target, q), FOV);
+      }
+      const q = easeInOut(prog(t, T.turn[0], T.turn[1])), pos = rotY(HOME.pos, Math.PI * q);
+      pos[1] += 30 * Math.sin(Math.PI * q);
+      return lookCam(pos, rotY(HOME.target, Math.PI * q), FOV);
+    };
+    // Dónde está cada uno: de su portería (4,5 m el portero) a pasado el medio campo (58 m), y a lo
+    // ancho, sin salirse por los lados (los botones de TikTok)
+    const spot = (p, side) => {
+      const depth = 4.5 + ((p.y - 0.07) / 0.8) * 53.5, wide = (0.5 - p.x) * 56;
+      return side === 'home' ? [wide, 0, -HL + depth] : [-wide, 0, HL - depth];
+    };
+    const sides = [['home', T.home], ['away', T.away]];
+    // El campo en 2D (sin WebGL), con la misma cámara
+    const pitch2d = (ctx, P) => {
+      const path = (pts, close) => { ctx.beginPath(); pts.forEach((p, i) => { const [x, y] = P(p); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); }); if (close) ctx.closePath(); };
+      const rect = (x0, z0, x1, z1) => [[x0, 0, z0], [x1, 0, z0], [x1, 0, z1], [x0, 0, z1]];
+      path(rect(-PW / 2 - 40, -HL - 40, PW / 2 + 40, HL + 40), true);
+      ctx.fillStyle = TH.grass[1];
+      ctx.fill();
+      for (let i = 0; i < 14; i++) {
+        const z0 = -HL + (i * 2 * HL) / 14;
+        path(rect(-PW / 2, z0, PW / 2, z0 + (2 * HL) / 14), true);
+        ctx.fillStyle = TH.grass[i % 2];
+        ctx.fill();
+      }
+      ctx.strokeStyle = TH.lines;
+      ctx.lineWidth = 4;
+      ctx.lineJoin = 'round';
+      path(rect(-PW / 2, -HL, PW / 2, HL), true); ctx.stroke();
+      path([[-PW / 2, 0, 0], [PW / 2, 0, 0]]); ctx.stroke();
+      path(Array.from({ length: 49 }, (_, j) => [9.15 * Math.cos((j / 48) * Math.PI * 2), 0, 9.15 * Math.sin((j / 48) * Math.PI * 2)])); ctx.stroke();
+      for (const s of [-1, 1]) {
+        path([[-20.16, 0, s * HL], [-20.16, 0, s * (HL - 16.5)], [20.16, 0, s * (HL - 16.5)], [20.16, 0, s * HL]]); ctx.stroke();
+        path([[-9.16, 0, s * HL], [-9.16, 0, s * (HL - 5.5)], [9.16, 0, s * (HL - 5.5)], [9.16, 0, s * HL]]); ctx.stroke();
+        const a0 = Math.acos(5.5 / 9.15);
+        path(Array.from({ length: 25 }, (_, j) => { const a = -a0 + (2 * a0 * j) / 24; return [9.15 * Math.sin(a), 0, s * (HL - 11) - s * 9.15 * Math.cos(a)]; })); ctx.stroke();
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = '#ffffff';
+        path([[-3.66, 0, s * HL], [-3.66, 2.44, s * HL], [3.66, 2.44, s * HL], [3.66, 0, s * HL]]); ctx.stroke();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = TH.lines;
+      }
+    };
+    // Arriba: «Once confirmado», su escudo, su nombre y su sistema
+    const header = (ctx, side, a) => {
+      if (a <= 0.01) return;
+      const team = d[side];
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.translate((1 - a) * -60, 0);
+      chip(ctx, d.t?.once || 'Once confirmado', 0, 0, { acc: ACCENT, on: '#111111' }, 44);
+      logo(ctx, side === 'home' ? A.homeLogo : A.awayLogo, 75, 196, 150);
+      text(ctx, up(team.short), 172, 238, ANTON(fit(ctx, up(team.short), ANTON, 118, 660)), '#ffffff');
+      const meta = up([team.formation, d.compName, d.when && d.hhmm && `${d.when} ${d.hhmm}`].filter(Boolean).join(' · '));
+      text(ctx, meta, 175, 300, BARLOW(fit(ctx, meta, (z) => BARLOW(z, 700), 46, 700), 700), 'rgba(255,255,255,.78)');
+      ctx.restore();
+    };
+    return {
+      id: 'onces',
+      dur: 8 * BAR,
+      accent: ACCENT,
+      camera: false,
+      music: { energy: 'full' },
+      cues: [
+        { t: 0, kind: 'riser', dur: T.intro, vel: 0.6 },
+        ...sides.flatMap(([, b]) => [0, 1, 2, 3, 4].map(r => ({ t: b.rows + r * BEAT, kind: 'hit', vel: r ? 0.7 : 0.9 }))),
+        { t: T.turn[0], kind: 'riser', dur: T.turn[1], vel: 0.5 },
+      ],
+      draw(ctx, t) {
+        const cam = camAt(t);
+        const [bx, by, bw, bh] = bleed(ctx, 0, 0, W, H);
+        let ndc = cam.ndc;
+        if (world) {
+          world.frame({ cam: { pos: cam.pos, target: cam.target, fov: cam.fov }, roofs: false, focus: { at: [cam.target[0], 0, cam.target[2]], size: 70 } });
+          fillAll(ctx, TH.ground);
+          ctx.drawImage(world.canvas, bx, by, bw, bh);
+          ndc = (p) => world.project(p);
+        }
+        const P = (p) => { const [nx, ny] = ndc(p); return [bx + (nx * 0.5 + 0.5) * bw, by + (0.5 - ny * 0.5) * bh]; };
+        if (!world) {
+          fillAll(ctx, d.dark ? '#07090d' : '#0b1a12');
+          ctx.save();
+          ctx.globalAlpha = easeOut(prog(t, 0, 0.5));
+          pitch2d(ctx, P);
+          ctx.restore();
+        }
+        // Arriba más oscuro (ahí va el nombre del equipo) y los bordes, en sombra
+        const g = ctx.createLinearGradient(0, by, 0, 560);
+        g.addColorStop(0, 'rgba(7,9,13,.92)'); g.addColorStop(0.6, 'rgba(7,9,13,.65)'); g.addColorStop(1, 'rgba(7,9,13,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(bx, by, bw, 560 - by);
+        // Los dos onces: cada fila en su pulso, de izquierda a derecha, y se van antes del giro
+        for (const [side, b] of sides) {
+          const st = d[side].style;
+          const items = (d.lineups?.[side] || []).map(p => {
+            const start = b.rows + p.row * BEAT + p.col * 0.06;
+            const out = 1 - easeInOut(prog(t, b.out + (4 - p.row) * 0.03, 0.3));
+            const w = spot(p, side);
+            return { p, w, k: easeBack(prog(t, start, 0.35)) * out, drop: 1 - easeOut(prog(t, start, 0.3)), name: Math.min(easeOut(prog(t, start + 0.18, 0.25)), out), at: P(w) };
+          }).filter(it => it.k > 0.01).sort((a, c) => a.at[1] - c.at[1]);
+          for (const it of items) {
+            const [sx, sy] = it.at, ppm = Math.abs(P([it.w[0] + 1, 0, it.w[2]])[0] - sx);
+            const r = Math.max(66, Math.min(115, ppm * 3.1));
+            ctx.save();
+            ctx.globalAlpha = 0.45 * clamp01(it.k);
+            ctx.fillStyle = '#000000';
+            ctx.beginPath();
+            ctx.ellipse(sx, sy, r * 0.75 * clamp01(it.k), r * 0.22 * clamp01(it.k), 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+            ctx.save();
+            ctx.globalAlpha = clamp01(it.k * 1.4);
+            const cy = sy - r * 0.98 - it.drop * 110;
+            ctx.translate(sx, cy);
+            ctx.scale(it.k, it.k);
+            playerChip(ctx, A, it.p, st, 0, 0, r, { number: true });
+            ctx.restore();
+            if (it.name > 0.01) {
+              ctx.save();
+              ctx.globalAlpha = it.name;
+              ctx.translate(0, (1 - it.name) * 16);
+              const size = Math.max(32, r * 0.42), name = up(it.p.last || '');
+              ctx.font = BARLOW(size, 800);
+              const nw = ctx.measureText(name).width + size * 0.7, ny = cy + r + size * 0.2;
+              ctx.fillStyle = 'rgba(6,8,11,.88)';
+              roundRect(ctx, sx - nw / 2, ny, nw, size * 1.3, size * 0.3);
+              ctx.fill();
+              text(ctx, name, sx, ny + size * 1.02, BARLOW(size, 800), '#ffffff', 'center');
+              ctx.restore();
+            }
+          }
+          header(ctx, side, Math.min(easeOut(prog(t, b.head, 0.35)), 1 - prog(t, b.out, 0.3)));
+        }
+        // Al empezar, sobre el campo visto desde arriba: «ONCES CONFIRMADOS»
+        const a = Math.min(easeOut(prog(t, 0.05, 0.3)), 1 - prog(t, 0.95, 0.25));
+        if (a > 0.01) {
+          const [l1, l2] = (d.t?.title || ['Onces', 'confirmados']).map(up);
+          const k = 0.9 + 0.1 * easeBack(prog(t, 0.05, 0.35));
+          ctx.save();
+          ctx.globalAlpha = a;
+          ctx.translate(W / 2, 870);
+          ctx.scale(k, k);
+          text(ctx, l1, 0, -50, ANTON(192), '#ffffff', 'center');
+          ctx.font = ANTON(144);
+          const w2 = ctx.measureText(l2).width;
+          ctx.fillStyle = ACCENT;
+          ctx.fillRect(-w2 / 2 - 28, 0, w2 + 56, 170);
+          text(ctx, l2, 0, 145, ANTON(144), '#111111', 'center');
+          ctx.restore();
+        }
+      },
+    };
+  }
+
   // intro: con la apertura de los escudos (se quita en el Studio).
   function buildScenes(d, A, intro = true) {
+    if (d.kind === 'onces') return [sceneOnces(d, A), sceneOutro(d, A), d.brand && sceneMarca(d, A)].filter(Boolean);
     if (d.kind === 'previa') {
       return [
         scenePrevPortada(d, A),
@@ -3876,7 +4075,7 @@
   // carga en unos segundos; si no, null y la escena va en 2D. Las líneas, del color que se lea
   // sobre el campo de cada equipo.
   async function world3d(d, homeLogo, awayLogo) {
-    if (!(d.kind !== 'previa' && d.shots?.list.length >= 4 && window.Campo3D)) return null;
+    if (!((d.kind === 'onces' || (d.kind !== 'previa' && d.shots?.list.length >= 4)) && window.Campo3D)) return null;
     const ink = (bg) => (contrastWith(bg, '#ffffff') >= 2.2 ? '#ffffff' : '#2b2b2b');
     const made = window.Campo3D.create({
       W, H, grass: theme(d).grass, accent: ACCENT, dark: !!d.dark,

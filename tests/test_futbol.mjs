@@ -857,6 +857,20 @@ try {
     check(prev(t0 - 2.5 * 3600e3)[0].kind === 'previa' && prev(t0 - 2.5 * 3600e3)[0].title === 'L86 – V243'
       && pl.notice({ id: '1-previa', kind: 'previa', title: 'Previa · Real Madrid – Sevilla', caption: 'x' }, 't', 'https://w/').title === '🔥 Previa · Real Madrid – Sevilla',
       'con su aviso («🔥 Previa · …»)');
+    // Los onces confirmados: de los partidos con un equipo de LaLiga que empiezan en menos de 80
+    // minutos, en cuanto ESPN los tiene (los dos con 11 titulares), una vez y no a punto de empezar
+    const liga = new Set(['86', '243', '94', '90', '93']);
+    const onc = (now, done = new Set()) => pl.findOnces(pb, now, done, liga);
+    check(onc(t0 - 70 * 60e3).map((f) => f.id).join() === '1,2,3' && onc(t0 - 90 * 60e3).length === 0 && onc(t0 - 60e3).length === 0
+      && onc(t0 - 30 * 60e3, new Set(['1-onces'])).map((f) => f.id).join() === '2,3' && onc(t0 - 70 * 60e3)[0].kind === 'onces',
+      'los onces: en la hora y pico antes de los partidos con un equipo de LaLiga, una vez y no a punto de empezar');
+    const ros = (n) => ({ roster: Array.from({ length: 18 }, (_, i) => ({ starter: i < n })) });
+    check(pl.lineupsReady({ rosters: [ros(11), ros(11)] }) && !pl.lineupsReady({ rosters: [ros(11), ros(0)] }) && !pl.lineupsReady({}) && !pl.lineupsReady(null),
+      'solo cuando ESPN ya tiene los dos onces');
+    const no = pl.notice({ id: '401882839-onces', kind: 'onces', league: 'esp.1', day: '2026-11-29', title: 'Onces · Real Madrid – Sevilla', caption: 'x' }, 't', 'https://w/');
+    check(no.title === '📋 Onces · Real Madrid – Sevilla' && no.click === 'https://w/?onces=esp.1/401882839&dia=2026-11-29&preparar=1'
+      && no.actions.map((a) => a.label).join(' | ') === 'Crear los onces con caras | Vídeo del robot' && no.actions[1].url === 'https://w/?video=401882839-onces',
+      `y su aviso abre el Studio para hacerlos con las caras de API-Football, y el del robot en su botón (${no.click})`);
     // El resumen de la jornada de LaLiga, al acabar su último partido: la jornada son los días de
     // alrededor mientras ningún equipo repita (del viernes 16 al lunes 19, 10 partidos)
     const ev = (id, home, away, iso, state = 'post', name = 'STATUS_FULL_TIME') => ({ id, date: iso, status: { type: { state, name, completed: state === 'post' } },
@@ -960,6 +974,10 @@ try {
       `la previa: la portada de dos compases (${pd.where.join(' | ')}) y el cara a cara, con el Madrid a la izquierda (${pd.games.slice(0, 2).join(' · ')})`);
     check(pd.scorers.join(' · ') === 'Mbappé 7/8 caras/278.png · Sierra 2/8 null' && pd.plan === 'forma 4.8, h2h 4.8, goleadores 3.2, tabla 3.2, outro 3.2',
       `sus goleadores, con la cara de Mbappé del repo y Sierra con su escudo (${pd.scorers.join(' · ')}), y las escenas (${pd.plan})`);
+    // Los onces, antes de que ESPN los tenga: lo dice y no hace nada
+    await pp.click('#oncesBtn');
+    await pp.waitForFunction(() => /onces/.test(document.getElementById('toast').textContent), null, { timeout: 30000 });
+    check(/ESPN aún no tiene los onces/.test(await pp.textContent('#toast')), `«Crear onces», antes de que ESPN los tenga: lo dice (${await pp.textContent('#toast')})`);
     const pv = await pp.evaluate(() => ({ title: document.getElementById('videoOut').dataset.title, caption: document.getElementById('captionText').value.split('\n'),
       dl: document.getElementById('videoDlBtn').download, box: !document.getElementById('captionBox').hidden }));
     check(pv.title === 'Previa · Real Madrid – Sevilla' && pv.dl === 'futbol-rma-sev-2026-11-29-previa.mp4' && pv.box,
@@ -969,6 +987,64 @@ try {
       && pv.caption[3] === '🆚 Últimos 5 cara a cara: Real Madrid 5, empates 0, Sevilla 0' && pv.caption[5] === '#futbol #laliga #realmadrid #sevilla #previa',
       `y su descripción: la hora, cómo llegan (sin amistosos) y el cara a cara (${pv.caption.slice(0, 4).join(' | ')})`);
     await cp.close();
+  }
+
+  // ── Onces confirmados: en cuanto ESPN da los onces, los dos en el campo, como en el FIFA ──
+  // (los onces de verdad del Real Madrid–Sevilla del 18-10, en el resumen de antes del partido)
+  {
+    const withXI = async (c) => {
+      await c.clock.setFixedTime(new Date('2026-11-29T12:00:00+01:00'));
+      await c.route(/\/summary\?event=401882839$/, (r) => r.fulfill(json(JSON.stringify({
+        ...JSON.parse(readFileSync(join(FIX, 'sum-401882839.json'))), ...JSON.parse(readFileSync(join(FIX, 'rosters-401882839.json'))) }))));
+      await c.route(`${base}/caras/laliga.json`, (r) => r.fulfill(json(JSON.stringify({ liga: 'esp.1', equipos: [
+        { espn: '86', af: 541, nombre: 'Real Madrid', jugadores: [{ id: 278, nombre: 'Kylian Mbappé', dorsal: 10 }, { id: 730, nombre: 'T. Courtois', dorsal: 1 }] }] }))));
+    };
+    const { ctx: co, page: po } = await open({ before: withXI });
+    await pickLeague(po, 'esp.1');
+    await pickDate(po, '2026-11-29');
+    await po.click('.game-card[data-game-id="401882839"]');
+    await po.evaluate(() => {
+      const render = window.StudioVideo.render;
+      window.StudioVideo.render = (data, cb, opts) => { window.__oncesData = data; return render(data, cb, opts); };
+    });
+    await po.click('#oncesBtn');
+    await po.waitForFunction(() => !document.getElementById('videoOut').hidden || /No se pudieron/.test(document.getElementById('toast').textContent), null, { timeout: 400000 });
+    const od = await po.evaluate(() => {
+      const d = window.__oncesData;
+      const rows = (s) => [0, 1, 2, 3, 4].map((r) => d.lineups[s].filter((p) => p.row === r).length).join('-');
+      return { kind: d.kind, rows: [rows('home'), rows('away')], first: d.lineups.home[0].last, last: d.lineups.home[10].last,
+        faces: d.lineups.home.filter((p) => p.face).map((p) => `${p.last} ${p.face}`).join(', '), q: d.closing.question,
+        plan: window.StudioVideo.plan(d, null).map((x) => `${x.id} ${x.dur.toFixed(1)}`).join(', '),
+        title: document.getElementById('videoOut').dataset.title, dl: document.getElementById('videoDlBtn').download,
+        caption: document.getElementById('captionText').value.split('\n') };
+    });
+    check(od.kind === 'onces' && od.rows.join(' / ') === '1-4-2-3-1 / 1-4-2-3-1' && od.first === 'Courtois' && od.last === 'Mbappé'
+      && od.faces === 'Courtois caras/730.png, Mbappé caras/278.png' && od.plan === 'onces 12.8, outro 3.2',
+      `los onces: cada uno en su fila del sistema (${od.rows.join(' / ')}), con las caras del repo (${od.faces}) y las escenas (${od.plan})`);
+    check(od.title === 'Onces · Real Madrid – Sevilla' && od.dl === 'futbol-rma-sev-2026-11-29-onces.mp4' && od.q === '¿Te convence el once del Real Madrid?'
+      && od.caption[0] === '📋 ONCES CONFIRMADOS · Real Madrid – Sevilla' && od.caption[1] === '⏰ Hoy, 21:00 · LaLiga'
+      && /^🏠 Real Madrid \(4-2-3-1\): Courtois; .*; Mbappé$/.test(od.caption[2]) && /^✈️ Sevilla \(4-2-3-1\): Vlachodimos; /.test(od.caption[3])
+      && od.caption[4] === '¿Te convence el once del Real Madrid? 👇' && /#realmadrid #sevilla #alineaciones$/.test(od.caption[5]),
+      `en vídeo (${od.title} · ${od.dl}), con la pregunta del Madrid y los dos onces en la descripción (${od.caption[2]})`);
+    // El enlace del aviso (&preparar=1): te deja en «Crear onces» (sin tu clave, lo dice)
+    await po.goto(`${base}/?onces=esp.1/401882839&dia=2026-11-29&preparar=1`);
+    await po.waitForFunction(() => document.getElementById('oncesBtn').classList.contains('btn-ready'), null, { timeout: 30000 }).catch(() => {});
+    check(await po.$eval('#oncesBtn', (b) => b.classList.contains('btn-ready') && !b.hidden) && /sin las caras de API-Football/.test(await po.textContent('#toast')),
+      'el aviso de los onces abre el Studio en «Crear onces» (y, sin tu clave de API-Football, lo dice)');
+    await co.close();
+    // El vídeo del robot: su botón del otro tipo, también con los onces
+    const oinfo = { id: '401882839-onces', league: 'esp.1', day: '2026-11-29', voz: false, title: 'Onces · Real Madrid – Sevilla', caption: 'x', file: 'futbol-rma-sev-2026-11-29-onces.mp4' };
+    const { ctx: cvo, page: pvo } = await open({
+      url: `${base}/?video=401882839-onces`,
+      before: async (c) => {
+        await c.route('**/v/401882839-onces.json', (r) => r.fulfill(json(JSON.stringify(oinfo))));
+        await c.route('**/v/401882839-onces.mp4', (r) => r.fulfill({ status: 200, contentType: 'video/mp4', body: Buffer.from('mp4 de prueba') }));
+      },
+    });
+    await pvo.waitForFunction(() => !document.getElementById('robotOtherType').hidden, null, { timeout: 15000 }).catch(() => {});
+    const oo = await pvo.$eval('#robotOtherType', (a) => [a.textContent, a.getAttribute('href')]);
+    check(oo[1] === '?onces=esp.1/401882839&dia=2026-11-29&voz=si', `y el vídeo del robot de los onces, con su botón del otro tipo (${oo})`);
+    await cvo.close();
   }
 
   // ── Piloto automático: el aviso abre el vídeo del robot (?video=), listo para compartirlo ──
