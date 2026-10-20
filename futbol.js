@@ -2481,12 +2481,42 @@
   const starters = (team) => team.players.filter(p => p.starter);
   const lineupOk = (team) => starters(team).length === 11 && starters(team).some(p => depthOf(p.pos) === 0);
 
+  // La casilla de cada uno en su sistema (formationPlace de ESPN) sigue la numeración de Opta: en un
+  // 4-2-3-1, el 2 es el lateral derecho, el 3 el izquierdo, el 7 el extremo derecho, el 10 el
+  // mediapunta… (la tabla de cada sistema es la de mplsoccer). Sirve cuando ESPN solo dice
+  // «defensa», «medio» o «delantero»: ordenados por la casilla, sin más, Yamal salía de mediocentro
+  // y los laterales cambiados de lado.
+  const OPTA_PLACES = {
+    442: 'GK RB LB RCM RCB LCB RM LCM LCF RCF LM', 41212: 'GK RB LB CDM RCB LCB RCM CAM LCF RCF LCM',
+    433: 'GK RB LB CDM RCB LCB RCM LCM ST RW LW', 451: 'GK RB LB RCM RCB LCB RM LCM ST CM LM',
+    4411: 'GK RB LB RCM RCB LCB RM LCM ST CAM LM', 4141: 'GK RB LB CDM RCB LCB RM RCM ST LCM LM',
+    4231: 'GK RB LB LDM RCB LCB RW RDM ST CAM LW', 4321: 'GK RB LB CM RCB LCB LCM RCM ST RW LW',
+    532: 'GK RB LB LCB CB RCB RCM CDM LCF RCF LCM', 541: 'GK RB LB LCB CB RCB RM RCM ST LCM LM',
+    352: 'GK RWB LWB LCB CB RCB RCM LCM LCF RCF CM', 343: 'GK RWB LWB LCB CB RCB RCM LCM ST RW LW',
+    31312: 'GK RCM LCM LCB CB RCB CDM CM SS RCF LCF', 4222: 'GK RB LB RCM RCB LCB RW LCM LCF RCF LW',
+    3511: 'GK RWB LWB LCB RCB CB RCM LCM ST CAM CDM', 3421: 'GK RWB LWB LCB CB RCB RDM LDM ST RAM LAM',
+    3412: 'GK RWB LWB LCB CB RCB RCM LCM CAM RCF LCF', 3142: 'GK RM LM CB RCB LCB RCM CDM RCF LCF LCM',
+    31213: 'GK RCM LCM LCB CB RCB CAM CDM ST RW LW', 4132: 'GK RB LB CDM RCB LCB RW CAM RCF LCF LW',
+    424: 'GK RB LB RDM RCB LCB RW LDM RCF LCF LW', 4312: 'GK RB LB CM RCB LCB RCM CAM RCF LCF LCM',
+    3241: 'GK RDM LDM LCB CB RCB RAM LAM ST RW LW', 3331: 'GK RDM LDM LCB CB RCB CAM CDM ST RM LM',
+  };
+  const OPTA_DEPTH = { LCB: 1, CB: 1, RCB: 1, LB: 1.2, RB: 1.2, CDM: 2, LDM: 2, RDM: 2, LWB: 2.5, RWB: 2.5, LCM: 3, CM: 3, RCM: 3, LM: 3.1, RM: 3.1, CAM: 4, LAM: 4, RAM: 4, LW: 5, RW: 5, SS: 5, ST: 5.2, LCF: 5.2, RCF: 5.2 };
+  const optaSide = (pos) => (/^(LB|LWB|LM|LW)$/.test(pos) ? -2 : /^(RB|RWB|RM|RW)$/.test(pos) ? 2 : /^L/.test(pos) ? -1 : /^R/.test(pos) ? 1 : 0);
+  // El puesto de cada uno por su casilla (o nada, si ESPN ya da el puesto o la casilla no cuadra)
+  function optaPositions(team, field) {
+    const names = OPTA_PLACES[(team.formation || '').replace(/\D/g, '')]?.split(' ');
+    const places = field.map(p => p.place);
+    if (!names || !field.every(p => /^[DMF]?$/i.test(p.pos)) || places.some(n => n < 2 || n > 11) || new Set(places).size !== field.length) return null;
+    return new Map(field.map(p => [p, names[p.place - 1]]));
+  }
+
   // Filas del sistema (4-2-3-1 → 4, 2, 3, 1) con sus jugadores, de izquierda a derecha.
   function lineupRows(team) {
     const all = starters(team);
     const gk = all.find(p => depthOf(p.pos) === 0) || all[0];
+    const opta = optaPositions(team, all.filter(p => p !== gk));
     const field = all.filter(p => p !== gk)
-      .map(p => ({ p, d: depthOf(p.pos), s: sideOf(p.pos) }))
+      .map(p => (opta ? { p, d: OPTA_DEPTH[opta.get(p)] ?? 3.5, s: optaSide(opta.get(p)) } : { p, d: depthOf(p.pos), s: sideOf(p.pos) }))
       .sort((a, b) => a.d - b.d || a.p.place - b.p.place);
     let counts = (team.formation || '').split('-').map(Number).filter(n => n > 0);
     if (counts.reduce((a, b) => a + b, 0) !== field.length) {
@@ -3930,8 +3960,21 @@
     document.getElementById('mixPreviewBtn').disabled = videoBusy || mixBusy || !state.rendered;
     syncScript();
   }
+  // La descripción también junto al vídeo (la misma que la de arriba, que se queda lejos): para
+  // copiarla sin buscarla
+  function showVideoCaption() {
+    const text = captionNow();
+    document.getElementById('videoCaption').value = text;
+    document.getElementById('videoCaptionBox').hidden = !text;
+  }
+  // Al descargar el vídeo, la descripción se copia sola (como al compartirlo)
+  function copyOnDownload(text) {
+    if (!text || !navigator.clipboard) return;
+    navigator.clipboard.writeText(text).then(() => showToast('Descripción copiada: pégala en TikTok al subir el vídeo', 'success')).catch(() => {});
+  }
   function resetVideo() {
     document.getElementById('videoOut').hidden = true;
+    document.getElementById('videoCaptionBox').hidden = true;
     videoFile = null;
     document.getElementById('videoPreview').removeAttribute('src');
     if (videoUrl) URL.revokeObjectURL(videoUrl);
@@ -4037,6 +4080,7 @@
       document.getElementById('videoMeta').textContent = `${parts.length ? `Lleva ${listEs(parts)}.` : 'Sin sonido ni subtítulos.'}${data.long ? long : ''}`;
       document.getElementById('videoOut').dataset.voz = voice.clips ? 'si' : 'no';
       document.getElementById('videoOut').hidden = false;
+      showVideoCaption();
       if (voice.why) showToast(`Vídeo listo, sin voz ni subtítulos: ${voice.why}`, 'error');
       else showToast(out.note || 'Vídeo listo · revísalo y descárgalo', out.note ? '' : 'success');
     } catch (e) {
@@ -4243,6 +4287,7 @@
       document.getElementById('captionText').value = previaCaption(m);
       document.getElementById('captionBox').hidden = false;
       captionEdited = false;
+      showVideoCaption();
       box.scrollIntoView({ behavior: 'smooth', block: 'center' });
       if (voice.why) showToast(`Previa lista, sin voz ni subtítulos: ${voice.why}`, 'error');
       else showToast(out.note || 'Previa lista · revísala y compártela', out.note ? '' : 'success');
@@ -4342,7 +4387,8 @@
     const k = kickoffOf(m);
     const xi = (s) => {
       const { gk, rows } = lineupRows(m[s]);
-      return `${m[s].short}${m[s].formation ? ` (${m[s].formation})` : ''}: ${[[gk], ...rows].map(r => r.map(p => surname(p)).join(', ')).join('; ')}`;
+      // (cada línea de derecha a izquierda, como se dan en la prensa: el lateral derecho primero)
+      return `${m[s].short}${m[s].formation ? ` (${m[s].formation})` : ''}: ${[[gk], ...rows.map(r => [...r].reverse())].map(r => r.map(p => surname(p)).join(', ')).join('; ')}`;
     };
     return [
       `📋 ${L('ONCES CONFIRMADOS', 'CONFIRMED LINE-UPS')} · ${m.home.short} – ${m.away.short}`,
@@ -4406,6 +4452,7 @@
       document.getElementById('captionText').value = oncesCaption(m, side);
       document.getElementById('captionBox').hidden = false;
       captionEdited = false;
+      showVideoCaption();
       box.scrollIntoView({ behavior: 'smooth', block: 'center' });
       if (voice.why) showToast(`Onces listos, sin voz ni subtítulos: ${voice.why}`, 'error');
       else if (faces.problem) showToast(`Onces listos, sin las caras de API-Football: ${faces.problem}`, 'error');
@@ -5856,16 +5903,17 @@ ${inside.length ? `\n${L('Desliza para ver', 'Swipe for')} ${listEs(inside)}.\n`
     box.hidden = !m && !state.previa;
     if (!m || state.previa || (captionEdited && !force)) return;
     document.getElementById('captionText').value = tiktokCaption(m);
+    document.getElementById('videoCaption').value = captionNow();
     captionEdited = false;
   }
   const captionNow = () => (state.previa ? document.getElementById('captionText').value
     : state.rendered ? document.getElementById('captionText').value || tiktokCaption(state.rendered) : '');
-  async function copyCaption() {
+  async function copyCaption(box = 'captionText') {
     try {
       await navigator.clipboard.writeText(captionNow());
       showToast('Descripción copiada: pégala en TikTok', 'success');
     } catch (e) {
-      document.getElementById('captionText').select();
+      document.getElementById(box).select();
       showToast('Selecciónala y cópiala a mano: este navegador no deja copiar solo', 'error');
     }
   }
@@ -6452,6 +6500,7 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
       $('robotCaption').value = info.caption || '';
       $('robotCaptionBox').hidden = !info.caption;
       const caption = () => $('robotCaption').value;
+      $('robotDl').addEventListener('click', () => copyOnDownload(caption()));
       $('robotCopy').addEventListener('click', async () => {
         try {
           await navigator.clipboard.writeText(caption());
@@ -6664,7 +6713,18 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
       try { localStorage.setItem(VOICE_KEY, voiceInput.value.trim()); } catch (e) { /* sin almacenamiento: no se recuerda */ }
     });
     document.getElementById('captionCopyBtn').addEventListener('click', copyCaption);
-    document.getElementById('captionText').addEventListener('input', () => { captionEdited = true; });
+    // Los dos cuadros de la descripción (arriba y junto al vídeo) son la misma: lo que retoques en
+    // uno sale en el otro
+    document.getElementById('captionText').addEventListener('input', () => {
+      captionEdited = true;
+      document.getElementById('videoCaption').value = document.getElementById('captionText').value;
+    });
+    document.getElementById('videoCaption').addEventListener('input', () => {
+      captionEdited = true;
+      document.getElementById('captionText').value = document.getElementById('videoCaption').value;
+    });
+    document.getElementById('videoCaptionCopy').addEventListener('click', () => copyCaption('videoCaption'));
+    document.getElementById('videoDlBtn').addEventListener('click', () => copyOnDownload(captionNow()));
 
     // Por defecto, hoy (en fútbol se juega de tarde y de noche en España).
     const today = localIso();

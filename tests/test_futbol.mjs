@@ -1033,6 +1033,40 @@ try {
     check(await po.$eval('#oncesBtn', (b) => b.classList.contains('btn-ready') && !b.hidden) && /sin las caras de API-Football/.test(await po.textContent('#toast')),
       'el aviso de los onces abre el Studio en «Crear onces» (y, sin tu clave de API-Football, lo dice)');
     await co.close();
+    // Cuando ESPN solo dice «defensa», «medio» o «delantero» (los onces de verdad del PSG–Barça del
+    // 20-10), cada uno en su sitio por su casilla del sistema (la numeración de Opta): Pedri y Bernal
+    // de pivotes, Yamal, Olmo y Gordon detrás de Raphinha, y el lateral derecho a la derecha. Y la
+    // descripción, junto al vídeo (cada línea como en la prensa: del lateral derecho al izquierdo),
+    // que se copia sola al descargarlo
+    const { ctx: cbx, page: pbx } = await open({ before: (c) => c.clock.setFixedTime(new Date('2026-10-20T20:10:00+02:00')) });
+    await pickLeague(pbx, 'uefa.champions');
+    await pickDate(pbx, '2026-10-20');
+    await pbx.click('.game-card[data-game-id="401915399"]');
+    await pbx.evaluate(() => {
+      const render = window.StudioVideo.render;
+      window.StudioVideo.render = (data, cb, opts) => { window.__oncesData = data; return render(data, cb, opts); };
+    });
+    await pbx.click('#oncesBtn');
+    await pbx.waitForFunction(() => !document.getElementById('videoOut').hidden || /No se pudieron/.test(document.getElementById('toast').textContent), null, { timeout: 400000 });
+    const bx = await pbx.evaluate(() => {
+      const d = window.__oncesData;
+      const lines = (s) => [1, 2, 3, 4].map((r) => d.lineups[s].filter((p) => p.row === r).sort((a, b) => a.col - b.col).map((p) => p.last).join(' ')).filter(Boolean).join(' / ');
+      return { home: lines('home'), away: lines('away'), caption: document.getElementById('captionText').value.split('\n'),
+        near: !document.getElementById('videoCaptionBox').hidden && document.getElementById('videoCaption').value === document.getElementById('captionText').value };
+    });
+    check(bx.away === 'Espart Martín Cubarsí Cancelo / Pedri Bernal / Gordon Olmo Yamal / Raphinha'
+      && bx.home === 'Hernández Pacho Marquinhos Hakimi / Ruiz Vitinha Neves / Kvaratskhelia Dembélé Doué',
+      `sin el puesto de cada uno, por su casilla del sistema (Barcelona: ${bx.away} · PSG: ${bx.home})`);
+    check(bx.caption[2] === '🏠 PSG (4-3-3): Safonov; Hakimi, Marquinhos, Pacho, Hernández; Neves, Vitinha, Ruiz; Doué, Dembélé, Kvaratskhelia'
+      && bx.caption[3] === '✈️ Barcelona (4-2-3-1): García; Cancelo, Cubarsí, Martín, Espart; Bernal, Pedri; Yamal, Olmo, Gordon; Raphinha' && bx.near,
+      `y la descripción, también junto al vídeo, con cada línea del lateral derecho al izquierdo (${bx.caption[3]})`);
+    await pbx.evaluate(() => navigator.clipboard.writeText(''));
+    const [bdl] = await Promise.all([pbx.waitForEvent('download', { timeout: 30000 }), pbx.click('#videoDlBtn')]);
+    await pbx.waitForTimeout(300);
+    const copied = (await pbx.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n'); // (en Windows, el portapapeles pasa los saltos a CRLF)
+    check(bdl.suggestedFilename() === 'futbol-psg-bar-2026-10-20-onces.mp4' && copied === bx.caption.join('\n'),
+      `al descargar el vídeo (${bdl.suggestedFilename()}), la descripción se copia sola`);
+    await cbx.close();
     // El vídeo del robot: su botón del otro tipo, también con los onces
     const oinfo = { id: '401882839-onces', league: 'esp.1', day: '2026-11-29', voz: false, title: 'Onces · Real Madrid – Sevilla', caption: 'x', file: 'futbol-rma-sev-2026-11-29-onces.mp4' };
     const { ctx: cvo, page: pvo } = await open({

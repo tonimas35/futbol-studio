@@ -822,6 +822,7 @@ body.zoom-open { overflow: hidden; }
 .video-out[hidden] { display: none; }
 .video-out video { width: min(340px, 100%); aspect-ratio: 9 / 16; background: var(--ink); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4); }
 .video-out .btn { flex: none; }
+.video-out .caption-box { flex: 1 1 100%; margin-top: 0; }
 
 /* Lo que solo se ve en el Studio (no sale en la PNG) */
 .slide.capturing .ph-photo { visibility: hidden; }
