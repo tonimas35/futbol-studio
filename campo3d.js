@@ -8,7 +8,8 @@
 // el vídeo sigue con el campo en 2D.
 //
 //   const mundo = await Campo3D.create({ W, H, grass, home, away, accent, dark })
-//   mundo.frame({ cam, front, terr, cover, ball, trail, nets, burst, cheer, ripples, focus })   → un fotograma
+//   mundo.frame({ cam, front, terr, cover, ball, trail, nets, burst, cheer, ripples, focus, roofs })   → un fotograma
+//     (roofs: false, sin las cubiertas)
 //   mundo.project([x, y, z])  → dónde cae ese punto en la pantalla (de -1 a 1, como en WebGL)
 //
 // El campo: x a lo ancho (de -34 a 34), y hacia arriba, z a lo largo (de -52,5 a 52,5); el local
@@ -333,6 +334,8 @@
     // visitante, en media tribuna de un fondo
     const fanColors = (st) => [st.bg, st.bg, st.acc || st.bg, st.bg, o.dark ? '#3a3f4a' : '#c9c4ba', o.dark ? '#59606d' : '#8e8a83'];
     const fans = [];
+    // Las cubiertas (con su luz y sus pilares): se quitan cuando la cámara va por detrás de una grada (los onces)
+    const roofs = [];
     let fseed = 3;
     const frnd = () => ((fseed = (fseed * 16807) % 2147483647) / 2147483647);
     for (const st of stands) {
@@ -351,14 +354,17 @@
       roof.position.set((ST_D + 6) / 2 - 3.5, ROOF_Y, 0);
       roof.castShadow = true;
       g.add(roof);
+      roofs.push(roof);
       const strip = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.25, st.len + 4), lightMat);
       strip.position.set(-3.6, ROOF_Y - 0.45, 0);
       g.add(strip);
+      roofs.push(strip);
       // Los pilares de atrás
       for (let k = -2; k <= 2; k++) {
         const p = new THREE.Mesh(new THREE.BoxGeometry(0.6, ROOF_Y - WALL - ROWS * ROW_H, 0.6), roofMat);
         p.position.set(ST_D + 0.6, WALL + ROWS * ROW_H + (ROOF_Y - WALL - ROWS * ROW_H) / 2, (k * st.len) / 5);
         g.add(p);
+        roofs.push(p);
       }
       scene.add(g);
       g.updateMatrixWorld(true);
@@ -616,6 +622,7 @@
       camera.up.set(0, 1, 0);
       camera.lookAt(v3(s.cam.target));
       if (s.cam.roll) camera.rotateZ(s.cam.roll);
+      for (const r of roofs) r.visible = s.roofs !== false;
       camera.updateProjectionMatrix();
       camera.updateMatrixWorld();
       // El sol sigue a lo que se ve, para que la sombra tenga detalle donde hace falta
