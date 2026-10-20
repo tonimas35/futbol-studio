@@ -24,7 +24,7 @@
     rel="stylesheet"
   />
 
-  <link rel="stylesheet" href="futbol.css?v=22" />
+  <link rel="stylesheet" href="futbol.css?v=23" />
 </head>
 
 <body>
@@ -329,6 +329,15 @@
             <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
           </svg>
         </a>
+        <!-- La descripción, aquí mismo (la misma que la de arriba): se copia sola al descargar o compartir -->
+        <div class="caption-box video-caption" id="videoCaptionBox" hidden>
+          <div class="caption-head">
+            <span>Descripción para TikTok</span>
+            <button class="btn btn-ghost" id="videoCaptionCopy" type="button">Copiar descripción</button>
+          </div>
+          <textarea id="videoCaption" rows="6" spellcheck="false" aria-label="Descripción para TikTok, junto al vídeo"></textarea>
+          <small>Se copia sola al descargar o compartir el vídeo: en TikTok, mantén pulsado el texto y pega.</small>
+        </div>
       </div>
     </section>
 
@@ -355,6 +364,6 @@
   <script src="audio.js?v=3"></script>
   <script src="campo3d.js?v=2"></script>
   <script src="video.js?v=25"></script>
-  <script src="futbol.js?v=51"></script>
+  <script src="futbol.js?v=52"></script>
 </body>
 </html>

@@ -92,7 +92,9 @@ Con un partido sin empezar también sale **«Crear onces (vídeo)»**: en cuanto
 
 Las caras son las de API-Football si tienes la clave: su alineación sale media hora antes, y son las de los dos equipos. Las que falten salen del repo (`caras/`: las de LaLiga y las de los rivales de la Champions). Sin cara, el dorsal.
 
-Su descripción lleva la hora, los dos onces enteros (es lo que se busca), la pregunta y `#alineaciones`. Si ESPN aún no los tiene, el botón lo dice. `?onces=esp.1/401882839` (y `&dia=`) lo crea solo; con `&preparar=1`, te deja en «Crear onces».
+Cada uno sale en su sitio del sistema. Si ESPN solo dice «defensa», «medio» o «delantero», se le coloca por su casilla (la numeración de Opta: en un 4-2-3-1, el 2 es el lateral derecho, el 7 el extremo derecho, el 10 el mediapunta…), para los sistemas de siempre (4-3-3, 4-2-3-1, 4-4-2, 3-5-2, 5-3-2…).
+
+Su descripción lleva la hora, los dos onces enteros (es lo que se busca; cada línea del lateral derecho al izquierdo, como en la prensa), la pregunta y `#alineaciones`. Sale también junto al vídeo, con «Copiar descripción», y se copia sola al descargarlo o compartirlo (también la de la previa y la del vídeo del partido). Si ESPN aún no los tiene, el botón lo dice. `?onces=esp.1/401882839` (y `&dia=`) lo crea solo; con `&preparar=1`, te deja en «Crear onces».
 
 Con su descripción para TikTok: «🔥 PREVIA · Real Madrid – Sevilla», la hora, cómo llegan, el cara a cara, la pregunta y los hashtags (con `#previa`). `?previa=esp.1/401882839` (y `&dia=` si no es de hoy ni de mañana) la crea sola.
 
