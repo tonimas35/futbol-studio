@@ -98,6 +98,14 @@ Su descripción lleva la hora, los dos onces enteros (es lo que se busca; cada l
 
 Con su descripción para TikTok: «🔥 PREVIA · Real Madrid – Sevilla», la hora, cómo llegan, el cara a cara, la pregunta y los hashtags (con `#previa`). `?previa=esp.1/401882839` (y `&dia=` si no es de hoy ni de mañana) la crea sola.
 
+## El final de un Stitch (/stitch)
+
+En TikTok, **Stitch** («Compartir → Pegar») pega hasta 5 segundos del vídeo de otra cuenta delante del tuyo, con su crédito, y el vídeo queda en tu perfil. Las cuentas oficiales lo suelen dejar (@championsleague sí; Movistar Plus+ no). Es la forma legal de abrir con imagen real: el gol, el jugador con el trofeo…
+
+El final lo hace Claude. Abre una sesión de Claude Code con este repo (en la app: **Code → nueva sesión → `tonimas35/futbol-studio`**), escribe `/stitch` y pega una captura del vídeo que quieres pegar. Claude reconoce el partido y lo que se ve, busca los datos en ESPN y hace un vídeo de 8 a 15 segundos que contesta a eso: por qué Doué fue el mejor, los números de Vitinha y lo que cambió su gol… Te lo pasa con la descripción lista. Las instrucciones están en `.claude/skills/stitch/SKILL.md`.
+
+Por dentro es el Studio de siempre: `?respuesta=liga/id&guion={…}` hace un vídeo corto con las escenas que diga el guion (el marcador, un jugador con su cara y sus números, el dato, la polémica, la posesión, las estadísticas, la tabla, la pregunta y tu marca), en su orden y con sus textos, sin voz ni apertura. `node tools/corto.mjs liga/id '<guion>' --dia AAAA-MM-DD --salida archivo.mp4` lo hace en un Chrome sin ventana y lo deja en H.264.
+
 ## Piloto automático: el vídeo hecho y en el móvil al pitido final
 
 Sin abrir el Studio: cuando acaba un partido, un robot hace el vídeo y te llega un aviso al móvil. Lo tocas, **Compartir vídeo** y a TikTok (la descripción se copia sola: mantén pulsado y pega).
@@ -291,6 +299,8 @@ El partido en 30 a 40 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
 | `manifest.webmanifest`, `apple-touch-icon.png`, `icon-*.png` | El nombre y el icono al añadirlo a la pantalla de inicio del móvil |
 | `piloto.json` | El piloto automático: qué competiciones, el tema de ntfy, la dirección de la web, las previas y la voz |
 | `tools/piloto.mjs` | El robot del piloto automático: busca los partidos acabados, hace el vídeo con el Studio, lo deja en la web y avisa |
+| `tools/corto.mjs` | El final de un Stitch: un vídeo corto con las escenas y los textos de un guion, con el Studio (lo usa la skill `/stitch`) |
+| `.claude/skills/stitch/SKILL.md` | La skill `/stitch`: cómo hace Claude el final de un Stitch a partir de una captura |
 | `tools/voz_modal.py` | La voz en Modal: el guion dicho con la voz clonada, con Qwen3-TTS, para el robot y para el Studio a mano |
 | `.github/workflows/piloto.yml` | Lanza el robot cada 10 minutos en las horas de partidos (o a mano) |
 | `.github/workflows/web.yml` | Publica el Studio y los vídeos del robot en GitHub Pages |
@@ -308,7 +318,7 @@ El partido en 30 a 40 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
   - el Lech-Leverkusen de la Europa League (la clasificación, pedida aparte);
   - el Osnabrück-Bayern de la Copa de Alemania (un apellido con «ß»).
 
-  Prueba las notas de API-Football (la slide, los líderes del partido, las caras en los onces, el jugador del partido por nota y el aviso si el plan no deja), «El dato» (la racha que se acaba, el cara a cara, el pie de foto, el guion y que el historial guardado no se vuelva a pedir), la versión en inglés (slides, guion, jornada y que se recuerde), el modo en directo (un partido que pasa de en juego a acabado: el aviso y generarlo a un clic, con el vídeo), el enlace del pitido final (`?partido=`: lo genera todo solo, y si el partido no está, lo dice) el piloto automático (qué partidos hace: uno por partido, sin repetir, no los de hace horas y fuera de LaLiga solo los de sus equipos; el aviso al móvil; y la página del aviso: el vídeo con su descripción, compartir, cerrar y si ya no está), el resumen de la jornada, tu logo, las competiciones y sus logos, la lista, las 9 slides, el minuto a minuto sin solapes, la firma, el jugador del partido, el borrador, el ZIP, el 9:16, compartir, el vídeo (guion, la mezcla y el MP4), «Para tu IA» (copiar y pegar), un partido en juego, uno con pocos datos, las eliminatorias (campeón, global, quién pasa), saltar a un día con partidos, el móvil y el Studio abierto como archivo (generar, descargar y recuperar el borrador).
+  Prueba las notas de API-Football (la slide, los líderes del partido, las caras en los onces, el jugador del partido por nota y el aviso si el plan no deja), «El dato» (la racha que se acaba, el cara a cara, el pie de foto, el guion y que el historial guardado no se vuelva a pedir), la versión en inglés (slides, guion, jornada y que se recuerde), el modo en directo (un partido que pasa de en juego a acabado: el aviso y generarlo a un clic, con el vídeo), el enlace del pitido final (`?partido=`: lo genera todo solo, y si el partido no está, lo dice), la respuesta de un Stitch (`?respuesta=` con su guion y `tools/corto.mjs`) el piloto automático (qué partidos hace: uno por partido, sin repetir, no los de hace horas y fuera de LaLiga solo los de sus equipos; el aviso al móvil; y la página del aviso: el vídeo con su descripción, compartir, cerrar y si ya no está), el resumen de la jornada, tu logo, las competiciones y sus logos, la lista, las 9 slides, el minuto a minuto sin solapes, la firma, el jugador del partido, el borrador, el ZIP, el 9:16, compartir, el vídeo (guion, la mezcla y el MP4), «Para tu IA» (copiar y pegar), un partido en juego, uno con pocos datos, las eliminatorias (campeón, global, quién pasa), saltar a un día con partidos, el móvil y el Studio abierto como archivo (generar, descargar y recuperar el borrador).
 
 Sin red, Three.js no carga y el vídeo sale con el campo en 2D, como sin WebGL; una prueba aparte lo sirve desde `node_modules` y dibuja el estadio en 3D (la portada, los onces, el partido y el final). También prueba el territorio (cada gol y casi todos los tiros caen en el color de su equipo), los onces, las caras de los goles y los cambios, y el orden de las escenas.
 

@@ -3581,6 +3581,16 @@
   // intro: con la apertura de los escudos (se quita en el Studio).
   function buildScenes(d, A, intro = true) {
     if (d.kind === 'onces') return [sceneOnces(d, A), sceneOutro(d, A), d.brand && sceneMarca(d, A)].filter(Boolean);
+    // La respuesta (el final de un Stitch): las escenas que pide el guion, en su orden (las que no
+    // tienen datos ya las ha quitado el Studio)
+    if (d.kind === 'respuesta') {
+      const make = {
+        marcador: () => sceneScore(d, A), jugador: () => sceneJugador(d, A), dato: () => sceneDato(d, A),
+        polemica: () => scenePolemica(d, A), posesion: () => scenePosesion(d, A), estadisticas: () => sceneStats(d, A),
+        tabla: () => sceneTable(d, A), pregunta: () => sceneOutro(d, A), marca: () => d.brand && sceneMarca(d, A),
+      };
+      return (d.escenas || []).map(id => make[id]?.()).filter(Boolean);
+    }
     if (d.kind === 'previa') {
       return [
         scenePrevPortada(d, A),
@@ -4075,7 +4085,8 @@
   // carga en unos segundos; si no, null y la escena va en 2D. Las líneas, del color que se lea
   // sobre el campo de cada equipo.
   async function world3d(d, homeLogo, awayLogo) {
-    if (!((d.kind === 'onces' || (d.kind !== 'previa' && d.shots?.list.length >= 4)) && window.Campo3D)) return null;
+    // (la respuesta no lleva el partido: su marcador, en 2D)
+    if (!((d.kind === 'onces' || (d.kind !== 'previa' && d.kind !== 'respuesta' && d.shots?.list.length >= 4)) && window.Campo3D)) return null;
     const ink = (bg) => (contrastWith(bg, '#ffffff') >= 2.2 ? '#ffffff' : '#2b2b2b');
     const made = window.Campo3D.create({
       W, H, grass: theme(d).grass, accent: ACCENT, dark: !!d.dark,
