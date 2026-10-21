@@ -381,7 +381,7 @@ export function voiceEngine(env = process.env, motor = VOZ.motor) {
 // carrusel y el vídeo con lo que tenga el Studio por defecto (sin música, la firma y el logo de
 // Jornada90). Luego, a H.264 para el iPhone y TikTok.
 // El Studio en una pestaña nueva, en español y con la hora de Madrid.
-async function studio(browser) {
+export async function studio(browser) {
   // Como un Chrome normal: ESPN contesta 403 (y sin CORS) al «HeadlessChrome» del modo sin ventana
   const userAgent = `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${browser.version()} Safari/537.36`;
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: 'es-ES', timezoneId: 'Europe/Madrid', acceptDownloads: true, userAgent });

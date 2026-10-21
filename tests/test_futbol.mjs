@@ -759,6 +759,50 @@ try {
     check(pr.slides && pr.ready && !pr.busy && !pr.out && pr.url === '' && /sin notas: pega tu clave de API-Football/.test(pr.toast),
       `desde el aviso, el carrusel y te deja en «Crear vídeo» sin crearlo; sin tu clave de API-Football, avisa de que va sin notas (${pr.toast})`);
     await c7p.close();
+    // La respuesta (el final de un Stitch, ?respuesta= con su guion; lo usa tools/corto.mjs): las
+    // escenas que pide, en su orden, con el jugador (por una parte de su nombre), sus números, el
+    // dato, la pregunta y los colores del equipo que se diga; sin voz, sin apertura y sin el 3D
+    const guion = {
+      escenas: ['marcador', 'jugador', 'dato', 'pregunta'], jugador: 'yeremay', etiqueta: 'Los números de',
+      numeros: [{ v: '2', texto: 'Faltas recibidas' }, { v: '1', texto: 'Tiro' }],
+      dato: { grande: '7', texto: 'partidos sin ganar en Riazor' }, pregunta: '¿Se salva el Levante?', equipo: 'Levante',
+    };
+    const respuesta = async (g) => open({
+      url: `${base}/?respuesta=esp.1/401882844&dia=2026-10-16&guion=${encodeURIComponent(JSON.stringify(g))}`,
+      before: async (ctx) => {
+        ctx.on('page', (pg) => pg.on('dialog', (d) => d.accept()));
+        await ctx.clock.setFixedTime(new Date('2026-10-17T10:00:00+02:00'));
+        await ctx.route('https://site.api.espn.com/apis/site/v2/sports/soccer/esp.1/scoreboard?dates=20261016', (r) => r.fulfill(json(JSON.stringify(sbEnded))));
+        // Lo que le llega al vídeo (video.js lo pone en window.StudioVideo al cargar)
+        await ctx.addInitScript(() => {
+          let sv;
+          Object.defineProperty(window, 'StudioVideo', { configurable: true, get: () => sv,
+            set: (v) => { sv = { ...v, render: (d, cb, o) => { window.__resp = { d, o }; return v.render(d, cb, o); } }; } });
+        });
+      },
+    });
+    const { ctx: c7r, page: p7r } = await respuesta(guion);
+    await p7r.waitForFunction(() => !document.getElementById('videoOut').hidden || /No se pudo/.test(document.getElementById('toast').textContent), null, { timeout: 400000 });
+    const rs = await p7r.evaluate(() => {
+      const { d, o } = window.__resp || {};
+      return { escenas: document.getElementById('videoOut').dataset.escenas, dl: document.getElementById('videoDlBtn').download, url: location.search,
+        kind: d?.kind, intro: o?.intro, captions: o?.captions, plan: d ? window.StudioVideo.plan(d, null).map((x) => `${x.id} ${x.dur.toFixed(1)}`).join(', ') : '',
+        jugador: d ? `${d.jugador.first} ${d.jugador.last}: ${d.jugador.stats.map((s) => `${s.v} ${s.label}`).join(', ')}` : '',
+        kick: d ? `${d.t.player}|${d.t.ofMatch}` : '', dato: d ? `${d.dato.big} ${d.dato.unit} (${d.dato.side})` : '', q: d ? `${d.closing.question} (${d.closing.side})` : '' };
+    });
+    check(rs.kind === 'respuesta' && rs.escenas === 'marcador,jugador,dato,pregunta' && rs.plan === 'score 1.6, jugador 4.8, dato 3.2, outro 3.2'
+      && rs.intro === false && rs.captions === false && rs.url === '' && rs.dl === 'futbol-dep-lev-2026-10-16-respuesta.mp4',
+      `la respuesta de un Stitch: las escenas del guion, en su orden, sin voz ni apertura (${rs.plan} · ${rs.dl})`);
+    check(rs.jugador === 'Yeremay Hernández: 2 Faltas recibidas, 1 Tiro' && rs.kick === 'Los| números de'
+      && rs.dato === '7 partidos sin ganar en Riazor (away)' && rs.q === '¿Se salva el Levante? (away)',
+      `con el jugador (por una parte de su nombre), sus números, el dato y la pregunta, con los colores del Levante (${rs.jugador} · ${rs.dato} · ${rs.q})`);
+    await c7r.close();
+    // Si el guion pide a alguien que no juega, lo dice y no hace el vídeo
+    const { ctx: c7x, page: p7x } = await respuesta({ jugador: 'Messi' });
+    await p7x.waitForFunction(() => /No se pudo/.test(document.getElementById('toast').textContent), null, { timeout: 60000 }).catch(() => {});
+    check(/No encuentro a «Messi» en el partido/.test(await p7x.textContent('#toast')) && await p7x.$eval('#videoOut', (el) => el.hidden),
+      `si el guion pide a alguien que no juega, lo dice (${await p7x.textContent('#toast')})`);
+    await c7x.close();
     // Un partido que no está: lo dice y deja el Studio como siempre.
     const { ctx: c7b, page: p7b } = await open({ url: `${base}/?partido=esp.1/999`, before: async (ctx) => { await ctx.clock.setFixedTime(new Date('2026-10-16T22:00:00+02:00')); } });
     await p7b.waitForFunction(() => /ni hoy ni ayer/.test(document.getElementById('toast').textContent), null, { timeout: 15000 }).catch(() => {});
@@ -767,6 +811,15 @@ try {
 
     // El piloto automático (tools/piloto.mjs): qué partidos hace y el aviso al móvil, con datos de ESPN.
     const pl = await import(pathToFileURL(join(REPO, 'tools/piloto.mjs')).href);
+    // La respuesta desde la línea de comandos (tools/corto.mjs): el partido, el guion y el enlace
+    const corto = await import(pathToFileURL(join(REPO, 'tools/corto.mjs')).href);
+    const job = corto.parseArgs(['uefa.champions/401915399', '{"jugador":"Vitinha","pregunta":"¿Y ahora?"}', '--dia', '2026-10-20', '--salida', 'x.mp4']);
+    const jobUrl = new URL(corto.respuestaUrl('http://s', job));
+    const badArgs = ['psg-barça', 'uefa.champions/401915399 --dia 20-10-2026'].map((a) => { try { corto.parseArgs(a.split(' ')); return 'ok'; } catch (e) { return e.message; } });
+    check(job.league === 'uefa.champions' && job.id === '401915399' && job.dia === '2026-10-20' && job.salida === 'x.mp4'
+      && jobUrl.searchParams.get('respuesta') === 'uefa.champions/401915399' && JSON.parse(jobUrl.searchParams.get('guion')).pregunta === '¿Y ahora?'
+      && /^Partido no válido/.test(badArgs[0]) && /^Día no válido/.test(badArgs[1]),
+      `tools/corto.mjs: el partido, el día y el guion, al enlace ?respuesta= (y lo que no vale, lo dice: ${badArgs.join(' · ')})`);
     // La voz: los marcadores dichos, los tiempos de cada palabra del guion y lo que se pide a ElevenLabs
     const sw = pl.spokenWords('Exhibición del Real Madrid: 4-1 al Sevilla.');
     const letters = [...sw.text];

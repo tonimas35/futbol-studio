@@ -3826,6 +3826,22 @@
     return { home, away, rated: all.filter(p => p.rating).length >= 16, best: bestPlayer(m)?.id || '' };
   }
 
+  // El jugador de la escena «Jugador del partido»: su nombre, su foto o su cara, su escudo y sus
+  // números (keys: los de keyNumbers)
+  function videoJugador(m, p, keys, face) {
+    return {
+      first: p.name.endsWith(surname(p)) ? p.name.slice(0, -surname(p).length).trim() : '',
+      last: surname(p), number: p.jersey,
+      photo: hasPhoto(p) ? [photoSrc(p)] : null,
+      face,
+      logo: m[p.side].logo, style: teamStyle(m[p.side]), side: p.side,
+      // Los minutos jugados no dicen nada al lado de los goles o los tiros
+      stats: keys.filter((s, i) => i < 2 || !/^minuto|^minutes/.test(plain(s.label)))
+        .map(s => ({ v: s.text ?? s.v, label: s.label, clean: !!s.clean, rating: !!s.rating })),
+      scoreLine: scoreLine(m),
+    };
+  }
+
   function videoData(m) {
     const { winner } = sides(m);
     const team = (side) => {
@@ -3886,18 +3902,8 @@
         home: shotTotals(m, 'home'), away: shotTotals(m, 'away'),
         list: m.shots.map(s => ({ side: s.side, kind: s.kind, x: s.x, y: s.y, x2: s.x2, y2: s.y2, t: s.t ?? null, ...(s.kind === 'post' ? { name: s.name || '', min: s.min || '' } : {}) })),
       } : null,
-      jugador: p && {
-        first: p.name.endsWith(surname(p)) ? p.name.slice(0, -surname(p).length).trim() : '',
-        last: surname(p), number: p.jersey,
-        photo: hasPhoto(p) ? [photoSrc(p)] : null,
-        // La cara del retrato de la slide, si se ha quedado (no era la silueta de API-Football)
-        face: document.querySelector('#slide-jugador .has-face .portrait img')?.src || null,
-        logo: m[p.side].logo, style: teamStyle(m[p.side]), side: p.side,
-        // Los minutos jugados no dicen nada al lado de los goles o los tiros
-        stats: keys.filter((s, i) => i < 2 || !/^minuto|^minutes/.test(plain(s.label)))
-          .map(s => ({ v: s.text ?? s.v, label: s.label, clean: !!s.clean, rating: !!s.rating })),
-        scoreLine: scoreLine(m),
-      },
+      // (la cara del retrato de la slide, si se ha quedado: no era la silueta de API-Football)
+      jugador: p && videoJugador(m, p, keys, document.querySelector('#slide-jugador .has-face .portrait img')?.src || null),
       dato: dato && {
         big: writtenText('#slide-dato .dt-big') || dato.big,
         unit: writtenText('#slide-dato .dt-unit') || dato.unit,
@@ -3949,6 +3955,78 @@
         follow: L('Sígueme para más fútbol', 'Follow for more football'),
       },
     };
+  }
+
+  // ─── RESPUESTA · el final de un Stitch ───
+  // Un vídeo corto (8-15 s) para pegar detrás de los 5 segundos de otro vídeo de TikTok (Stitch,
+  // «Pegar»): las escenas que se pidan, en ese orden, con el jugador, los números, el dato y la
+  // pregunta que contestan a ese vídeo. Lo pide ?respuesta=liga/id&guion={…} (tools/corto.mjs y
+  // la skill /stitch). El guion (todo opcional):
+  //   escenas   en orden, de RESPUESTA_ESCENAS (por defecto: jugador, dato, pregunta y marca)
+  //   jugador   su nombre o su id de ESPN (por defecto, el mejor del partido)
+  //   etiqueta  lo de encima de su nombre («Jugador del partido»; la primera palabra, en color)
+  //   numeros   hasta 3, [{ v: '94%', texto: 'Pases buenos' }] (por defecto, los de la slide)
+  //   dato      { grande: '12', texto: 'partidos sin perder… hasta hoy', quien, equipo }
+  //   pregunta  la del final («¿Quién para al PSG?»)
+  //   titular   el de la cinta del marcador
+  //   equipo    de qué equipo van los colores del dato y la pregunta (local, visitante o su nombre)
+  const RESPUESTA_ESCENAS = ['marcador', 'jugador', 'dato', 'polemica', 'posesion', 'estadisticas', 'tabla', 'pregunta', 'marca'];
+  function respuestaSide(m, q) {
+    const k = plain(q);
+    if (!k) return null;
+    if (['home', 'local'].includes(k)) return 'home';
+    if (['away', 'visitante'].includes(k)) return 'away';
+    return ['home', 'away'].find(s => [m[s].short, m[s].name, m[s].abbr].some(x => plain(x) === k))
+      || ['home', 'away'].find(s => [m[s].short, m[s].name].some(x => plain(x).includes(k))) || null;
+  }
+  // Por su id o su nombre: el nombre entero, el apellido o una parte que solo tenga uno
+  function respuestaPlayer(m, q) {
+    const all = [...m.home.players, ...m.away.players];
+    const k = plain(q);
+    if (!k) return null;
+    const hits = (test) => all.filter(test);
+    for (const found of [hits(p => p.id === String(q)), hits(p => plain(p.name) === k), hits(p => plain(surname(p)) === k), hits(p => plain(p.name).includes(k))]) {
+      if (found.length === 1) return found[0];
+    }
+    return null;
+  }
+  // Un guion que no vale: se dice en el aviso (no es un fallo del Studio)
+  const guionError = (msg) => Object.assign(new Error(msg), { guion: true });
+  function respuestaData(m, g = {}) {
+    const d = videoData(m);
+    const escenas = (Array.isArray(g.escenas) && g.escenas.length ? g.escenas : ['jugador', 'dato', 'pregunta', 'marca']).map(plain);
+    const wrong = escenas.find(x => !RESPUESTA_ESCENAS.includes(x));
+    if (wrong) throw guionError(`No hay escena «${wrong}» (son ${RESPUESTA_ESCENAS.join(', ')})`);
+    const side = g.equipo ? respuestaSide(m, g.equipo) : null;
+    if (g.equipo && !side) throw guionError(`«${g.equipo}» no juega este partido`);
+    if (g.jugador) {
+      const p = respuestaPlayer(m, g.jugador);
+      if (!p) throw guionError(`No encuentro a «${g.jugador}» en el partido`);
+      d.jugador = videoJugador(m, p, keyNumbers(m, p), afPhoto(m, p) || null);
+    }
+    if (d.jugador && Array.isArray(g.numeros) && g.numeros.length) {
+      d.jugador.stats = g.numeros.slice(0, 3).map(n => ({ v: String(n.v ?? ''), label: String(n.texto || ''), clean: false, rating: false }));
+    }
+    if (g.etiqueta) {
+      const [first, ...rest] = String(g.etiqueta).trim().split(/\s+/);
+      d.t = { ...d.t, player: first, ofMatch: rest.length ? ` ${rest.join(' ')}` : '' };
+    }
+    if (g.dato?.grande) {
+      const ds = (g.dato.equipo && respuestaSide(m, g.dato.equipo)) || side || d.dato?.side || 'home';
+      d.dato = { big: String(g.dato.grande), unit: String(g.dato.texto || ''), sentence: String(g.dato.texto || ''), who: String(g.dato.quien || ''), side: ds, style: teamStyle(m[ds]) };
+    }
+    if (g.pregunta) d.closing = { ...d.closing, question: String(g.pregunta) };
+    if (side) d.closing = { ...d.closing, side, style: teamStyle(m[side]) };
+    if (g.titular) d.headline = String(g.titular);
+    // Lo que no tiene datos se lo salta (y lo dice): sin escenas, no hay vídeo. (Sin tu logo, la
+    // marca no sale, y la firma va en la pregunta, como en el vídeo del partido.)
+    const has = { jugador: d.jugador, dato: d.dato, polemica: d.polemica, posesion: d.stats?.find(r => r.pct), estadisticas: d.stats?.length >= 3, tabla: d.table?.rows.length };
+    const names = { jugador: 'el jugador', dato: 'el dato', polemica: 'la polémica', posesion: 'la posesión', estadisticas: 'las estadísticas', tabla: 'la tabla' };
+    const lost = escenas.filter(x => x in has && !has[x]);
+    const kept = escenas.filter(x => !lost.includes(x));
+    const missing = lost.map(x => names[x]);
+    if (!kept.length) throw guionError(`Este partido no tiene ${listEs(missing)}`);
+    return { ...d, kind: 'respuesta', escenas: kept, missing, long: false, hook: g.titular ? { tag: '', text: String(g.titular) } : d.hook };
   }
 
   let videoUrl = null;
@@ -4032,7 +4110,8 @@
     musicStyle: musicStyle(),
   });
 
-  async function makeVideo() {
+  // guion: el de una respuesta (el final de un Stitch, ver respuestaData), sin voz ni apertura
+  async function makeVideo(guion = null) {
     const m = state.rendered;
     if (!m || videoBusy || !window.StudioVideo) return;
     const btn = document.getElementById('videoBtn');
@@ -4042,10 +4121,10 @@
     btn.classList.add('btn-loading');
     document.activeElement?.blur();
     try {
-      const opts = { ...videoOptions() };
-      const data = videoData(m);
-      if (withVoice()) label.textContent = 'Poniendo la voz…';
-      const voice = await videoVoice(data, opts.script);
+      const opts = { ...videoOptions(), ...(guion ? { intro: false } : {}) };
+      const data = guion ? respuestaData(m, guion) : videoData(m);
+      if (withVoice() && !guion) label.textContent = 'Poniendo la voz…';
+      const voice = guion ? { clips: null, why: '' } : await videoVoice(data, opts.script);
       // La voz y los subtítulos, juntos: el guion solo sale escrito si se dice
       opts.voiceClips = voice.clips;
       opts.captions = !!voice.clips;
@@ -4057,11 +4136,11 @@
         return;
       }
       resetVideo();
-      const base = `futbol-${stamp(m)}-${data.long ? 'largo' : 'short'}`;
+      const base = `futbol-${stamp(m)}-${guion ? 'respuesta' : data.long ? 'largo' : 'short'}`;
       videoUrl = URL.createObjectURL(out.blob);
       const preview = document.getElementById('videoPreview');
       // Que el preview no se quede en el primer fotograma: el marcador con la cinta.
-      preview.addEventListener('loadedmetadata', () => { preview.currentTime = 2.6 + (out.mix?.lead || 0); }, { once: true });
+      if (!guion) preview.addEventListener('loadedmetadata', () => { preview.currentTime = 2.6 + (out.mix?.lead || 0); }, { once: true });
       preview.src = videoUrl;
       const dl = document.getElementById('videoDlBtn');
       dl.href = videoUrl;
@@ -4079,12 +4158,14 @@
       const long = out.duration ? ` Dura ${Math.floor(out.duration / 60)}:${String(Math.round(out.duration % 60)).padStart(2, '0')}.` : '';
       document.getElementById('videoMeta').textContent = `${parts.length ? `Lleva ${listEs(parts)}.` : 'Sin sonido ni subtítulos.'}${data.long ? long : ''}`;
       document.getElementById('videoOut').dataset.voz = voice.clips ? 'si' : 'no';
+      document.getElementById('videoOut').dataset.escenas = (data.escenas || []).join(',');
       document.getElementById('videoOut').hidden = false;
       showVideoCaption();
-      if (voice.why) showToast(`Vídeo listo, sin voz ni subtítulos: ${voice.why}`, 'error');
+      if (data.missing?.length) showToast(`Vídeo listo, sin ${listEs(data.missing)}: este partido no tiene esos datos`, 'error');
+      else if (voice.why) showToast(`Vídeo listo, sin voz ni subtítulos: ${voice.why}`, 'error');
       else showToast(out.note || 'Vídeo listo · revísalo y descárgalo', out.note ? '' : 'success');
     } catch (e) {
-      console.error('Vídeo:', e);
+      if (!e.guion) console.error('Vídeo:', e);
       showToast(`No se pudo crear el vídeo: ${e.message}`, 'error');
     } finally {
       videoBusy = false;
@@ -6403,9 +6484,19 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
   // competición, busca el partido, genera el carrusel y crea el vídeo (lo que hace el robot). Con
   // &preparar=1 (el aviso al móvil cuando acaba un partido), el carrusel y te deja en «Crear vídeo».
   async function openFromLink(params) {
-    // ?onces= (los onces confirmados) y ?previa=: de un partido sin empezar
-    const kind = params.has('onces') ? 'onces' : params.has('previa') ? 'previa' : 'partido';
-    const previa = kind !== 'partido';
+    // ?onces= (los onces confirmados) y ?previa=: de un partido sin empezar. ?respuesta=, el final
+    // de un Stitch (con su &guion=, ver respuestaData)
+    const kind = ['onces', 'previa', 'respuesta'].find(k => params.has(k)) || 'partido';
+    const previa = kind === 'onces' || kind === 'previa';
+    let guion = null;
+    if (kind === 'respuesta') {
+      try {
+        guion = JSON.parse(params.get('guion') || '{}');
+      } catch (e) {
+        showToast(`No se pudo crear el vídeo: el guion no es JSON (${e.message})`, 'error');
+        return true;
+      }
+    }
     const [league, id] = (params.get(kind) || '').split('/');
     if (!COMP[league] || !/^\d+$/.test(id || '')) return false;
     // &voz=si o &voz=no (el botón del otro tipo, en el aviso): esta vez, con o sin las dos cosas (no se guarda)
@@ -6437,6 +6528,10 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
     } else if (previa) {
       selectGame(id);
       await makePrevia();
+    } else if (guion) {
+      selectGame(id);
+      await generateCarousel();
+      if (state.rendered?.id === id) await makeVideo(guion);
     } else {
       await generateAll(id, { video: params.get('preparar') !== '1' });
     }
@@ -6747,7 +6842,7 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
     updateShareBtn();
 
     // El vídeo: guion, voz, volumen
-    document.getElementById('videoBtn').addEventListener('click', makeVideo);
+    document.getElementById('videoBtn').addEventListener('click', () => makeVideo());
     document.getElementById('videoShareBtn').addEventListener('click', shareVideo);
     document.getElementById('previaBtn').addEventListener('click', () => makePrevia());
     document.getElementById('oncesBtn').addEventListener('click', () => makeOnces());
@@ -6794,7 +6889,7 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
 
     const params = new URLSearchParams(location.search);
     if (params.has('video')) openRobotVideo(params);
-    const link = params.has('jornada') ? openJornadaLink : params.has('partido') || params.has('previa') || params.has('onces') ? openFromLink : null;
+    const link = params.has('jornada') ? openJornadaLink : ['partido', 'previa', 'onces', 'respuesta'].some(k => params.has(k)) ? openFromLink : null;
     if (link) {
       link(params).then(done => { if (!done) { loadGames(today); restoreDraft(); } });
     } else {
