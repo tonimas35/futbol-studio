@@ -193,7 +193,7 @@ try {
   await page.fill('#signInput', '@toni_futbol');
   await generate(page, '401915414');
   const names = await slideNames(page);
-  check(names.join(',') === 'Portada,El dato,Minuto a minuto,Estadísticas,Mapa de tiros,Los onces,Jugador del partido,Clasificación,Cierre', `9 slides: ${names.join(', ')}`);
+  check(names.join(',') === 'Portada,Los onces,Mapa de tiros,Jugador del partido,Clasificación,Minuto a minuto,Estadísticas,Cierre', `8 slides: ${names.join(', ')}`);
   check(await page.textContent('#slide-portada h1') === 'Remontada del Real Madrid', `titular: ${await page.textContent('#slide-portada h1')}`);
   const portada = await page.$$eval('#slide-portada .scorers', (els) => els.map((e) => [...e.children].map((d) => d.textContent).join(' · ')));
   check(portada[0] === "de Roon 20' · Malen 51', 57'" && /Mbappé 25'.*Rüdiger 90'/.test(portada[1]), `goleadores de cada equipo: ${portada.join(' / ')}`);
@@ -221,21 +221,14 @@ try {
   const night = await sheets();
   await page.click('[data-theme="claro"]');
   const back = await sheets();
-  check(day.night === 0 && day.paper === 3 && night.night === 3 && night.slides === 9 && back.night === 0,
+  check(day.night === 0 && day.paper === 3 && night.night === 3 && night.slides === 8 && back.night === 0,
     `estilo claro por defecto y, al elegir oscuro, las slides de datos en oscuro (${night.night}/3)`);
   const tease = await page.$$eval('#slide-portada .tease > span', (s) => s.map((x) => x.textContent));
   check(tease[0] === 'El dato' && tease[1] === '14 partidos sin perder… hasta hoy', `y abajo, para deslizar, el dato a medias (${tease.join(' · ')})`);
 
-  // El dato: del historial de ESPN de los dos equipos (la Roma venía de 14 sin perder)
-  const dato = await page.evaluate(() => ({
-    big: document.querySelector('#slide-dato .dt-big')?.textContent,
-    unit: document.querySelector('#slide-dato .dt-unit')?.textContent,
-    line: document.querySelector('#slide-dato .dt-line')?.textContent,
-    more: [...document.querySelectorAll('#slide-dato .dt-more div')].map((d) => d.textContent),
-  }));
-  check(dato.big === '14' && dato.unit === 'partidos sin perder… hasta hoy' && dato.line === 'Se acaba la racha de la Roma: 14 partidos sin perder en todas las competiciones.',
-    `el dato: ${dato.big} · ${dato.unit} · ${dato.line}`);
-  check(dato.more.includes('El Real Madrid gana sus últimos 5 partidos ante la Roma.'), `y los otros datos (${dato.more.join(' · ')})`);
+  // El dato (del historial de ESPN: la Roma venía de 14 sin perder) ya no tiene slide: va en la
+  // descripción (arriba), en el pie de foto y en el vídeo
+  check(!(await page.$('#slide-dato')), 'el dato, sin slide propia');
 
   // Minuto a minuto: 7 goles con su marcador, las amarillas y los cambios en pequeño, nada
   // pisado (ni entre ellos ni con las marcas) y cada uno en su parte (nada de la segunda antes
@@ -277,7 +270,7 @@ try {
 
   // La firma, en todas las slides
   const signs = await page.$$eval('.slide .fc-sign', (s) => s.map((x) => x.textContent));
-  check(signs.length === 9 && signs.every((t) => t === '@toni_futbol'), `la firma sale en las 9 slides (${signs.length})`);
+  check(signs.length === 8 && signs.every((t) => t === '@toni_futbol'), `la firma sale en las 8 slides (${signs.length})`);
 
   // Jugador del partido: se puede elegir otro
   const pick = await page.$eval('[data-slide-id="jugador"] .slide-pick', (s) => [...s.options].map((o) => [o.value, o.textContent]));
@@ -307,13 +300,13 @@ try {
 
   // ── Descargas ──
   const [one] = await Promise.all([page.waitForEvent('download'), page.click('[data-slide-id="tiros"] .slide-dl-btn')]);
-  check(one.suggestedFilename() === 'futbol-roma-rma-2026-10-14-05-tiros.png', `PNG suelta: ${one.suggestedFilename()}`);
+  check(one.suggestedFilename() === 'futbol-roma-rma-2026-10-14-03-tiros.png', `PNG suelta: ${one.suggestedFilename()}`);
   const dir = mkdtempSync(join(tmpdir(), 'fc-studio-'));
   const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 120000 }), page.click('#downloadBtn')]);
   const zipPath = join(dir, dl.suggestedFilename());
   await dl.saveAs(zipPath);
   const entries = JSON.parse(execFileSync(PY, ['-c', 'import json,sys,zipfile; z=zipfile.ZipFile(sys.argv[1]); print(json.dumps([z.namelist(), z.read("caption.txt").decode()]))', zipPath]).toString());
-  check(dl.suggestedFilename() === 'futbol-roma-rma-2026-10-14.zip' && entries[0].filter((n) => n.endsWith('.png')).length === 9, `ZIP con 9 PNG (${dl.suggestedFilename()})`);
+  check(dl.suggestedFilename() === 'futbol-roma-rma-2026-10-14.zip' && entries[0].filter((n) => n.endsWith('.png')).length === 8, `ZIP con 8 PNG (${dl.suggestedFilename()})`);
   check(/ROMA 3-4 REAL MADRID/.test(entries[1]) && /#ChampionsLeague/.test(entries[1]) && /📊 Se acaba la racha de la Roma/.test(entries[1]), 'con el pie de foto (y el dato)');
   const [dlv] = await Promise.all([page.waitForEvent('download', { timeout: 120000 }), page.click('#downloadVerticalBtn')]);
   const vPath = join(dir, dlv.suggestedFilename());
@@ -325,16 +318,16 @@ try {
   // (la altura de la primera foto y la de la última que se ha mandado)
   const sharedHeights = () => page.evaluate(async () => Promise.all([0, window.__sharedFiles.length - 1].map(async (i) => (await createImageBitmap(window.__sharedFiles[i])).height)));
   await page.click('#shareCarouselBtn');
-  await page.waitForFunction(() => document.querySelector('#shareCarouselBtn .label').textContent === 'Compartir 9 fotos', null, { timeout: 120000 });
+  await page.waitForFunction(() => document.querySelector('#shareCarouselBtn .label').textContent === 'Compartir 8 fotos', null, { timeout: 120000 });
   await page.click('#shareCarouselBtn');
-  check((await page.evaluate(() => window.__shared))[0] === 9 && (await sharedHeights()).join() === '1350,1350', 'compartir 4:5 manda las 9 imágenes en 1080×1350');
+  check((await page.evaluate(() => window.__shared))[0] === 8 && (await sharedHeights()).join() === '1350,1350', 'compartir 4:5 manda las 8 imágenes en 1080×1350');
   check(await page.textContent('#shareVerticalBtn .label') === 'Compartir 9:16 · TikTok', 'y el de 9:16 se prepara aparte');
   await page.click('#shareVerticalBtn');
-  await page.waitForFunction(() => document.querySelector('#shareVerticalBtn .label').textContent === 'Compartir 9 fotos', null, { timeout: 120000 });
+  await page.waitForFunction(() => document.querySelector('#shareVerticalBtn .label').textContent === 'Compartir 8 fotos', null, { timeout: 120000 });
   await page.click('#shareVerticalBtn');
-  check((await page.evaluate(() => window.__shared))[1] === 9 && (await sharedHeights()).join() === '1920,1920'
+  check((await page.evaluate(() => window.__shared))[1] === 8 && (await sharedHeights()).join() === '1920,1920'
     && (await page.evaluate(() => navigator.clipboard.readText())) === await page.inputValue('#captionText'),
-    'compartir 9:16 · TikTok manda las 9 en 1080×1920, con la descripción copiada');
+    'compartir 9:16 · TikTok manda las 8 en 1080×1920, con la descripción copiada');
   await page.$eval('[data-slide-id="portada"] .slide-reset-btn', (b) => b.click()); // (solo se ve si está retocada)
   check(await page.textContent('#shareVerticalBtn .label') === 'Compartir 9:16 · TikTok' && await page.textContent('#shareCarouselBtn .label') === 'Compartir 4:5 · Instagram',
     'al retocar una slide, se vuelven a preparar');
@@ -1301,7 +1294,6 @@ try {
       q: document.querySelector('#slide-cierre .q')?.textContent,
       sub: document.querySelector('#slide-cierre .sub')?.textContent,
       script: document.querySelector('#scriptLines textarea[data-scene="score"]')?.value,
-      dato: document.querySelector('#slide-dato .dt-line')?.textContent,
       said: document.querySelector('#scriptLines textarea[data-scene="dato"]')?.value,
       on: document.querySelector('.lang-opt[aria-checked="true"]')?.dataset.lang,
     }));
@@ -1311,7 +1303,7 @@ try {
       `minuto a minuto y estadísticas en inglés (${e1.marks.join(' | ')} · ${e1.labels.slice(0, 3).join(', ')})`);
     check(e1.q === 'Who was your player of the match?' && e1.sub === 'Let me know in the comments', `el cierre en inglés (${e1.q})`);
     check(e1.script === 'Real Madrid complete the comeback: 4-3 against Roma.', `y el guion del vídeo (${e1.script})`);
-    check(e1.dato === "Roma's 14-game unbeaten run in all competitions is over." && e1.said === "Roma's 14-game unbeaten run is over.", `y el dato (${e1.dato} · ${e1.said})`);
+    check(e1.said === "Roma's 14-game unbeaten run is over.", `y el dato (${e1.said})`);
     check((await slideNames(p9))[0] === 'Portada' && /Generar/.test(await p9.textContent('#generateBtn')), 'la interfaz sigue en español');
     await p9.reload();
     await p9.waitForSelector('#slide-portada', { timeout: 10000 }).catch(() => {});
@@ -1341,7 +1333,7 @@ try {
     await p9.click('.lang-opt[data-lang="es"]');
     await p9.waitForFunction(() => /^Así fue/.test(document.querySelector('#slide-j-portada .jt-title')?.textContent || ''), null, { timeout: 30000 }).catch(() => {});
     check(/^Así fue/.test(await p9.textContent('#slide-j-portada .jt-title')), 'y al volver al español, la jornada se rehace en español');
-    check(await p9.textContent('#slide-dato .dt-big').catch(() => '') === '14' && past.length === 0,
+    check(/14 partidos sin perder/.test(await p9.inputValue('#scriptLines textarea[data-scene="dato"]').catch(() => '')) && past.length === 0,
       `y el partido, con el dato y sin volver a pedir a ESPN las temporadas acabadas (${past.length} pedidas)`);
     await c9.close();
   }
@@ -1372,7 +1364,7 @@ try {
     await pickDate(pa, '2026-10-14');
     // Sin clave, ni se pide: sale sin notas
     await generate(pa, '401915414');
-    check(asked.length === 0 && !(await slideNames(pa)).includes('Las notas'), `sin tu clave de API-Football, sin notas y sin pedir nada (${asked.length} peticiones)`);
+    check(asked.length === 0 && !(await pa.$('#slide-portada .pn')) && !(await pa.$('#slide-jugador .lid-box')), `sin tu clave de API-Football, sin notas y sin pedir nada (${asked.length} peticiones)`);
     check(await pa.$eval('#afKeyInput', (i) => i.type) === 'password', 'la clave se escribe oculta');
     await pa.fill('#afKeyInput', ' clave-de-prueba ');
     await pa.reload();
@@ -1382,31 +1374,31 @@ try {
     await pickDate(pa, '2026-10-14');
     await generate(pa, '401915414');
     const an = await slideNames(pa);
-    check(an.indexOf('Las notas') === an.indexOf('Jugador del partido') + 1 && an.indexOf('Líderes del partido') === an.indexOf('Las notas') + 1,
-      `API-Football: «Las notas» y «Líderes del partido» tras el jugador del partido (${an.join(', ')})`);
+    check(an.join(',') === 'Portada,Los onces,Mapa de tiros,Jugador del partido,Clasificación,Minuto a minuto,Estadísticas,Cierre',
+      `API-Football: las notas van en la portada y los líderes, con el jugador del partido (${an.join(', ')})`);
     const notas = await pa.evaluate(() => ({
-      rows: [...document.querySelectorAll('#slide-notas .col')].map((c) => c.querySelectorAll('.row').length),
-      first: [...document.querySelectorAll('#slide-notas .col')].map((c) => `${c.querySelector('.row .nm')?.textContent} ${c.querySelector('.row .rt')?.textContent}`),
-      mvp: document.querySelector('#slide-notas .row.mvp .nm')?.textContent,
-      faces: [...document.querySelectorAll('#slide-notas .face img')].filter((i) => i.src.startsWith('https://media.api-sports.io/')).length,
-      gollini: ((f) => (f && !f.querySelector('img') ? f.textContent : 'con foto'))([...document.querySelectorAll('#slide-notas .row')].find((r) => r.querySelector('.nm').textContent === 'Gollini')?.querySelector('.face')),
+      rows: [...document.querySelectorAll('#slide-portada .pn .col')].map((c) => c.querySelectorAll('.row').length),
+      first: [...document.querySelectorAll('#slide-portada .pn .col')].map((c) => `${c.querySelector('.row .nm')?.textContent} ${c.querySelector('.row .rt')?.textContent}`),
+      mvp: document.querySelector('#slide-portada .row.mvp .nm')?.textContent,
+      faces: [...document.querySelectorAll('#slide-portada .pn .face img')].filter((i) => i.src.startsWith('https://media.api-sports.io/')).length,
+      h1: document.querySelector('#slide-portada .head h1')?.textContent,
+      scorers: [...document.querySelectorAll('#slide-portada .scorers')].map((e) => e.children.length),
     }));
-    check(notas.rows.join('-') === '15-15' && notas.first.join(' · ') === 'Malen 8,9 · Mbappé 8,1' && notas.mvp === 'Malen' && notas.faces === 29,
-      `la nota y la cara de cada uno, de mejor a peor (${notas.first.join(' · ')} · ${notas.faces} caras)`);
-    check(notas.gollini === '95', `sin foto (la silueta de API-Football), el dorsal (${notas.gollini})`);
+    check(notas.rows.join('-') === '11-11' && notas.first.join(' · ') === 'Malen 8,9 · Mbappé 8,1' && notas.mvp === 'Malen' && notas.faces === 22,
+      `la portada, con la nota y la cara de los 11 mejores de cada uno, de mejor a peor (${notas.first.join(' · ')} · ${notas.faces} caras)`);
+    check(notas.h1 === 'Remontada del Real Madrid' && notas.scorers.join('-') === '2-4', `y arriba, el resultado con el titular y todos los goleadores (${notas.h1} · ${notas.scorers.join('-')})`);
     const top = await pa.evaluate(() => ({
       name: document.querySelector('#slide-jugador .bar span')?.textContent,
       stat: document.querySelector('#slide-jugador .st')?.textContent.replace(/\s+/g, ' ').trim(),
     }));
     check(top.name === 'Donyell Malen' && top.stat === '8,9 Nota', `el jugador del partido, el de la nota más alta (${top.name} · ${top.stat})`);
     const lid = await pa.evaluate(() => ({
-      rows: [...document.querySelectorAll('#slide-lideres .row')].map((r) => `${r.querySelector('.lb').textContent} ${r.querySelector('.nm').textContent.trim()} ${r.querySelector('.v').textContent}`),
+      rows: [...document.querySelectorAll('#slide-jugador .lid-box .row')].map((r) => `${r.querySelector('.lb').textContent} ${r.querySelector('.nm').textContent.trim()} ${r.querySelector('.v').textContent}`),
       onces: [...document.querySelectorAll('#slide-onces .dot.has-face .face')].filter((i) => i.src.startsWith('https://media.api-sports.io/')).length,
-      saves: [...document.querySelectorAll('#slide-lideres .row')].find((r) => /Paradas/.test(r.textContent))?.querySelector('.face img'),
     }));
-    check(lid.rows.length === 8 && lid.rows[0] === 'Más pases Bellingham 78' && lid.rows.includes('Paradas Gollini 5'),
-      `«Líderes del partido»: el mejor en cada cosa (${lid.rows.slice(0, 3).join(' · ')}…)`);
-    check(lid.onces === 21 && lid.saves === null, `y en «Los onces», la cara de los titulares que la tienen (${lid.onces})`);
+    check(lid.rows.length === 5 && lid.rows[0] === 'Más pases Bellingham 78',
+      `y debajo del jugador del partido, los líderes: el mejor en cada cosa (${lid.rows.slice(0, 3).join(' · ')}…)`);
+    check(lid.onces === 21, `y en «Los onces», la cara de los titulares que la tienen (sin la silueta de Gollini: ${lid.onces})`);
     // Sin foto grande (Mbappé no la tiene en ESPN): su cara en un retrato
     const mbappe = await pa.$eval('[data-slide-id="jugador"] .slide-pick', (s) => [...s.options].find((o) => /Mbappé/.test(o.textContent))?.value);
     await pa.selectOption('[data-slide-id="jugador"] .slide-pick', mbappe);
@@ -1423,13 +1415,13 @@ try {
     check(asked.join(',') === 'fixtures:clave-de-prueba,fixtures/players:clave-de-prueba', `con 2 peticiones directas a API-Football y tu clave (${asked.join(', ')})`);
     // Al rehacer el mismo partido, lo guardado: ninguna petición más
     await generate(pa, '401915414');
-    check(asked.length === 2 && (await slideNames(pa)).includes('Las notas'), `y al rehacerlo, sin gastar más peticiones (${asked.length})`);
+    check(asked.length === 2 && !!(await pa.$('#slide-portada .pn')), `y al rehacerlo, sin gastar más peticiones (${asked.length})`);
     // Si API-Football no deja (el plan, el límite del día…), lo dice y el carrusel sale igual (con
     // otra clave, que vuelve a pedirlo todo)
     await pa.fill('#afKeyInput', 'otra-clave');
     await ca.route('https://v3.football.api-sports.io/**', (r) => r.fulfill(json('{"errors":{"plan":"Free plans do not have access to this season, try from 2021 to 2023."},"response":[]}')));
     await generate(pa, '401915415');
-    check(/sin las notas · API-Football: Free plans do not have access/.test(await pa.textContent('#toast')) && !(await slideNames(pa)).includes('Las notas'),
+    check(/sin las notas · API-Football: Free plans do not have access/.test(await pa.textContent('#toast')) && !(await pa.$('#slide-portada .pn')),
       `si el plan no deja, lo avisa y sale sin notas (${await pa.textContent('#toast')})`);
     // Con la clave mal copiada, API-Football contesta 403 sin cabeceras CORS y el navegador solo ve un
     // fallo de red (aquí, la petición cortada: la respuesta servida por la prueba se saltaría el CORS)
@@ -1494,7 +1486,7 @@ try {
       onces: [...document.querySelectorAll('#slide-onces .dot.has-face .face')].map((i) => i.getAttribute('src')).sort(),
       button: !document.getElementById('facesField').hidden,
     }));
-    check(lf.name === 'Kylian Mbappé' && lf.face.endsWith('/caras/1003.png') && !(await slideNames(pf)).includes('Las notas'),
+    check(lf.name === 'Kylian Mbappé' && lf.face.endsWith('/caras/1003.png') && !(await pf.$('#slide-portada .pn')),
       `sin clave (el robot), el jugador del partido con su cara guardada en el repo y sin notas (${lf.name} · ${lf.face.split('/').slice(-2).join('/')})`);
     check(lf.onces.join(' ') === 'caras/1001.png caras/1002.png caras/1003.png caras/1004.png caras/1007.png' && asked.length === 0 && !lf.button,
       `y en «Los onces», por el apellido (o el nombre y un apellido de más; el dorsal solo no basta), sin pedir nada a API-Football (${lf.onces.length} caras)`);
