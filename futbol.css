@@ -1184,44 +1184,68 @@ body.zoom-open { overflow: hidden; }
 .fc-tabla .row:not(.head):not(.me):nth-child(odd) { background: rgba(0, 0, 0, 0.035); }
 .fc-tabla .gap { height: 40px; text-align: center; color: #888; font-family: 'Anton', sans-serif; font-size: 34px; line-height: 40px; letter-spacing: 0.3em; }
 
-/* ─── LÍDERES DEL PARTIDO · el mejor en cada cosa, con su cara y el número en grande ─── */
-.fc-lideres .wm { position: absolute; right: -200px; top: 260px; width: 900px; height: 900px; opacity: 0.07; }
-.fc-lideres .title { position: absolute; left: 64px; top: 56px; color: #fff; font-family: 'Anton', sans-serif; font-size: 104px; line-height: 1.02; text-transform: uppercase; }
-.fc-lideres .rows { position: absolute; left: 64px; right: 64px; top: 320px; z-index: 5; }
-.fc-lideres .row { display: flex; align-items: center; gap: 22px; height: 108px; border-bottom: 2px solid rgba(255, 255, 255, 0.1); }
-.fc-lideres .face { position: relative; flex: none; display: grid; place-items: center; width: 86px; height: 86px; overflow: hidden; border: 3px solid var(--t-acc); border-radius: 50%; background: var(--t-bg); color: var(--t-fg); font-family: 'Anton', sans-serif; font-size: 34px; }
-.fc-lideres .face img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #dcd8cd; }
-.fc-lideres .who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-.fc-lideres .lb { color: #c8f53c; font-weight: 800; font-size: 28px; letter-spacing: 0.06em; text-transform: uppercase; }
-.fc-lideres .nm { display: flex; align-items: center; gap: 12px; overflow: hidden; white-space: nowrap; color: #fff; font-family: 'Anton', sans-serif; font-size: 48px; line-height: 1.05; text-transform: uppercase; }
-.fc-lideres .nm .lg { flex: none; width: 40px; height: 40px; }
-.fc-lideres .v { flex: none; color: #fff; font-family: 'Anton', sans-serif; font-size: 92px; line-height: 1; }
-.fc-lideres .src { position: absolute; right: 64px; bottom: 96px; color: rgba(255, 255, 255, 0.45); font-weight: 700; font-size: 20px; letter-spacing: 0.04em; text-transform: uppercase; }
-.fc-lideres .fc-foot { color: #fff; }
+/* ─── PORTADA CON LAS NOTAS · el marcador arriba, el titular en una franja y, debajo, la nota de
+   cada uno de los que han jugado, con su cara, cada equipo en su columna ─── */
+.fc-portada .pn { position: absolute; inset: 0; }
+.fc-portada .pn .half { bottom: auto; height: 620px; }
+.fc-portada .pn .glow { top: 66px; width: 250px; height: 250px; margin-left: -125px; }
+.fc-portada .pn .crest { top: 124px; width: 124px; height: 124px; margin-left: -62px; }
+.fc-portada .pn .pens { top: 200px; font-size: 28px; }
+.fc-portada .pn .n { top: 244px; font-size: 200px; }
+.fc-portada .pn .seam { top: 326px; }
+.fc-portada .pn .name { top: 450px; }
+.fc-portada .pn .scorers { top: 498px; line-height: 1.18; }
+.fc-portada .pn .low { position: absolute; left: 0; right: 0; top: 620px; bottom: 0; z-index: 6; display: flex; flex-direction: column; padding-bottom: 116px; background: #ece9e2; color: #111; }
+.fc-portada .pn .head { position: static; flex: none; padding: 20px 56px 12px; background: #111; color: #fff; }
+.fc-portada .pn .head h1 { line-height: 1.04; }
+.fc-portada .pn .cols { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 28px; padding: 12px 44px 0; }
+.fc-portada .pn .col { display: flex; flex-direction: column; min-height: 0; }
+.fc-portada .pn .team { flex: none; display: flex; align-items: center; gap: 10px; height: 46px; font-weight: 800; font-size: 28px; letter-spacing: 0.04em; text-transform: uppercase; }
+.fc-portada .pn .team .lg { width: 36px; height: 36px; }
+.fc-portada .pn .row { flex: 1; min-height: 0; display: flex; align-items: center; gap: 10px; padding: 0 8px; border-bottom: 1px solid rgba(17, 17, 17, 0.1); }
+.fc-portada .pn .row.mvp { border-bottom-color: transparent; border-radius: 8px; background: rgba(200, 245, 60, 0.55); }
+.fc-portada .pn .face { position: relative; flex: none; display: grid; place-items: center; width: 38px; height: 38px; overflow: hidden; border-radius: 50%; background: var(--t-bg); color: var(--t-fg); font-family: 'Anton', sans-serif; font-size: 18px; }
+.fc-portada .pn .face img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #dcd8cd; }
+.fc-portada .pn .nm { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 800; font-size: 25px; letter-spacing: 0.02em; text-transform: uppercase; }
+.fc-portada .pn .rt { flex: none; min-width: 58px; padding: 3px 6px 1px; border-radius: 7px; text-align: center; font-family: 'Anton', sans-serif; font-size: 26px; line-height: 1.1; }
+.fc-portada .pn .src { position: absolute; right: 64px; bottom: 90px; z-index: 7; color: #777; font-weight: 700; font-size: 18px; letter-spacing: 0.04em; text-transform: uppercase; }
+.fc-portada .pn .fc-foot { z-index: 7; color: #111; }
+.fc-portada .pn.night .low { background: #10141b; color: #fff; }
+.fc-portada .pn.night .row { border-bottom-color: rgba(255, 255, 255, 0.08); }
+.fc-portada .pn.night .row.mvp { border: 2px solid rgba(200, 245, 60, 0.75); background: rgba(200, 245, 60, 0.14); }
+.fc-portada .pn.night .row.mvp .nm { color: #c8f53c; }
+.fc-portada .pn.night .src { color: rgba(255, 255, 255, 0.4); }
+.fc-portada .pn.night .fc-foot { color: #fff; }
 
-/* ─── LAS NOTAS · la nota de API-Football de cada jugador, con su cara, cada equipo en su columna ─── */
-.fc-notas .title { position: absolute; left: 64px; top: 56px; font-family: 'Anton', sans-serif; font-size: 112px; line-height: 1.06; text-transform: uppercase; }
-.fc-notas .cols { position: absolute; left: 48px; right: 48px; top: 206px; display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
-.fc-notas .team { display: flex; align-items: center; gap: 12px; height: 60px; margin-bottom: 6px; font-weight: 800; font-size: 32px; letter-spacing: 0.04em; text-transform: uppercase; }
-.fc-notas .team .lg { width: 48px; height: 48px; }
-.fc-notas .row { display: flex; align-items: center; gap: 12px; height: 58px; padding: 0 8px; border-bottom: 1px solid rgba(17, 17, 17, 0.1); }
-.fc-notas .row.mvp { border-bottom-color: transparent; border-radius: 10px; background: rgba(200, 245, 60, 0.55); }
-.fc-notas .face { position: relative; flex: none; display: grid; place-items: center; width: 46px; height: 46px; overflow: hidden; border-radius: 50%; background: var(--t-bg); color: var(--t-fg); font-family: 'Anton', sans-serif; font-size: 22px; }
-.fc-notas .face img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #dcd8cd; }
-.fc-notas .nm { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: #111; font-weight: 800; font-size: 28px; letter-spacing: 0.02em; text-transform: uppercase; }
-.fc-notas .rt { flex: none; min-width: 66px; padding: 5px 8px 2px; border-radius: 8px; text-align: center; font-family: 'Anton', sans-serif; font-size: 30px; line-height: 1.1; }
-.fc-notas .src { position: absolute; right: 64px; bottom: 96px; color: #777; font-weight: 700; font-size: 20px; letter-spacing: 0.04em; text-transform: uppercase; }
-
-/* ─── EL DATO · el número grande, lo que significa, la frase entera y los otros datos ─── */
-.fc-dato .wm { position: absolute; right: -170px; top: 150px; width: 820px; height: 820px; opacity: 0.1; }
-.fc-dato .dt-body { position: absolute; left: 64px; right: 64px; top: 150px; bottom: 130px; z-index: 5; display: flex; flex-direction: column; }
-.fc-dato .dt-who { font-weight: 800; font-size: 50px; letter-spacing: 0.04em; text-transform: uppercase; }
-.fc-dato .dt-big { color: var(--t-hl); font-family: 'Anton', sans-serif; line-height: 0.95; }
-.fc-dato .dt-unit { margin-top: 14px; font-family: 'Anton', sans-serif; font-size: 88px; line-height: 1.04; text-transform: uppercase; }
-.fc-dato .dt-line { margin-top: 40px; font-weight: 700; font-size: 56px; line-height: 1.16; }
-.fc-dato .dt-more { margin-top: auto; padding-top: 28px; border-top: 2px solid var(--t-line); font-weight: 700; font-size: 36px; line-height: 1.2; }
-.fc-dato .dt-more div { position: relative; margin-top: 16px; padding-left: 36px; }
-.fc-dato .dt-more div::before { content: ''; position: absolute; left: 0; top: 12px; width: 18px; height: 18px; background: var(--t-acc); }
+/* ─── JUGADOR DEL PARTIDO CON LOS LÍDERES · él arriba, más pequeño, y debajo el mejor en cada
+   cosa (más pases, regates, duelos ganados…), con su cara y el número ─── */
+.fc-jugador .lid .wm { top: 0; right: -120px; width: 640px; height: 640px; }
+.fc-jugador .lid .bar { bottom: 680px; }
+.fc-jugador .lid .bar span { font-size: 50px; }
+.fc-jugador .lid .stats { top: 128px; }
+.fc-jugador .lid .st { width: 400px; padding: 8px 0 12px; }
+.fc-jugador .lid .st .fc-chip { margin-top: 6px; }
+.fc-jugador .lid .photo { right: -260px; bottom: 610px; width: 900px; }
+.fc-jugador .lid .photo.blank { right: 0; bottom: 666px; width: 520px; height: 560px; }
+.fc-jugador .lid .ph-photo { bottom: 760px; width: 340px; font-size: 28px; }
+.fc-jugador .lid .portrait { top: 140px; right: 80px; width: 400px; height: 400px; }
+.fc-jugador .lid .portrait .badge { width: 112px; height: 112px; }
+.fc-jugador .lid .portrait .badge img { width: 72px; height: 72px; }
+.fc-jugador .lid .dorsal { right: -20px; top: 40px; bottom: auto; font-size: 620px; }
+.fc-jugador .lid .fade, .fc-jugador .lid .fc-tape, .fc-jugador .lid .extra { display: none; }
+.fc-jugador .lid .fc-foot { left: 64px; }
+.fc-jugador .lid-box { position: absolute; left: 44px; right: 44px; top: 684px; z-index: 7; padding: 16px 28px 6px; background: rgba(8, 10, 14, 0.88); color: #fff; }
+.fc-jugador .lid-title { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 2px; color: #c8f53c; font-weight: 800; font-size: 30px; letter-spacing: 0.06em; text-transform: uppercase; }
+.fc-jugador .lid-title span { color: rgba(255, 255, 255, 0.4); font-size: 18px; letter-spacing: 0.04em; }
+.fc-jugador .lid-box .row { display: flex; align-items: center; gap: 20px; height: 92px; border-bottom: 2px solid rgba(255, 255, 255, 0.1); }
+.fc-jugador .lid-box .row:last-child { border-bottom: none; }
+.fc-jugador .lid-box .face { position: relative; flex: none; display: grid; place-items: center; width: 70px; height: 70px; overflow: hidden; border: 3px solid var(--t-acc); border-radius: 50%; background: var(--t-bg); color: var(--t-fg); font-family: 'Anton', sans-serif; font-size: 28px; }
+.fc-jugador .lid-box .face img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #dcd8cd; }
+.fc-jugador .lid-box .who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.fc-jugador .lid-box .lb { color: #c8f53c; font-weight: 800; font-size: 24px; letter-spacing: 0.06em; text-transform: uppercase; }
+.fc-jugador .lid-box .nm { display: flex; align-items: center; gap: 10px; overflow: hidden; white-space: nowrap; font-family: 'Anton', sans-serif; font-size: 42px; line-height: 1.05; text-transform: uppercase; }
+.fc-jugador .lid-box .nm .lg { flex: none; width: 34px; height: 34px; }
+.fc-jugador .lid-box .v { flex: none; font-family: 'Anton', sans-serif; font-size: 76px; line-height: 1; }
 
 /* ─── 8 · CIERRE · la pregunta para los comentarios y tu firma ─── */
 .fc-cierre .photo { position: absolute; right: -380px; bottom: -40px; z-index: 1; width: 1300px; opacity: 0.3; }
@@ -1339,11 +1363,6 @@ body.zoom-open { overflow: hidden; }
 .fc-tabla .night .row.head { color: rgba(255, 255, 255, 0.5); }
 .fc-tabla .night .row:not(.head):not(.me):nth-child(odd) { background: rgba(255, 255, 255, 0.035); }
 .fc-tabla .night .gap { color: rgba(255, 255, 255, 0.4); }
-.fc-notas .night .row { border-bottom-color: rgba(255, 255, 255, 0.08); }
-.fc-notas .night .row.mvp { border: 2px solid rgba(200, 245, 60, 0.75); background: rgba(200, 245, 60, 0.14); }
-.fc-notas .night .row.mvp .nm { color: #c8f53c; }
-.fc-notas .night .nm { color: #fff; }
-.fc-notas .night .src { color: rgba(255, 255, 255, 0.4); }
 .fc-jresultados .night .jr-sub { color: rgba(255, 255, 255, 0.55); }
 .fc-jresultados .night .jr-row { border-bottom-color: rgba(255, 255, 255, 0.08); }
 .fc-jresultados .night .jr-team.lost .nm { color: rgba(255, 255, 255, 0.45); }

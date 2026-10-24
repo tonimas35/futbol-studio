@@ -2118,6 +2118,7 @@
   }
 
   function tplPortada(m) {
+    if (withNotas(m)) return tplPortadaNotas(m);
     const { winner } = sides(m);
     const half = (team, side) => {
       const lines = scorerLines(m, side);
@@ -2151,6 +2152,44 @@
       <div class="head${tease ? ' up' : ''}"><h1>${esc(headline(m))}</h1></div>
       ${tease ? `<div class="tease"><span class="chip">${esc(tease.chip)}</span><span class="tx">${esc(tease.text)}</span><span class="go"></span></div>` : ''}
       ${foot(m)}${grain}`;
+  }
+
+  // Con las notas (API-Football, en la web): el marcador arriba, el titular en una franja y, debajo,
+  // la nota de los que han jugado de cada equipo, de mejor a peor, con su cara
+  function tplPortadaNotas(m) {
+    const { winner } = sides(m);
+    const half = (team, side) => {
+      const lines = scorerLines(m, side);
+      return `
+        <div class="half ${side === 'home' ? 'l' : 'r'}${winner === side ? ' won' : ''}" style="${styleVars(teamStyle(team))}">
+          ${artTag(teamArt(teamStyle(team), { w: 540, lx: 0.5, ly: 0.3, ...halfArt(side) }))}
+          <div class="glow"></div>
+          ${logoTag(team, 'crest')}
+          ${team.shootout != null && pensWon(m) ? `<div class="pens">${team.shootout} ${L('en los penaltis', 'on penalties')}</div>` : ''}
+          <div class="n">${team.score}</div>
+          <div class="name" style="font-size:${fitSize(team.name, 30, [[10, 40], [14, 36], [18, 32]])}px">${esc(team.name)}</div>
+          <div class="scorers" style="font-size:${lines.length <= 3 ? 24 : lines.length === 4 ? 22 : 19}px">${lines.slice(0, 5).map(l => `<div>${l}</div>`).join('')}</div>
+        </div>`;
+    };
+    const chip = [compName(m.league), phaseOut(m.phase), legLabel(m), live(m) ? `${L('En juego', 'Live')} · ${minuteText(m.status.clock)}` : ''].filter(Boolean).join(' · ');
+    const logo = compLogo(m.league);
+    const seam = live(m) ? (/HALFTIME/.test(m.status.name) ? L('Descanso', 'Half-time') : minuteText(m.status.clock))
+      : /AET|EXTRA/.test(m.status.name) && !pensWon(m) ? L('Prórroga', 'A.E.T.') : L('Final', 'Full time');
+    const title = headline(m);
+    return `
+      <div class="pn${dark() ? ' night' : ''}">
+        ${half(m.home, 'home')}
+        ${half(m.away, 'away')}
+        <div class="seam${live(m) ? ' live' : ''}">${esc(seam)}</div>
+        <div class="comp">${logo ? `<img src="${logo}" alt="" crossorigin="anonymous" onerror="this.remove()"/>` : ''}<span>${esc(chip)}</span></div>
+        ${m.agg ? `<div class="agg">${aggLabel(m.agg)}</div>` : ''}
+        <div class="low">
+          <div class="head"><h1 style="font-size:${title.length > 30 ? 54 : 66}px">${esc(title)}</h1></div>
+          <div class="cols">${notasCol(m, 'home', PORTADA_NOTAS)}${notasCol(m, 'away', PORTADA_NOTAS)}</div>
+        </div>
+        <div class="src">${L('Notas', 'Ratings')}: API-Football</div>
+        ${foot(m)}${grain}
+      </div>`;
   }
 
   // ----------------------------------------------------------
@@ -2682,8 +2721,11 @@
     // destaca de su partido.
     const face = hasPhoto(p) ? '' : afPhoto(m, p);
     const extra = face ? extraNumbers(m, p) : [];
+    // Con los datos de API-Football, debajo, los líderes del partido (y él, más pequeño)
+    const leaders = matchLeaders(m);
+    const lid = leaders.length >= 4;
     return `
-      <div class="fc-in${face ? ' has-face' : ''}" style="${styleVars(st)}">
+      <div class="fc-in${face ? ' has-face' : ''}${lid ? ' lid' : ''}" style="${styleVars(st)}">
         ${artTag(teamArt(st))}
         ${logoTag(team, 'wm')}
         ${p.jersey ? `<div class="dorsal">${esc(p.jersey)}</div>` : ''}
@@ -2701,28 +2743,34 @@
         <div class="stats">
           ${nums.map(s => `
             <div class="st">
-              <div class="n" style="font-size:${bigNumSize(s.text ?? s.v, 250)}px">${s.text ?? s.v}</div>
+              <div class="n" style="font-size:${bigNumSize(s.text ?? s.v, lid ? 124 : 250)}px">${s.text ?? s.v}</div>
               <span class="fc-chip">${s.label}</span>
             </div>`).join('')}
         </div>
         <div class="fc-tape" style="font-size:${line.length > 26 ? 42 : 54}px">${esc(line)}</div>
+        ${lid ? `
+        <div class="lid-box">
+          <div class="lid-title">${L('Líderes del partido', 'Match leaders')}<span>${L('Datos', 'Data')}: API-Football</span></div>
+          ${leaderRows(m, leaders.slice(0, LIDERES_ROWS))}
+        </div>` : ''}
         ${foot(m)}${grain}
       </div>`;
   }
 
   // ----------------------------------------------------------
   // LAS NOTAS · la nota de API-Football de cada jugador que ha jugado, con su cara, de mejor a
-  // peor y cada equipo en su columna (solo en la web, con las notas)
+  // peor y cada equipo en su columna: van en la portada (solo en la web, con las notas)
   // ----------------------------------------------------------
   const ratedPlayers = (m, side) => m[side].players.filter(p => afRating(m, p) != null).sort((a, b) => afRating(m, b) - afRating(m, a));
-  const NOTAS_ROWS = 15;
   const ratingColor = (r) => (r >= 8 ? '#0e8a3e' : r >= 7 ? '#4fa82b' : r >= 6.5 ? '#e3b400' : r >= 6 ? '#ef7d00' : '#d8263a');
-  function tplNotas(m) {
+  const withNotas = (m) => ratedPlayers(m, 'home').length >= 8 && ratedPlayers(m, 'away').length >= 8;
+  const PORTADA_NOTAS = 11;
+  function notasCol(m, side, rows) {
     const top = bestPlayer(m);
-    const col = (side) => `
+    return `
       <div class="col">
         <div class="team">${logoTag(m[side], 'lg')}<span>${esc(m[side].short)}</span></div>
-        ${ratedPlayers(m, side).slice(0, NOTAS_ROWS).map(p => {
+        ${ratedPlayers(m, side).slice(0, rows).map(p => {
           const r = afRating(m, p);
           const face = afPhoto(m, p);
           return `
@@ -2733,20 +2781,14 @@
           </div>`;
         }).join('')}
       </div>`;
-    return `
-      <div class="${sheetCls()}">
-        ${artTag(sheetArt(m.home, m.away))}
-        <h1 class="title">${L('Las notas', 'Player ratings')}</h1>
-        <div class="cols">${col('home')}${col('away')}</div>
-        <div class="src">${L('Notas', 'Ratings')}: API-Football</div>
-        ${foot(m)}${grain}
-      </div>`;
   }
 
   // ----------------------------------------------------------
   // LÍDERES DEL PARTIDO · el mejor en cada cosa (más pases, regates, duelos ganados…), con su
-  // cara, su escudo y el número en grande. Con los datos de API-Football (solo en la web)
+  // cara, su escudo y el número. Van debajo del jugador del partido. Con los datos de
+  // API-Football (solo en la web)
   // ----------------------------------------------------------
+  const LIDERES_ROWS = 5;
   const LEADERS = [
     { k: 'passes', es: 'Más pases', en: 'Most passes', min: 30 },
     { k: 'keyPasses', es: 'Pases clave', en: 'Key passes', min: 2 },
@@ -2766,28 +2808,16 @@
       return top && val(top) >= c.min ? { label: L(c.es, c.en), p: top, v: val(top) } : null;
     }).filter(Boolean).slice(0, 8);
   }
-  function tplLideres(m) {
-    const rows = matchLeaders(m);
-    const lead = m[sides(m).winner || 'home'];
+  const leaderRows = (m, rows) => rows.map(r => {
+    const face = afPhoto(m, r.p);
+    const team = m[r.p.side];
     return `
-      <div class="fc-in" style="${styleVars(teamStyle(JORNADA_STYLE))}">
-        ${artTag(nightArt(m.home, m.away))}
-        ${logoTag(lead, 'wm')}
-        <h1 class="title">${L('Líderes<br>del partido', 'Match<br>leaders')}</h1>
-        <div class="rows">${rows.map(r => {
-          const face = afPhoto(m, r.p);
-          const team = m[r.p.side];
-          return `
           <div class="row">
             <span class="face" style="${styleVars(teamStyle(team))}"><b>${esc(r.p.jersey)}</b>${face ? `<img src="${esc(face)}" alt="" crossorigin="anonymous" onload="window.fsNoFace&&fsNoFace(this)" onerror="this.remove()"/>` : ''}</span>
             <div class="who"><span class="lb">${esc(r.label)}</span><span class="nm">${logoTag(team, 'lg')}${esc(surname(r.p))}</span></div>
             <span class="v">${r.v}</span>
           </div>`;
-        }).join('')}</div>
-        <div class="src">${L('Datos', 'Data')}: API-Football</div>
-        ${foot(m)}${grain}
-      </div>`;
-  }
+  }).join('');
 
   // ----------------------------------------------------------
   // 7 · CLASIFICACIÓN · 12 filas con los dos equipos dentro (y «···» si están lejos)
@@ -3021,46 +3051,23 @@
     return t && { ...f, ...t, big: String(t.big), spoken: said.sentence.replace(/\s+([.,:])/g, '$1').replace(/\s{2,}/g, ' ') };
   }).filter(Boolean);
 
-  function tplDato(m) {
-    const [main, ...more] = datoFacts(m);
-    if (!main) return tplSinDatos(m, L('El dato', 'The stat'));
-    const team = m[main.side];
-    const p = main.player ? playerById(m, main.player) : null;
-    return `
-      <div class="fc-in" style="${styleVars(teamStyle(team))}">
-        ${artTag(teamArt(teamStyle(team), { lx: 0.8, ly: 0.35, dots: 'l' }))}
-        ${logoTag(team, 'wm')}
-        <div class="fc-kick">${L('<b>El</b> dato', '<b>The</b> stat')}</div>
-        <div class="dt-body">
-          ${p ? `<div class="dt-who">${esc(p.name)}</div>` : ''}
-          <div class="dt-big" style="font-size:${main.big.length <= 2 ? 540 : main.big.length <= 3 ? 440 : main.big.length <= 4 ? 360 : 280}px">${esc(main.big)}</div>
-          <div class="dt-unit">${esc(main.unit)}</div>
-          <div class="dt-line">${esc(main.sentence)}</div>
-          ${more.length ? `<div class="dt-more">${more.map(f => `<div>${esc(f.sentence)}</div>`).join('')}</div>` : ''}
-        </div>
-        ${foot(m)}${grain}
-      </div>`;
-  }
-
   // ----------------------------------------------------------
   // LAS SLIDES DEL CARRUSEL · las que no tienen datos (un amistoso sin alineaciones, una copa
   // sin clasificación) no salen
   // ----------------------------------------------------------
   const SLIDE_DEFS = [
+    // La portada lleva las notas y el jugador del partido, los líderes, si hay datos de API-Football
     { id: 'portada', name: 'Portada', cls: 'fc fc-portada', tpl: tplPortada },
-    { id: 'dato', name: 'El dato', cls: 'fc fc-dato', tpl: tplDato, show: (m) => datoFacts(m).length > 0 },
-    // Sin los goles (ESPN no los tiene de algunos partidos de copa), no sale: diría «Sin goles».
-    { id: 'crono', name: 'Minuto a minuto', cls: 'fc fc-crono', tpl: tplCrono, show: (m) => m.goals.length > 0 || m.home.score + m.away.score === 0 },
-    { id: 'stats', name: 'Estadísticas', cls: 'fc fc-stats', tpl: tplStats, show: (m) => statRows(m).length >= 3 },
-    { id: 'tiros', name: 'Mapa de tiros', cls: 'fc fc-tiros', tpl: tplTiros, show: (m) => m.shots.length >= 4 },
     { id: 'onces', name: 'Los onces', cls: 'fc fc-onces', tpl: tplOnces, show: (m) => lineupOk(m.home) && lineupOk(m.away) },
+    { id: 'tiros', name: 'Mapa de tiros', cls: 'fc fc-tiros', tpl: tplTiros, show: (m) => m.shots.length >= 4 },
     { id: 'jugador', name: 'Jugador del partido', cls: 'fc fc-jugador', tpl: tplJugador, show: (m) => !!bestPlayer(m),
       pick: (m) => rankedPlayers(m).slice(0, 16).map(p => ({ value: p.id, label: `${surname(p)} · ${m[p.side].abbr}` })),
       pickValue: (m) => bestPlayer(m)?.id || '',
       onPick: (value) => { state.jugadorId = value; } },
-    { id: 'notas', name: 'Las notas', cls: 'fc fc-notas', tpl: tplNotas, show: (m) => ratedPlayers(m, 'home').length >= 8 && ratedPlayers(m, 'away').length >= 8 },
-    { id: 'lideres', name: 'Líderes del partido', cls: 'fc fc-lideres', tpl: tplLideres, show: (m) => matchLeaders(m).length >= 4 },
     { id: 'tabla', name: 'Clasificación', cls: 'fc fc-tabla', tpl: tplTabla, show: (m) => (m.standings?.length || 0) >= 4 },
+    // Sin los goles (ESPN no los tiene de algunos partidos de copa), no sale: diría «Sin goles».
+    { id: 'crono', name: 'Minuto a minuto', cls: 'fc fc-crono', tpl: tplCrono, show: (m) => m.goals.length > 0 || m.home.score + m.away.score === 0 },
+    { id: 'stats', name: 'Estadísticas', cls: 'fc fc-stats', tpl: tplStats, show: (m) => statRows(m).length >= 3 },
     { id: 'cierre', name: 'Cierre', cls: 'fc fc-cierre', tpl: tplCierre },
   ];
   const slideDefs = () => state.shownDefs || [];
@@ -3737,12 +3744,10 @@
 
   // El dato de la portada del vídeo, que diga de quién: la frase si es corta («El Barcelona
   // encadena 6 victorias seguidas»); si no (el gancho sale en 3 líneas como mucho), el equipo y el
-  // dato («Roma: 14 partidos sin perder… hasta hoy»). Si has retocado la slide, lo que pusiste.
+  // dato («Roma: 14 partidos sin perder… hasta hoy»).
   function datoHook(m, dato) {
-    const big = writtenText('#slide-dato .dt-big') || dato.big, unit = writtenText('#slide-dato .dt-unit') || dato.unit;
-    if (slideEdited('dato')) return `${big} ${unit}`;
     const said = dato.hook || dato.spoken.replace(/\.$/, '');
-    return said.length <= 60 ? said : `${m[dato.side] ? `${m[dato.side].short}: ` : ''}${big} ${unit}`;
+    return said.length <= 60 ? said : `${m[dato.side] ? `${m[dato.side].short}: ` : ''}${dato.big} ${dato.unit}`;
   }
 
   // Las zonas de la clasificación, en corto (los corchetes del vídeo)
@@ -3862,7 +3867,7 @@
     const rows = statRows(m);
     const tbl = (m.standings?.length || 0) >= 4 ? tableRows(m, 11) : null;
     const closingSide = winner || 'home';
-    const dato = slideDefs().some(x => x.id === 'dato') ? datoFacts(m)[0] : null;
+    const dato = datoFacts(m)[0] || null;
     const h = h2hCount(m);
     const pol = polemicaText(m);
     return {
@@ -3906,9 +3911,9 @@
       // (la cara del retrato de la slide, si se ha quedado: no era la silueta de API-Football)
       jugador: p && videoJugador(m, p, keys, document.querySelector('#slide-jugador .has-face .portrait img')?.src || null),
       dato: dato && {
-        big: writtenText('#slide-dato .dt-big') || dato.big,
-        unit: writtenText('#slide-dato .dt-unit') || dato.unit,
-        sentence: (slideEdited('dato') && writtenText('#slide-dato .dt-line')) || dato.spoken,
+        big: dato.big,
+        unit: dato.unit,
+        sentence: dato.spoken,
         who: dato.player ? playerById(m, dato.player)?.name || '' : '',
         side: dato.side, style: teamStyle(m[dato.side]),
       },
@@ -5956,7 +5961,7 @@
     const pens = pensWon(m) ? ` (${m.home.shootout}-${m.away.shootout} ${L('pen.', 'pens')})` : '';
     const goals = ['home', 'away'].map(s => scorerList(m, s).filter(x => !x.red).map(x => x.text).join(', ')).filter(Boolean);
     const best = bestPlayer(m);
-    const dato = slideDefs().some(d => d.id === 'dato') && (writtenText('#slide-dato .dt-line') || datoFacts(m)[0]?.sentence);
+    const dato = datoFacts(m)[0]?.sentence;
     const tag = (t) => `#${t.short.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]/g, '')}`;
     const inside = insideList(['crono', 'stats', 'tiros', 'onces', 'tabla']);
     return `⚽ ${m.home.name.toUpperCase()} ${m.home.score}-${m.away.score} ${m.away.name.toUpperCase()}${pens}
@@ -5987,15 +5992,15 @@ ${inside.length ? `\n${L('Desliza para ver', 'Swipe for')} ${listEs(inside)}.\n`
   const ttTags = (m, extra) => [...new Set([L('futbol', 'football'), TT_COMP[m.league] || hashtag(compOf(m.league).tag),
     ...[m.home, m.away].map(t => TT_TEAM[t.id] || hashtag(t.name)), ...extra].filter(Boolean))].slice(0, TT_MAX).map(t => `#${t}`).join(' ');
   function tiktokCaption(m) {
-    const dato = slideDefs().some(d => d.id === 'dato') ? datoFacts(m)[0] : null;
+    const dato = datoFacts(m)[0] || null;
     const score = `${m.home.short} ${m.home.score}-${m.away.score} ${m.away.short}${pensWon(m) ? ` (${m.home.shootout}-${m.away.shootout} ${L('pen.', 'pens')})` : ''}`;
     // El número y su unidad solos («4 años después», «12 victorias seguidas») no dicen de quién: va la
     // frase corta de los «primera vez desde…» o, si no, la frase dicha del dato («El Barça encadena 12
-    // victorias seguidas»). Si has retocado la slide, lo que pusiste.
+    // victorias seguidas»).
     const said = dato && (dato.hook || dato.spoken.replace(/\.$/, ''));
     const pol = polemicaText(m);
     const hook = pol && (pol.strong || !dato) ? `😱 ${pol.line}` : dato
-      ? `🤯 ${cap(said && !slideEdited('dato') ? said : `${writtenText('#slide-dato .dt-big') || dato.big} ${writtenText('#slide-dato .dt-unit') || dato.unit}`)}`
+      ? `🤯 ${cap(said || `${dato.big} ${dato.unit}`)}`
       : `⚽ ${writtenText('#slide-portada .head h1') || headline(m)}`;
     const best = bestPlayer(m);
     const rating = best ? afRating(m, best) : null;
