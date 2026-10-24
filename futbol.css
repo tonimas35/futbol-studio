@@ -125,7 +125,7 @@ button, input, select { font: inherit; }
 .rendered-info[hidden] { display: none; }
 .draft-status { margin-top: 8px; font-size: 13px; color: var(--mute); }
 .draft-status[hidden] { display: none; }
-#shareCarouselBtn.ready { background: var(--green); color: #0b2a17; }
+.share-btn.ready { background: var(--green); color: #0b2a17; }
 
 /* ─── Fecha ─── */
 .date-picker { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }

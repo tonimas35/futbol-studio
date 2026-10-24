@@ -97,7 +97,7 @@ async function open({ strip = [], viewport = { width: 1280, height: 900 }, url =
   await ctx.addInitScript(() => {
     window.__shared = [];
     navigator.canShare = () => true;
-    navigator.share = async (data) => { window.__shared.push((data.files || []).length); };
+    navigator.share = async (data) => { window.__shared.push((data.files || []).length); window.__sharedFiles = data.files || []; };
   });
   await ctx.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
   await ctx.route('https://site.api.espn.com/**', (r) => {
@@ -321,11 +321,23 @@ try {
   execFileSync(PY, ['-c', 'import sys,zipfile; z=zipfile.ZipFile(sys.argv[1]); open(sys.argv[2],"wb").write(z.read([n for n in z.namelist() if n.endswith(".png")][0]))', vPath, join(dir, 'v.png')]);
   check(pngSize(join(dir, 'v.png')) === '1080 1920', `9:16: ${pngSize(join(dir, 'v.png'))}`);
 
-  // ── Compartir en dos toques ──
+  // ── Compartir en dos toques: todas las fotos de una vez, en 4:5 o en 9:16 ──
+  // (la altura de la primera foto y la de la última que se ha mandado)
+  const sharedHeights = () => page.evaluate(async () => Promise.all([0, window.__sharedFiles.length - 1].map(async (i) => (await createImageBitmap(window.__sharedFiles[i])).height)));
   await page.click('#shareCarouselBtn');
-  await page.waitForFunction(() => /Toca para compartir/.test(document.querySelector('#shareCarouselBtn .label').textContent), null, { timeout: 120000 });
+  await page.waitForFunction(() => document.querySelector('#shareCarouselBtn .label').textContent === 'Compartir 9 fotos', null, { timeout: 120000 });
   await page.click('#shareCarouselBtn');
-  check((await page.evaluate(() => window.__shared))[0] === 9, 'compartir manda las 9 imágenes');
+  check((await page.evaluate(() => window.__shared))[0] === 9 && (await sharedHeights()).join() === '1350,1350', 'compartir 4:5 manda las 9 imágenes en 1080×1350');
+  check(await page.textContent('#shareVerticalBtn .label') === 'Compartir 9:16 · TikTok', 'y el de 9:16 se prepara aparte');
+  await page.click('#shareVerticalBtn');
+  await page.waitForFunction(() => document.querySelector('#shareVerticalBtn .label').textContent === 'Compartir 9 fotos', null, { timeout: 120000 });
+  await page.click('#shareVerticalBtn');
+  check((await page.evaluate(() => window.__shared))[1] === 9 && (await sharedHeights()).join() === '1920,1920'
+    && (await page.evaluate(() => navigator.clipboard.readText())) === await page.inputValue('#captionText'),
+    'compartir 9:16 · TikTok manda las 9 en 1080×1920, con la descripción copiada');
+  await page.$eval('[data-slide-id="portada"] .slide-reset-btn', (b) => b.click()); // (solo se ve si está retocada)
+  check(await page.textContent('#shareVerticalBtn .label') === 'Compartir 9:16 · TikTok' && await page.textContent('#shareCarouselBtn .label') === 'Compartir 4:5 · Instagram',
+    'al retocar una slide, se vuelven a preparar');
 
   // ── El vídeo: guion automático, la mezcla y el MP4 ──
   const script = await page.$$eval('#scriptLines .script-line', (ls) => ls.map((l) => [l.dataset.scene, l.querySelector('textarea').value, l.querySelector('.script-fit').className]));
@@ -1257,6 +1269,12 @@ try {
       `lo destacado (${jp.facts.join(' · ')}) y el pie con la fecha de la jornada (${jp.foot} · ${jp.sign})`);
     const [jz] = await Promise.all([p8.waitForEvent('download', { timeout: 90000 }), p8.click('#jornadaZipBtn')]);
     check(jz.suggestedFilename() === 'futbol-jornada-esp-1-2026-09-20.zip', `y se descarga en ZIP (${jz.suggestedFilename()})`);
+    await p8.click('#jornadaShareVBtn');
+    await p8.waitForFunction(() => document.querySelector('#jornadaShareVBtn .label').textContent === 'Compartir 4 fotos', null, { timeout: 90000 });
+    await p8.click('#jornadaShareVBtn');
+    const js = await p8.evaluate(async () => ({ n: window.__shared.at(-1), h: (await createImageBitmap(window.__sharedFiles[0])).height, name: window.__sharedFiles[0].name, copied: await navigator.clipboard.readText() }));
+    check(js.n === 4 && js.h === 1920 && js.name === 'futbol-jornada-esp-1-2026-09-20-01-portada.png' && /RESULTADOS · LALIGA/.test(js.copied),
+      `y se comparte entera en 9:16 para TikTok, con su descripción copiada (${js.n} fotos · ${js.name})`);
     check(await p8.$$eval('#slidesPreview .slide', (x) => x.length) === 0, 'sin tocar el carrusel del partido');
     await c8.close();
     // El enlace del robot (?jornada=liga&dia=) la hace sola

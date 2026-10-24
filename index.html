@@ -24,7 +24,7 @@
     rel="stylesheet"
   />
 
-  <link rel="stylesheet" href="futbol.css?v=23" />
+  <link rel="stylesheet" href="futbol.css?v=24" />
 </head>
 
 <body>
@@ -126,7 +126,9 @@
         <p class="section-sub" id="jornadaInfo"></p>
       </div>
       <div class="actions-row">
-        <button class="btn btn-primary" id="jornadaZipBtn" type="button">
+        <button class="btn btn-primary share-btn" id="jornadaShareVBtn" type="button" hidden data-label="Compartir 9:16 · TikTok" title="Todas las slides en 1080×1920, de una vez, a TikTok (carrusel de fotos), Reels o Stories"><span class="label">Compartir 9:16 · TikTok</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg></button>
+        <button class="btn btn-ghost share-btn" id="jornadaShareBtn" type="button" hidden data-label="Compartir 4:5 · Instagram" title="Todas las slides en 1080×1350, de una vez, a Instagram, Fotos o WhatsApp"><span class="label">Compartir 4:5 · Instagram</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg></button>
+        <button class="btn btn-ghost" id="jornadaZipBtn" type="button">
           Descargar ZIP
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
         </button>
@@ -154,16 +156,23 @@
         <!-- Con un partido sin empezar: la previa (un vídeo con cómo llegan, el cara a cara y sus goleadores) -->
         <button class="btn btn-primary" id="previaBtn" type="button" hidden><span class="label">Crear previa (vídeo)</span></button>
         <button class="btn btn-primary" id="oncesBtn" type="button" hidden><span class="label">Crear onces (vídeo)</span></button>
+        <!-- En el móvil: todas las fotos de una vez a TikTok, Instagram, Fotos o WhatsApp -->
+        <button class="btn btn-primary share-btn" id="shareVerticalBtn" type="button" hidden disabled data-label="Compartir 9:16 · TikTok" title="Todas las slides en 1080×1920, de una vez, a TikTok (carrusel de fotos), Reels o Stories">
+          <span class="label">Compartir 9:16 · TikTok</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/>
+          </svg>
+        </button>
+        <button class="btn btn-ghost share-btn" id="shareCarouselBtn" type="button" hidden disabled data-label="Compartir 4:5 · Instagram" title="Todas las slides en 1080×1350, de una vez, a Instagram, Fotos o WhatsApp">
+          <span class="label">Compartir 4:5 · Instagram</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/>
+          </svg>
+        </button>
         <button class="btn btn-ghost" id="downloadBtn" disabled>
           Descargar ZIP
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>
-          </svg>
-        </button>
-        <button class="btn btn-primary" id="shareCarouselBtn" type="button" hidden disabled title="Manda las imágenes a Instagram, Fotos o WhatsApp">
-          <span class="label">Compartir</span>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/>
           </svg>
         </button>
         <button class="btn btn-ghost" id="downloadVerticalBtn" disabled title="Las mismas slides en 1080×1920 para TikTok, Reels o Stories">
@@ -364,6 +373,6 @@
   <script src="audio.js?v=3"></script>
   <script src="campo3d.js?v=2"></script>
   <script src="video.js?v=26"></script>
-  <script src="futbol.js?v=53"></script>
+  <script src="futbol.js?v=54"></script>
 </body>
 </html>
