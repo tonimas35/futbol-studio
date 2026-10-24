@@ -5449,7 +5449,6 @@
 
   let saveTimer = null;
   function contentChanged(now = false) {
-    sharePrepared = null;
     resetShareBtn();
     updateCaption();
     clearTimeout(saveTimer);
@@ -5516,10 +5515,15 @@
   }
 
   // ----------------------------------------------------------
-  // COMPARTIR · en el móvil, las PNG van directas a Instagram, Fotos, WhatsApp…
-  // Dos toques: el primero prepara las imágenes y el segundo abre la hoja de compartir.
+  // COMPARTIR · en el móvil, todas las fotos del carrusel de una vez a TikTok (carrusel de fotos),
+  // Instagram, Fotos o WhatsApp, en 9:16 o en 4:5. Dos toques: el primero prepara las imágenes y
+  // copia la descripción; el segundo abre la hoja de compartir (el navegador solo la abre justo
+  // después de un toque, y prepararlas lleva unos segundos).
   // ----------------------------------------------------------
-  let sharePrepared = null; // { files, rendered }
+  const CAROUSEL_SHARE = ['shareVerticalBtn', 'shareCarouselBtn'];
+  const JORNADA_SHARE = ['jornadaShareVBtn', 'jornadaShareBtn'];
+  const sharePrepared = {}; // id del botón → { key, files }
+  const shareSeq = {}; // id del botón → cuántas veces se ha deshecho (al retocar)
   const canShareFiles = (() => {
     try {
       return !!navigator.canShare && navigator.canShare({ files: [new File(['x'], 'x.png', { type: 'image/png' })] });
@@ -5528,51 +5532,59 @@
     }
   })();
   function updateShareBtn() {
-    const btn = document.getElementById('shareCarouselBtn');
-    btn.hidden = !canShareFiles;
-    btn.disabled = !state.rendered;
+    for (const id of CAROUSEL_SHARE) {
+      const btn = document.getElementById(id);
+      btn.hidden = !canShareFiles;
+      btn.disabled = !state.rendered;
+    }
   }
-  function resetShareBtn() {
-    const btn = document.getElementById('shareCarouselBtn');
-    if (!btn) return;
-    btn.classList.remove('ready');
-    btn.querySelector('.label').textContent = 'Compartir';
+  function resetShareBtn(ids = CAROUSEL_SHARE) {
+    for (const id of ids) {
+      delete sharePrepared[id];
+      shareSeq[id] = (shareSeq[id] || 0) + 1;
+      const btn = document.getElementById(id);
+      if (!btn) continue;
+      btn.classList.remove('ready');
+      btn.querySelector('.label').textContent = btn.dataset.label;
+    }
   }
 
-  async function shareCarousel() {
-    const rendered = state.rendered;
-    if (!rendered) return;
-    const btn = document.getElementById('shareCarouselBtn');
-    if (sharePrepared?.rendered === rendered) {
+  // key: lo que se comparte (el partido o la jornada); si cambia, se vuelven a preparar.
+  async function shareSlides(btnId, { key, defs, name, caption, vertical }) {
+    if (!key) return;
+    const btn = document.getElementById(btnId);
+    navigator.clipboard?.writeText(caption).catch(() => {});
+    const ready = sharePrepared[btnId];
+    if (ready?.key === key) {
       try {
-        await navigator.share({ files: sharePrepared.files });
+        await navigator.share({ files: ready.files });
       } catch (e) {
         if (e.name !== 'AbortError') showToast(`No se pudo compartir: ${e.message}`, 'error');
       }
       return;
     }
     if (!lockCapture()) return;
-    navigator.clipboard?.writeText(captionNow()).catch(() => {});
+    const seq = shareSeq[btnId];
     btn.disabled = true;
     btn.classList.add('btn-loading');
     btn.querySelector('.label').textContent = 'Preparando…';
     try {
       const files = [];
-      const defs = slideDefs();
       for (let i = 0; i < defs.length; i++) {
         const el = document.getElementById(`slide-${defs[i].id}`);
         if (!el) continue;
-        const blob = await captureSlide(el);
-        files.push(new File([blob], pngName(defs[i], i), { type: 'image/png' }));
+        const canvas = await captureCanvas(el);
+        const blob = await new Promise(r => (vertical ? toVertical(canvas) : canvas).toBlob(r, 'image/png'));
+        files.push(new File([blob], name(defs[i], i), { type: 'image/png' }));
       }
-      if (state.rendered !== rendered) return;
-      sharePrepared = { files, rendered };
+      if (seq !== shareSeq[btnId]) return resetShareBtn([btnId]); // se ha retocado mientras tanto
+      sharePrepared[btnId] = { key, files };
       btn.classList.add('ready');
-      btn.querySelector('.label').textContent = 'Toca para compartir';
-      showToast('Listo: toca otra vez para mandarlo a Instagram · el pie de foto está copiado', 'success');
+      btn.querySelector('.label').textContent = `Compartir ${files.length} fotos`;
+      showToast(`Listo: toca otra vez para mandar las ${files.length} fotos${vertical ? ' a TikTok' : ''} · la descripción está copiada`, 'success');
     } catch (e) {
       console.error(e);
-      resetShareBtn();
+      resetShareBtn([btnId]);
       showToast(`No se pudieron preparar las imágenes: ${e.message}`, 'error');
     } finally {
       btn.disabled = false;
@@ -5580,6 +5592,10 @@
       unlockCapture();
     }
   }
+
+  const shareCarousel = (vertical) => shareSlides(vertical ? 'shareVerticalBtn' : 'shareCarouselBtn', {
+    key: state.rendered, defs: slideDefs(), name: pngName, caption: captionNow(), vertical,
+  });
 
   // ----------------------------------------------------------
   // CAMBIAR FOTO · se toca al jugador y se sube una foto suya; el fondo se quita en el propio
@@ -5634,7 +5650,6 @@
   // Pone la foto (o vuelve a la de ESPN con url = null) en todas las slides de ese jugador,
   // también en lo que guarda «↺ original».
   function setPlayerPhoto(key, url) {
-    sharePrepared = null;
     resetShareBtn();
     const old = state.photoOverrides[key];
     if (url) state.photoOverrides[key] = url;
@@ -6219,6 +6234,7 @@ ${inside.length ? `\n${L('Desliza para ver', 'Swipe for')} ${listEs(inside)}.\n`
         </div>
       </div>`).join('');
     preview.querySelectorAll('.slide').forEach(makeSlideEditable);
+    resetShareBtn(JORNADA_SHARE);
     const f = jornadaFacts(j);
     document.getElementById('jornadaInfo').textContent = `${compOf(j.league).name} · ${fmtRange(j.from, j.to)} · ${j.games.length} partidos${f.done.length < j.games.length ? ` (${f.done.length} acabados)` : ''}${j.table ? '' : ' · sin clasificación'}`;
     const section = document.getElementById('jornadaSection');
@@ -6314,6 +6330,12 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
     document.getElementById('jornadaBtn').addEventListener('click', generateJornada);
     document.getElementById('jornadaZipBtn').addEventListener('click', () => downloadJornada());
     document.getElementById('jornadaZipVBtn').addEventListener('click', () => downloadJornada(true));
+    for (const id of JORNADA_SHARE) {
+      document.getElementById(id).hidden = !canShareFiles;
+      document.getElementById(id).addEventListener('click', () => jornada.data && shareSlides(id, {
+        key: jornada.data, defs: jornada.defs, name: jornadaPng, caption: jornadaCaption(jornada.data), vertical: id === 'jornadaShareVBtn',
+      }));
+    }
     document.getElementById('jornadaCloseBtn').addEventListener('click', () => {
       document.getElementById('jornadaSection').hidden = true;
       document.getElementById('jornadaPreview').innerHTML = '';
@@ -6331,9 +6353,14 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
         applySign(slide);
         applyBrand(slide);
         wrap.classList.remove('edited');
+        resetShareBtn(JORNADA_SHARE);
       }
     });
-    preview.addEventListener('input', (e) => { if (e.target.isContentEditable) e.target.closest('.slide-wrap')?.classList.add('edited'); });
+    preview.addEventListener('input', (e) => {
+      if (!e.target.isContentEditable) return;
+      e.target.closest('.slide-wrap')?.classList.add('edited');
+      resetShareBtn(JORNADA_SHARE);
+    });
     preview.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && e.target.isContentEditable) {
         e.preventDefault();
@@ -6838,7 +6865,8 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
     document.getElementById('generateBtn').addEventListener('click', generateCarousel);
     document.getElementById('downloadBtn').addEventListener('click', () => downloadCarousel());
     document.getElementById('downloadVerticalBtn').addEventListener('click', () => downloadCarousel(true));
-    document.getElementById('shareCarouselBtn').addEventListener('click', shareCarousel);
+    document.getElementById('shareCarouselBtn').addEventListener('click', () => shareCarousel(false));
+    document.getElementById('shareVerticalBtn').addEventListener('click', () => shareCarousel(true));
     updateShareBtn();
 
     // El vídeo: guion, voz, volumen
