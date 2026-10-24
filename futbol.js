@@ -1872,7 +1872,8 @@
   const afRating = (m, p) => m.af?.players?.[p.id]?.rating ?? null;
   const afPhoto = (m, p) => m.af?.players?.[p.id]?.photo || '';
   // A quien no tiene foto, API-Football le da una silueta gris (la única de sus caras con el fondo
-  // transparente): se trata como si no cargara y se ve el dorsal. La llaman las caras al cargar.
+  // transparente): se trata como si no cargara y se ve el dorsal. La llaman las caras al cargar
+  // (en la copia de la slide que hace html2canvas para la foto no está, y no se llama).
   window.fsNoFace = (img) => {
     if (img.naturalWidth < 100) return;
     try {
@@ -2601,7 +2602,7 @@
         const face = afPhoto(m, p);
         players.push(`
           <div class="pl${p === gk ? ' gk' : ''}" style="left:${Math.round(px)}px;top:${Math.round(py - 41)}px;${styleVars(st)}">
-            <div class="dot${face ? ' has-face' : ''}">${esc(p.jersey)}${face ? `<img class="face" src="${esc(face)}" alt="" crossorigin="anonymous" onload="fsNoFace(this)" onerror="this.parentNode.classList.remove('has-face');this.remove()"/><span class="num">${esc(p.jersey)}</span>` : ''}</div>
+            <div class="dot${face ? ' has-face' : ''}">${esc(p.jersey)}${face ? `<img class="face" src="${esc(face)}" alt="" crossorigin="anonymous" onload="window.fsNoFace&&fsNoFace(this)" onerror="this.parentNode.classList.remove('has-face');this.remove()"/><span class="num">${esc(p.jersey)}</span>` : ''}</div>
             <div class="nm" style="max-width:${nameW}px;font-size:${nameSize}px">${esc(nm)}</div>
             ${tags ? `<div class="tags">${tags}</div>` : ''}
             ${off ? `<div class="sub">▼ ${off.min.label}</div>` : ''}
@@ -2688,7 +2689,7 @@
         ${p.jersey ? `<div class="dorsal">${esc(p.jersey)}</div>` : ''}
         ${face ? `
         <div class="portrait">
-          <img src="${esc(face)}" alt="" crossorigin="anonymous" onload="fsNoFace(this);fsCrisp(this)" onerror="this.closest('.fc-in').classList.remove('has-face');this.parentNode.remove()"/>
+          <img src="${esc(face)}" alt="" crossorigin="anonymous" onload="window.fsCrisp&&(fsNoFace(this),fsCrisp(this))" onerror="this.closest('.fc-in').classList.remove('has-face');this.parentNode.remove()"/>
           ${team.logo ? `<span class="badge">${logoTag(team, '')}</span>` : ''}
         </div>
         ${extra.length ? `<div class="extra">${extra.map(x => `<div><b>${x.v}</b><span>${esc(x.label)}</span></div>`).join('')}</div>` : ''}` : ''}
@@ -2726,7 +2727,7 @@
           const face = afPhoto(m, p);
           return `
           <div class="row${top?.id === p.id ? ' mvp' : ''}">
-            <span class="face" style="${styleVars(teamStyle(m[side]))}"><b>${esc(p.jersey)}</b>${face ? `<img src="${esc(face)}" alt="" crossorigin="anonymous" onload="fsNoFace(this)" onerror="this.remove()"/>` : ''}</span>
+            <span class="face" style="${styleVars(teamStyle(m[side]))}"><b>${esc(p.jersey)}</b>${face ? `<img src="${esc(face)}" alt="" crossorigin="anonymous" onload="window.fsNoFace&&fsNoFace(this)" onerror="this.remove()"/>` : ''}</span>
             <span class="nm">${esc(lineupName(p))}</span>
             <span class="rt" style="background:${ratingColor(r)};color:${r >= 6.5 && r < 7 ? '#111' : '#fff'}">${fmtRating(r)}</span>
           </div>`;
@@ -2778,7 +2779,7 @@
           const team = m[r.p.side];
           return `
           <div class="row">
-            <span class="face" style="${styleVars(teamStyle(team))}"><b>${esc(r.p.jersey)}</b>${face ? `<img src="${esc(face)}" alt="" crossorigin="anonymous" onload="fsNoFace(this)" onerror="this.remove()"/>` : ''}</span>
+            <span class="face" style="${styleVars(teamStyle(team))}"><b>${esc(r.p.jersey)}</b>${face ? `<img src="${esc(face)}" alt="" crossorigin="anonymous" onload="window.fsNoFace&&fsNoFace(this)" onerror="this.remove()"/>` : ''}</span>
             <div class="who"><span class="lb">${esc(r.label)}</span><span class="nm">${logoTag(team, 'lg')}${esc(surname(r.p))}</span></div>
             <span class="v">${r.v}</span>
           </div>`;
@@ -5573,11 +5574,19 @@
       for (let i = 0; i < defs.length; i++) {
         const el = document.getElementById(`slide-${defs[i].id}`);
         if (!el) continue;
+        btn.querySelector('.label').textContent = `Preparando ${i + 1} de ${defs.length}…`;
         const canvas = await captureCanvas(el);
-        const blob = await new Promise(r => (vertical ? toVertical(canvas) : canvas).toBlob(r, 'image/png'));
+        const out = vertical ? toVertical(canvas) : canvas;
+        const blob = await new Promise(r => out.toBlob(r, 'image/png'));
+        // Safari en el iPhone tiene un tope de memoria para los canvas y los suelta tarde: a 0 ya
+        for (const c of [canvas, out]) c.width = c.height = 0;
+        if (!blob) throw new Error('el navegador se ha quedado sin memoria; prueba con menos pestañas abiertas');
         files.push(new File([blob], name(defs[i], i), { type: 'image/png' }));
       }
-      if (seq !== shareSeq[btnId]) return resetShareBtn([btnId]); // se ha retocado mientras tanto
+      if (seq !== shareSeq[btnId]) { // se ha retocado mientras tanto
+        resetShareBtn([btnId]);
+        return showToast('Ha cambiado el carrusel mientras se preparaban: toca otra vez para hacerlas de nuevo', 'error');
+      }
       sharePrepared[btnId] = { key, files };
       btn.classList.add('ready');
       btn.querySelector('.label').textContent = `Compartir ${files.length} fotos`;
@@ -5811,6 +5820,9 @@
       return await html2canvas(slideEl, {
         width: 1080, height: 1350, scale: 1, backgroundColor: '#0B0B0B',
         useCORS: true, allowTaint: true, imageTimeout: 8000,
+        // Solo la slide (y lo que la contiene) y los estilos: si no, html2canvas copia la página
+        // entera en cada foto, con las caras de todas las slides, y en el móvil el carrusel tarda minutos.
+        ignoreElements: (el) => !(el.contains(slideEl) || slideEl.contains(el) || el.closest('head')),
         // html2canvas se rompe con las letras que cambian de largo al pasar a mayúsculas
         // («Meißner» → «MEISSNER»): en la copia que dibuja, ya separadas («Meissner»).
         onclone: (doc) => {
