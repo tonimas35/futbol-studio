@@ -27,7 +27,12 @@ jobs:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
+      # Siempre lo último de main: el piloto llama a esta publicación al acabar sus vídeos, y su
+      # copia es la de cuando empezó (a veces horas antes, esperando el pitido final). Con ella
+      # volvía a poner una versión vieja del Studio encima de la nueva.
       - uses: actions/checkout@v4
+        with:
+          ref: main
 
       - uses: actions/setup-node@v4
         with:
