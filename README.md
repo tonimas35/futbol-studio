@@ -121,7 +121,7 @@ Sin abrir el Studio: cuando acaba un partido, un robot hace el vídeo y te llega
 - **La portada:** el primer fotograma ya lleva el resultado (los dos números gigantes y el gancho en la cinta verde), que es la portada que pone TikTok si no eliges otra.
 - **Dónde se guardan:** en la release `videos` del repo (se borran solos a los 7 días; en la web están los de los últimos 3).
 - **La previa, 3 horas antes de los partidos grandes:** los del Real Madrid, el Barça y el Atlético en cualquier competición y todos los de la Champions (`previas` en `piloto.json`: `equipos` y `competiciones`, enteras). En una jornada de Champions son unas 9 por día: tú eliges cuáles subir. Te llega «🔥 Previa · Real Madrid – Sevilla» con el vídeo y su descripción, igual que los del pitido final.
-- **El resumen de la jornada, al acabar su último partido:** cuando termina el último partido de la jornada de LaLiga (la jornada son los partidos de los días de alrededor mientras ningún equipo repita, como en el Studio), el robot hace «Resumen de la jornada» en 9:16 y te llega «📊 Así fue la jornada · LaLiga · 16-19 oct 2026». Al tocarlo, las fotos en orden (portada, resultados, clasificación y cierre) con **«Compartir N fotos»**, que las manda todas a la vez (a TikTok como carrusel de fotos) con la descripción ya copiada. `?jornada=esp.1&dia=2026-10-19` la hace sola en el Studio.
+- **El resumen de la jornada, al acabar su último partido:** cuando termina el último partido de la jornada de LaLiga (la jornada son los partidos de los días de alrededor mientras ningún equipo repita, como en el Studio), el robot hace «Resumen de la jornada» en 9:16 y te llega «📊 Así fue la jornada · LaLiga · 16-19 oct 2026». Al tocarlo, las fotos en orden (la portada con los resultados, lo más destacado, la clasificación y el cierre) con **«Compartir N fotos»**, que las manda todas a la vez (a TikTok como carrusel de fotos) con la descripción ya copiada. `?jornada=esp.1&dia=2026-10-19` la hace sola en el Studio.
 - **Los onces confirmados, en cuanto salen:** en cada vuelta, el robot mira los partidos con un equipo de LaLiga (también en la Champions o la Copa) que empiezan en menos de 80 minutos. En cuanto ESPN tiene los dos onces, hace su vídeo, lo primero de la vuelta para que llegue antes del partido. Te llega «📋 Onces · Real Madrid – Sevilla»: al tocarlo se abre el Studio en «Crear onces», para hacerlo desde tu móvil con las caras de API-Football de los dos equipos. El del robot (solo con las caras de LaLiga) está en su botón.
 - **A mano:** en GitHub, **Actions → Piloto automático → Run workflow**, con el partido (`liga/id`, p. ej. `esp.1/401882846`; para su previa, `previa:esp.1/401882846`; para sus onces, `onces:esp.1/401882846`; para el resumen de la jornada, `jornada:esp.1`) y, si no es de hoy, su día: lo hace (o lo rehace) y avisa.
 
@@ -206,10 +206,12 @@ Para tener una cuenta en español y otra en inglés, se genera el partido una ve
 El carrusel, sus retoques y las fotos subidas se guardan solos en el navegador (IndexedDB) y vuelven al abrir la página.
 
 **Resumen de la jornada:** con partidos acabados en la lista, «Resumen de la jornada» hace un carrusel aparte, sin tocar el del partido:
-- **Portada:** «Así fue la jornada», con los goles y lo más destacado (la mayor goleada, los hat-tricks y dobletes, el partido con más goles y cómo han ido los locales).
-- **Resultados:** 5 por slide, con sus goleadores; los que faltan, con su día y hora.
+- **Portada, con los resultados:** «Así fue la jornada» y, debajo, cada partido en una fila (escudo, nombre, el marcador en su caja y el otro equipo; el que pierde, apagado; los penaltis, en la caja). Caben 10, así que LaLiga entera va en la primera foto; si hay más, siguen en otras, repartidos por igual. Con pocos por foto, también los goleadores. Los que faltan por jugar salen con su día y hora solo si caben sin añadir otra foto.
+- **Lo más destacado:** los goles de la jornada en grande, la mayor goleada, los hat-tricks y dobletes, el partido con más goles, cómo han ido los locales y cuántos quedan.
 - **Clasificación:** entera, con las zonas de cada liga en color (en la Champions, en dos slides).
 - **Cierre:** «¿Cuál fue el partido de la jornada?», con tu logo y tu firma.
+
+Todo en papel claro, como las slides de datos (o en oscuro, con ese estilo).
 
 ESPN no da el número de jornada: el Studio coge los partidos del día elegido y los de hasta 4 días antes y después mientras ningún equipo repita. Se descarga en ZIP (4:5 o 9:16) con su pie de foto, y cada slide suelta en PNG; en el móvil, «Compartir 9:16 · TikTok» y «Compartir 4:5 · Instagram» la mandan entera, como el carrusel.
 
