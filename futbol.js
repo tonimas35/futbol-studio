@@ -6032,11 +6032,11 @@ ${inside.length ? `\n${L('Desliza para ver', 'Swipe for')} ${listEs(inside)}.\n`
   }
 
   // ----------------------------------------------------------
-  // RESUMEN DE LA JORNADA · todos los resultados con sus goleadores, lo más destacado y la
-  // clasificación, en un carrusel aparte (no toca el del partido).
+  // RESUMEN DE LA JORNADA · los resultados ya en la portada (10 por foto: LaLiga entera en la
+  // primera), lo más destacado, la clasificación y la pregunta, en un carrusel aparte (no toca el
+  // del partido). En papel, como las slides de datos (o en oscuro, con ese estilo).
   // ----------------------------------------------------------
-  const JORNADA_STYLE = { bg: '#12151c', acc: '#c8f53c', on: '#111111' };
-  const JORNADA_PER_SLIDE = 5;
+  const JORNADA_PER_SLIDE = 10;
   const jornada = { data: null, defs: [], seq: 0 };
 
   // La jornada del día elegido: sus partidos y los de los días de alrededor (hasta 4 días antes o
@@ -6121,48 +6121,56 @@ ${inside.length ? `\n${L('Desliza para ver', 'Swipe for')} ${listEs(inside)}.\n`
     `${f.goals === 1 ? 'goal' : 'goals'} in ${f.done.length} ${f.done.length === 1 ? 'game' : 'games'}`);
   const jWatermark = (j) => (compLogo(j.league, true) ? `<img class="jwm" src="${compLogo(j.league, true)}" alt="" crossorigin="anonymous" onerror="this.remove()"/>` : '');
 
-  function tplJornadaPortada(j) {
-    const f = jornadaFacts(j);
-    const c = compOf(j.league);
-    return `
-      <div class="fc-in" style="${styleVars(teamStyle(JORNADA_STYLE))}">
-        ${artTag(nightArt(null, null))}
-        ${jWatermark(j)}
-        <div class="jt-comp">${compLogo(j.league, true) ? `<img src="${compLogo(j.league, true)}" alt="" crossorigin="anonymous" onerror="this.remove()"/>` : ''}<span>${esc(compName(j.league))}</span></div>
-        <h1 class="jt-title">${L('Así fue<br>la jornada', 'Matchday<br>round-up')}</h1>
-        <div class="jt-dates">${esc(fmtRange(j.from, j.to))}</div>
-        <div class="jt-big"><span class="n">${f.goals}</span><span class="l">${goalsIn(f)}</span></div>
-        <div class="jt-facts">${f.facts.map(x => `<div>${esc(x)}</div>`).join('')}</div>
-        ${foot(j)}${grain}
-      </div>`;
-  }
-
+  // Los resultados: cada partido en una fila (escudo, nombre, el marcador en su caja y el otro
+  // equipo; el que pierde, apagado). En la primera, arriba, la competición, el título y las fechas.
+  // Con pocos partidos por foto caben los goleadores debajo.
   function tplJornadaResultados(j, games, page, pages) {
     const cell = (g) => {
       const ph = gamePhase(g);
       if (ph === 'pre') return `<div class="jr-score pre">${esc(cap(asDate(g.date).toLocaleDateString(outLocale(), { weekday: 'short' }).replace('.', '')))} ${fmtTime(g.date)}</div>`;
-      const pens = g.home.shootout != null && g.away.shootout != null ? `<small>${g.home.shootout}-${g.away.shootout} ${L('pen.', 'pens')}</small>` : '';
+      // (los penaltis, dentro de la caja del marcador, debajo)
+      const pens = g.home.shootout != null && g.away.shootout != null ? `<i>${g.home.shootout}-${g.away.shootout} ${L('pen.', 'pens')}</i>` : '';
       const now = ph === 'live' ? `<small class="now">${esc(minuteText(g.status.clock))}</small>` : '';
-      return `<div class="jr-score ${ph}"><b>${g.home.score}-${g.away.score}</b>${pens}${now}</div>`;
+      return `<div class="jr-score ${ph}"><b>${g.home.score}-${g.away.score}${pens}</b>${now}</div>`;
     };
     const team = (g, side) => {
       const t = g[side], o = g[side === 'home' ? 'away' : 'home'];
       const lost = gamePhase(g) === 'final' && (t.score < o.score || (t.score === o.score && t.shootout != null && t.shootout < o.shootout));
       return `<div class="jr-team ${side === 'home' ? 'l' : 'r'}${lost ? ' lost' : ''}">${logoTag(t, 'lg')}<span class="nm">${esc(t.short)}</span></div>`;
     };
+    const first = page === 0;
+    const top = first ? 330 : 250;
+    const rh = Math.min(150, Math.floor((1210 - top) / Math.max(games.length, 4)));
+    const scorers = rh >= 130;
+    const logo = compLogo(j.league, true);
     return `
       <div class="${sheetCls()}">
         ${artTag(sheetArt(null, null))}
-        <h1 class="title">${L('Resultados', 'Results')}</h1>
-        <div class="jr-sub">${esc(compName(j.league))} · ${esc(fmtRange(j.from, j.to))}${pages > 1 ? ` · ${page + 1}/${pages}` : ''}</div>
-        <div class="jr-list">
+        <div class="jr-comp">${logo ? `<img src="${logo}" alt="" crossorigin="anonymous" onerror="this.remove()"/>` : ''}<span>${esc(compName(j.league))}</span>${pages > 1 ? `<span class="pg">${page + 1}/${pages}</span>` : ''}</div>
+        ${first ? `<h1 class="jt-title">${L('Así fue la jornada', 'Matchday round-up')}</h1>` : `<h1 class="jt-title more">${L('Resultados', 'Results')}</h1>`}
+        <div class="jr-sub">${esc(fmtRange(j.from, j.to))}</div>
+        <div class="jr-list${scorers ? ' with-sc' : ''}" style="top:${top}px;--rh:${rh}px">
           ${games.map(g => `
             <div class="jr-row">
               ${team(g, 'home')}${cell(g)}${team(g, 'away')}
-              <div class="jr-sc l">${esc(g.scorers.home.map(scorerShort).join(', '))}</div>
-              <div class="jr-sc r">${esc(g.scorers.away.map(scorerShort).join(', '))}</div>
+              ${scorers ? `<div class="jr-sc l">${esc(g.scorers.home.map(scorerShort).join(', '))}</div>
+              <div class="jr-sc r">${esc(g.scorers.away.map(scorerShort).join(', '))}</div>` : ''}
             </div>`).join('')}
         </div>
+        ${foot(j)}${grain}
+      </div>`;
+  }
+
+  // Lo más destacado: los goles de la jornada en grande y lo que dejó
+  function tplJornadaDestacado(j) {
+    const f = jornadaFacts(j);
+    return `
+      <div class="${sheetCls()}">
+        ${artTag(sheetArt(null, null))}
+        ${jWatermark(j)}
+        <h1 class="title">${L('Lo más<br>destacado', 'The<br>highlights')}</h1>
+        <div class="jt-big"><span class="n">${f.goals}</span><span class="l">${goalsIn(f)}</span></div>
+        <div class="jt-facts">${f.facts.map(x => `<div>${esc(x)}</div>`).join('')}</div>
         ${foot(j)}${grain}
       </div>`;
   }
@@ -6196,10 +6204,9 @@ ${inside.length ? `\n${L('Desliza para ver', 'Swipe for')} ${listEs(inside)}.\n`
 
   function tplJornadaCierre(j) {
     return `
-      <div class="fc-in" style="${styleVars(teamStyle(JORNADA_STYLE))}">
-        ${artTag(nightArt(null, null))}
+      <div class="${sheetCls()}">
+        ${artTag(sheetArt(null, null))}
         ${jWatermark(j)}
-        <div class="fade"></div>
         <div class="qwrap"><h1 class="q">${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')}</h1><div class="sub">${L('Te leo en comentarios', 'Let me know in the comments')}</div></div>
         <div class="handle">
           ${brandTag('brand-big')}
@@ -6210,15 +6217,27 @@ ${inside.length ? `\n${L('Desliza para ver', 'Swipe for')} ${listEs(inside)}.\n`
       </div>`;
   }
 
-  function jornadaDefs(j) {
+  // Los jugados (y en juego), repartidos por igual en fotos de 10 como mucho. Los que faltan, solo
+  // si caben en la última sin añadir otra (lo más destacado ya dice cuántos quedan).
+  function jornadaPages(j) {
+    const played = j.games.filter(g => gamePhase(g) !== 'pre');
+    const pending = j.games.filter(g => gamePhase(g) === 'pre');
+    const n = Math.max(1, Math.ceil(played.length / JORNADA_PER_SLIDE));
+    const list = played.length + pending.length <= n * JORNADA_PER_SLIDE ? [...played, ...pending] : played;
+    const per = Math.ceil(list.length / n);
     const pages = [];
-    for (let i = 0; i < j.games.length; i += JORNADA_PER_SLIDE) pages.push(j.games.slice(i, i + JORNADA_PER_SLIDE));
+    for (let i = 0; i < list.length; i += per) pages.push(list.slice(i, i + per));
+    return pages.length ? pages : [[]];
+  }
+
+  function jornadaDefs(j) {
+    const pages = jornadaPages(j);
     const rows = j.table?.rows || [];
     const half = Math.ceil(rows.length / 2);
     const tables = rows.length < 4 ? [] : rows.length > 20 ? [rows.slice(0, half), rows.slice(half)] : [rows];
     return [
-      { id: 'j-portada', name: 'Portada', cls: 'fc fc-jportada', html: () => tplJornadaPortada(j) },
-      ...pages.map((p, i) => ({ id: `j-resultados-${i + 1}`, name: pages.length > 1 ? `Resultados ${i + 1}/${pages.length}` : 'Resultados', cls: 'fc fc-jresultados', html: () => tplJornadaResultados(j, p, i, pages.length) })),
+      ...pages.map((p, i) => ({ id: i ? `j-resultados-${i + 1}` : 'j-portada', name: i ? `Resultados ${i + 1}/${pages.length}` : 'Portada · resultados', cls: 'fc fc-jresultados', html: () => tplJornadaResultados(j, p, i, pages.length) })),
+      ...(jornadaFacts(j).done.length >= 2 ? [{ id: 'j-destacado', name: 'Lo más destacado', cls: 'fc fc-jportada', html: () => tplJornadaDestacado(j) }] : []),
       ...tables.map((r, i) => ({ id: `j-tabla-${i + 1}`, name: tables.length > 1 ? `Clasificación ${i + 1}/${tables.length}` : 'Clasificación', cls: 'fc fc-jtabla', html: () => tplJornadaTabla(j, r, i, tables.length) })),
       { id: 'j-cierre', name: 'Cierre', cls: 'fc fc-cierre', html: () => tplJornadaCierre(j) },
     ];

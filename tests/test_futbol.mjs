@@ -1246,18 +1246,20 @@ try {
     await p8.click('#jornadaBtn');
     await p8.waitForSelector('#jornadaSection:not([hidden])', { timeout: 20000 });
     const jn = await p8.$$eval('#jornadaPreview .slide-label-name', (e) => e.map((x) => x.textContent.replace(/^\d+ · /, '')));
-    check(jn.join(',') === 'Portada,Resultados,Clasificación,Cierre', `la jornada: ${jn.join(', ')}`);
+    check(jn.join(',') === 'Portada · resultados,Lo más destacado,Clasificación,Cierre', `la jornada: ${jn.join(', ')}`);
     const jp = await p8.evaluate(() => ({
-      goals: document.querySelector('#slide-j-portada .jt-big .n')?.textContent,
-      facts: [...document.querySelectorAll('#slide-j-portada .jt-facts div')].map((d) => d.textContent),
-      rows: document.querySelectorAll('#slide-j-resultados-1 .jr-row').length,
-      first: [...(document.querySelector('#slide-j-resultados-1 .jr-row')?.querySelectorAll('.jr-team .nm, .jr-score b') || [])].map((e) => e.textContent).join(' '),
+      goals: document.querySelector('#slide-j-destacado .jt-big .n')?.textContent,
+      facts: [...document.querySelectorAll('#slide-j-destacado .jt-facts div')].map((d) => d.textContent),
+      rows: document.querySelectorAll('#slide-j-portada .jr-row').length,
+      scorers: document.querySelectorAll('#slide-j-portada .jr-sc').length,
+      first: [...(document.querySelector('#slide-j-portada .jr-row')?.querySelectorAll('.jr-team .nm, .jr-score b') || [])].map((e) => e.textContent).join(' '),
+      paper: !!document.querySelector('#slide-j-portada .fc-in.paper:not(.night)') && !!document.querySelector('#slide-j-cierre .fc-in.paper:not(.night)'),
       table: document.querySelectorAll('#slide-j-tabla-1 .row:not(.head)').length,
       foot: document.querySelector('#slide-j-portada .fc-foot span')?.textContent,
       sign: document.querySelector('#slide-j-cierre .fc-sign')?.textContent,
     }));
-    check(jp.goals === '15' && jp.rows === 5 && jp.first === 'Getafe 1-0 Málaga' && jp.table === 20,
-      `15 goles en 5 partidos, los resultados con goleadores y la tabla de 20 (${jp.first})`);
+    check(jp.goals === '15' && jp.rows === 5 && jp.scorers === 10 && jp.first === 'Getafe 1-0 Málaga' && jp.table === 20 && jp.paper,
+      `los resultados ya en la portada (con goleadores: caben), 15 goles en 5 partidos, la tabla de 20 y en claro (${jp.first})`);
     check(jp.facts.some((f) => /victorias en casa/.test(f)) && /^LaLiga · 20 sept? 2026$/.test(jp.foot) && jp.sign === '@toni_futbol',
       `lo destacado (${jp.facts.join(' · ')}) y el pie con la fecha de la jornada (${jp.foot} · ${jp.sign})`);
     const [jz] = await Promise.all([p8.waitForEvent('download', { timeout: 90000 }), p8.click('#jornadaZipBtn')]);
@@ -1317,7 +1319,7 @@ try {
     await p9.waitForSelector('#jornadaSection:not([hidden])', { timeout: 20000 });
     const ej = await p9.evaluate(() => ({
       title: document.querySelector('#slide-j-portada .jt-title')?.innerText.replace(/\s+/g, ' '),
-      goals: document.querySelector('#slide-j-portada .jt-big .l')?.textContent,
+      goals: document.querySelector('#slide-j-destacado .jt-big .l')?.textContent,
       q: document.querySelector('#slide-j-cierre .q')?.textContent,
     }));
     check(/^Matchday round-up$/i.test(ej.title) && /goals in 5 games/i.test(ej.goals) && ej.q === 'What was your game of the round?',
