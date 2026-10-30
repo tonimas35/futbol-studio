@@ -6526,12 +6526,14 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
     await generateCarousel();
     if (state.rendered?.id !== id) return;
     if (!video) {
-      const btn = document.getElementById('videoBtn');
+      // El carrusel, listo para mandarlo a TikTok (o, si este navegador no comparte, su ZIP 9:16)
+      const btn = document.getElementById(canShareFiles ? 'shareVerticalBtn' : 'downloadVerticalBtn');
       btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
       btn.classList.add('btn-ready');
       btn.addEventListener('click', () => btn.classList.remove('btn-ready'), { once: true });
+      const what = canShareFiles ? '«Compartir 9:16 · TikTok»' : '«ZIP 9:16 · TikTok»';
       // (si API-Football ha fallado, se queda su aviso, que dice por qué)
-      if (ratedPlayers(state.rendered, 'home').length) showToast('Listo, con las notas: pulsa «Crear vídeo»', 'success');
+      if (ratedPlayers(state.rendered, 'home').length) showToast(`Listo, con las notas: pulsa ${what}`, 'success');
       else if (!afOn()) showToast('Listo, pero sin notas: pega tu clave de API-Football (paso 2) y vuelve a abrir el aviso', 'error');
       return;
     }
@@ -6544,8 +6546,8 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
 
   // ─── Al pitido final: un enlace que lo hace todo solo ───
   // ?partido=esp.1/401882846 (y &dia=2026-10-17 si no es de hoy ni de ayer): elige la
-  // competición, busca el partido, genera el carrusel y crea el vídeo (lo que hace el robot). Con
-  // &preparar=1 (el aviso al móvil cuando acaba un partido), el carrusel y te deja en «Crear vídeo».
+  // competición, busca el partido, genera el carrusel y crea el vídeo. Con &preparar=1 (el aviso
+  // al móvil cuando acaba un partido, y el robot), el carrusel y te deja en «Compartir 9:16 · TikTok».
   async function openFromLink(params) {
     // ?onces= (los onces confirmados) y ?previa=: de un partido sin empezar. ?respuesta=, el final
     // de un Stitch (con su &guion=, ver respuestaData)
@@ -6613,7 +6615,7 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
     return true;
   }
 
-  // ─── Piloto automático: el vídeo que ha hecho el robot al pitido final ───
+  // ─── Piloto automático: el carrusel (o el vídeo) que ha hecho el robot al pitido final ───
   // ?video=401882846 abre v/401882846.mp4 y su descripción (v/401882846.json), que el robot
   // (.github/workflows/piloto.yml) deja en esta misma web, listo para compartirlo a TikTok desde el
   // móvil. Es el enlace del aviso que llega con ntfy. Los vídeos se quedan unos días. Con el resumen
@@ -6641,6 +6643,10 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
         $('robotPhotos').hidden = false;
         $('robotShare').textContent = `Compartir ${files.length} fotos`;
         $('robotHint').textContent = 'Se copia sola al compartir: en TikTok, mantén pulsado el texto y pega. Van en orden, con la portada primero. Para guardarlas, mantén pulsada cada foto.';
+        // Las fotos de un partido: su vídeo, si lo quieres, en el Studio
+        if (info.kind === 'final' && COMP[info.league] && /^\d{4}-\d{2}-\d{2}$/.test(info.day || '') && /^\d+$/.test(String(info.id))) {
+          Object.assign($('robotOtherType'), { href: `?partido=${info.league}/${info.id}&dia=${info.day}`, textContent: 'Hacer el vídeo', hidden: false });
+        }
       } else {
         const url = URL.createObjectURL(blobs[0]);
         Object.assign($('robotVideo'), { src: url, hidden: false });
