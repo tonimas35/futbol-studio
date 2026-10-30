@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       partido:
-        description: 'Un partido concreto: liga/id de ESPN (p. ej. esp.1/401882846), previa:liga/id para su previa o jornada:esp.1 para el resumen de la jornada. Vacío: los que acaben'
+        description: 'Un partido concreto: liga/id de ESPN (p. ej. esp.1/401882846; hace su carrusel), video:liga/id para su vídeo, previa:liga/id para su previa o jornada:esp.1 para el resumen de la jornada. Vacío: los que acaben'
         required: false
       dia:
         description: 'Su día (AAAA-MM-DD), si no es de hoy'

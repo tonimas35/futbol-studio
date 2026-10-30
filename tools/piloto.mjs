@@ -1,19 +1,19 @@
 // PILOTO AUTOMÁTICO · lo lanza GitHub Actions (.github/workflows/piloto.yml) cada 10 minutos en
-// las horas de partidos. Cuando acaba un partido de tus competiciones (piloto.json), hace el vídeo
-// con el mismo Studio, lo deja en la web y te avisa al móvil con ntfy: tocas el aviso y lo
-// compartes a TikTok. También la previa de los partidos grandes, los onces confirmados de los
+// las horas de partidos. Cuando acaba un partido de tus competiciones (piloto.json), hace el
+// carrusel en fotos 9:16 (o el vídeo, con «formato»: «video») con el mismo Studio, lo deja en la
+// web y te avisa al móvil con ntfy: tocas el aviso y lo compartes a TikTok. También la previa de los partidos grandes, los onces confirmados de los
 // partidos con un equipo de tu liga en cuanto ESPN los da y, al acabar la jornada de tu liga, su
 // resumen en fotos.
 //
 //   node tools/piloto.mjs buscar         los partidos acabados hace poco que aún no tienen vídeo
 //   node tools/piloto.mjs esperar        si alguno va por el final, vigila ESPN hasta su pitido final
-//   node tools/piloto.mjs video          hace sus vídeos (y el resumen de la jornada) y los sube a la release «videos»
+//   node tools/piloto.mjs video          hace sus carruseles o vídeos (y el resumen de la jornada) y los sube a la release «videos»
 //   node tools/piloto.mjs web <carpeta>  baja a la web los vídeos de los últimos días
 //   node tools/piloto.mjs avisar         manda el aviso de cada vídeo nuevo
 //
 // Los vídeos y su descripción se guardan como archivos de la release «videos» del repositorio
-// (<id>.mp4 y <id>.json; las fotos de la jornada, jornada-…-01-portada.png…), que es también la
-// lista de lo que ya está hecho. Sin API-Football: desde
+// (<id>.mp4 y <id>.json; las fotos de un partido, <id>-01-portada.png…; las de la jornada,
+// jornada-…-01-portada.png…), que es también la lista de lo que ya está hecho (su .json). Sin API-Football: desde
 // los servidores de GitHub (IPs compartidas) suspendería la cuenta.
 import { execFileSync } from 'node:child_process';
 import { appendFileSync, createReadStream, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
@@ -168,7 +168,7 @@ export function findJornada(boards, now, done, league = CONFIG.liga) {
   return done.has(id) ? [] : [{ kind: 'jornada', league, id, day: last.b.day, title: `Jornada de ${league} (${list.length} partidos)` }];
 }
 
-// Lo que ya está hecho: los <id>.mp4 de la release (y el <id>.json de cada jornada). Si GitHub no
+// Lo que ya está hecho: los <id>.mp4 y <id>.json de la release (las fotos de un partido y la jornada, su .json). Si GitHub no
 // contesta, error: sin la lista, el robot repetiría cada 10 minutos los vídeos y los avisos.
 async function releaseAssets() {
   const headers = process.env.GH_TOKEN ? { authorization: `Bearer ${process.env.GH_TOKEN}` } : {};
@@ -202,10 +202,12 @@ async function buscar() {
     return;
   }
   if (forced) {
-    const kind = (forced.match(/^(previa|onces):/i)?.[1] || 'final').toLowerCase();
-    const [league, id] = forced.replace(/^(previa|onces):/i, '').split('/');
-    if (!league || !/^\d+$/.test(id || '')) throw new Error(`Partido no válido: ${forced} (tiene que ser liga/id, p. ej. esp.1/401882846, previa:esp.1/401882846, onces:esp.1/401882846 o jornada:esp.1)`);
-    output('partidos', JSON.stringify([{ kind, league, id, day, title: `${league}/${id}` }]));
+    // «video:liga/id», el vídeo del partido aunque el formato sea el carrusel
+    const tag = (forced.match(/^(previa|onces|video):/i)?.[1] || '').toLowerCase();
+    const [league, id] = forced.replace(/^(previa|onces|video):/i, '').split('/');
+    if (!league || !/^\d+$/.test(id || '')) throw new Error(`Partido no válido: ${forced} (tiene que ser liga/id, p. ej. esp.1/401882846, video:esp.1/401882846, previa:esp.1/401882846, onces:esp.1/401882846 o jornada:esp.1)`);
+    const kind = tag === 'previa' || tag === 'onces' ? tag : 'final';
+    output('partidos', JSON.stringify([{ kind, league, id, day, title: `${league}/${id}`, ...(tag === 'video' ? { formato: 'video' } : {}) }]));
     return;
   }
   const { found, near, previas, onces, jornadas } = await scan();
@@ -223,7 +225,7 @@ async function buscar() {
 async function scan(ctx = {}) {
   const now = Date.now();
   const days = [...new Set([madridIso(now), madridIso(now - 6 * 3600e3)])];
-  ctx.done ??= new Set((await releaseAssets()).map(a => (a.name.match(/^(\d+(?:-previa|-onces)?)\.mp4$/) || a.name.match(/^(jornada-[\w-]+)\.json$/))?.[1]).filter(Boolean));
+  ctx.done ??= new Set((await releaseAssets()).map(a => (a.name.match(/^(\d+(?:-previa|-onces)?)\.(?:mp4|json)$/) || a.name.match(/^(jornada-[\w-]+)\.json$/))?.[1]).filter(Boolean));
   if (!ctx.local) {
     const teams = await getJson(`${ESPN}/${CONFIG.liga}/teams`);
     const ids = (teams?.sports?.[0]?.leagues?.[0]?.teams || []).map(t => String(t.team?.id));
@@ -441,6 +443,38 @@ export async function makeVideo(browser, base, p, dir) {
   }
 }
 
+// El carrusel del partido, como lo haría Toni: el enlace ?partido=…&preparar=1 lo genera sin crear
+// el vídeo y se baja en 9:16 para TikTok (el ZIP con las fotos y la descripción). Las fotos quedan
+// como 401882846-01-portada.png…, y su lista en 401882846.json.
+export async function makeCarrusel(browser, base, p, dir) {
+  const { ctx, page } = await studio(browser);
+  try {
+    await page.goto(`${base}/?partido=${p.league}/${p.id}&dia=${p.day}&preparar=1`, { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => (document.getElementById('downloadVerticalBtn').disabled === false && !document.getElementById('generateBtn').classList.contains('btn-loading'))
+      || /No se pudo|no da ese partido/.test(document.getElementById('toast').textContent), null, { timeout: 5 * 60e3 });
+    if (await page.$eval('#downloadVerticalBtn', el => el.disabled)) throw new Error(await page.textContent('#toast'));
+    const title = (await page.textContent('#renderedInfo')).split(' · ')[0] || p.title;
+    const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 10 * 60e3 }), page.click('#downloadVerticalBtn')]);
+    const zip = join(dir, `${p.id}.zip`), out = join(dir, `${p.id}-zip`);
+    await dl.saveAs(zip);
+    mkdirSync(out, { recursive: true });
+    execFileSync('unzip', ['-q', '-o', zip, '-d', out]);
+    const pngs = readdirSync(out).filter(n => n.endsWith('.png')).sort();
+    if (!pngs.length) throw new Error('el ZIP del carrusel no trae fotos');
+    // «futbol-rma-bar-2026-10-25-01-portada.png» → «401882832-01-portada.png»
+    const images = pngs.map(n => `${p.id}-${n.match(/-(\d{2}-[a-z][\w-]*)\.png$/)?.[1] || n.replace(/\.png$/, '')}.png`);
+    pngs.forEach((n, i) => renameSync(join(out, n), join(dir, images[i])));
+    const caption = readFileSync(join(out, 'descripcion-tiktok.txt'), 'utf8');
+    writeFileSync(join(dir, `${p.id}.json`), JSON.stringify({
+      id: p.id, kind: 'final', league: p.league, day: p.day, title, caption, images, made: new Date().toISOString(),
+    }, null, 2));
+    // El .json al final: es lo que dice que ya está hecho
+    return { id: p.id, kind: 'final', league: p.league, day: p.day, title, caption, images, files: [...images, `${p.id}.json`] };
+  } finally {
+    await ctx.close();
+  }
+}
+
 // El resumen de la jornada, como lo haría Toni: el enlace ?jornada= hace el carrusel y se baja en
 // 9:16 para TikTok (el ZIP con las fotos y la descripción). Las fotos quedan como
 // jornada-esp-1-2026-10-16-01-portada.png…, y su lista en jornada-esp-1-2026-10-16.json.
@@ -475,6 +509,14 @@ export async function makeJornada(browser, base, p, dir) {
   }
 }
 
+// Qué hace con cada uno: la jornada, sus fotos; la previa y los onces, su vídeo; un partido
+// acabado, el carrusel (o el vídeo, con «formato»: «video» en piloto.json o video:liga/id a mano).
+export function maker(p, formato = CONFIG.formato) {
+  if (p.kind === 'jornada') return makeJornada;
+  if (p.kind === 'previa' || p.kind === 'onces') return makeVideo;
+  return (p.formato || formato || 'carrusel') === 'video' ? makeVideo : makeCarrusel;
+}
+
 const gh = (...args) => execFileSync('gh', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] });
 
 async function video() {
@@ -492,9 +534,10 @@ async function video() {
   }
   const made = [];
   for (const p of list) {
-    console.log(`${p.kind === 'jornada' ? 'Jornada' : 'Vídeo'}: ${p.title} (${p.league}/${p.id})`);
+    const make = maker(p);
+    console.log(`${{ [makeJornada.name]: 'Jornada', [makeCarrusel.name]: 'Carrusel' }[make.name] || 'Vídeo'}: ${p.title} (${p.league}/${p.id})`);
     try {
-      const { files, ...v } = await (p.kind === 'jornada' ? makeJornada : makeVideo)(browser, base, p, dir);
+      const { files, ...v } = await make(browser, base, p, dir);
       gh('release', 'upload', RELEASE, ...files.map(f => join(dir, f)), '--clobber');
       made.push(v);
       console.log(`  hecho: ${v.title}`);
@@ -522,24 +565,25 @@ async function web(dir) {
   console.log(`En la web: ${names.length} archivos de vídeos`);
 }
 
-// El aviso al móvil: el resultado y, al tocarlo, el vídeo (o las fotos de la jornada) listo para
-// compartir. Si la web no se ha podido publicar (GitHub Pages sin activar), el vídeo tal cual,
-// desde la release (o la release entera, con las fotos).
-// El aviso al móvil. El de un partido acabado abre el Studio con ese partido (&preparar=1): tu
-// móvil pide las notas a API-Football con tu clave (el robot no puede) y te deja en «Crear vídeo»;
-// el vídeo del robot (sin notas), en su botón. El de los onces, igual: te deja en «Crear onces»,
+// El aviso al móvil: el resultado y, al tocarlo, las fotos (o el vídeo) listas para compartir. Si
+// la web no se ha podido publicar (GitHub Pages sin activar), desde la release: el vídeo tal cual,
+// o la release entera, con las fotos.
+// El de un partido acabado abre el Studio con ese partido (&preparar=1): tu móvil pide las notas a
+// API-Football con tu clave (el robot no puede) y te deja en «Compartir 9:16 · TikTok»; las fotos
+// (o el vídeo) del robot, sin notas, en su botón. El de los onces, igual: te deja en «Crear onces»,
 // para hacerlo con las caras de API-Football de los dos equipos. Las previas y la jornada, lo del robot.
 export function notice(v, topic, web, webOk = true) {
-  const photos = v.kind === 'jornada';
+  const photos = v.kind === 'jornada' || !!v.images?.length;
   const url = webOk ? `${web}?video=${v.id}`
     : `https://github.com/${repo()}/releases/${photos ? `tag/${RELEASE}` : `download/${RELEASE}/${v.id}.mp4`}`;
   const onces = v.kind === 'onces';
-  const studio = webOk && !photos && v.kind !== 'previa' && v.league && v.day
+  const studio = webOk && v.kind !== 'jornada' && v.kind !== 'previa' && v.league && v.day
     ? `${web}?${onces ? 'onces' : 'partido'}=${v.league}/${String(v.id).replace(/-onces$/, '')}&dia=${v.day}&preparar=1` : null;
+  const own = onces ? 'Crear los onces con caras' : photos ? 'Crear el carrusel con notas' : 'Crear el vídeo con notas';
   return {
     topic, title: `${{ previa: '🔥', onces: '📋', jornada: '📊' }[v.kind] || '⚽'} ${v.title}`, message: v.caption || (photos ? 'Tus fotos están listas' : 'Tu vídeo está listo'),
     click: studio || url, tags: [photos ? 'frame_with_picture' : 'movie_camera'], priority: onces ? 5 : 4,
-    actions: studio ? [{ action: 'view', label: onces ? 'Crear los onces con caras' : 'Crear el vídeo con notas', url: studio }, { action: 'view', label: 'Vídeo del robot', url }]
+    actions: studio ? [{ action: 'view', label: own, url: studio }, { action: 'view', label: photos ? 'Fotos del robot' : 'Vídeo del robot', url }]
       : [{ action: 'view', label: photos ? 'Abrir las fotos' : 'Abrir el vídeo', url }],
   };
 }

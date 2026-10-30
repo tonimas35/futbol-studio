@@ -747,8 +747,8 @@ try {
     check(askedNo.length === 0 && nv.voz === 'no' && !/voz|subtítulos/.test(nv.meta) && nv.mode === 'true' && !nv.saved.includes('"voz"'),
       `por defecto, el robot hace el vídeo sin voz ni subtítulos: no la pide (${nv.meta})`);
     await c7n.close();
-    // El aviso al móvil (&preparar=1): el carrusel y te deja en «Crear vídeo», sin crearlo; sin tu
-    // clave de API-Football, avisa de que va sin notas
+    // El aviso al móvil (&preparar=1, también el robot): el carrusel y te deja en «Compartir 9:16 ·
+    // TikTok», sin crear el vídeo; sin tu clave de API-Football, avisa de que va sin notas
     const { ctx: c7p, page: p7p } = await open({
       url: `${base}/?partido=esp.1/401882844&dia=2026-10-16&preparar=1`,
       before: async (ctx) => {
@@ -757,12 +757,12 @@ try {
         await ctx.route('https://site.api.espn.com/apis/site/v2/sports/soccer/esp.1/scoreboard?dates=20261016', (r) => r.fulfill(json(JSON.stringify(sbEnded))));
       },
     });
-    await p7p.waitForSelector('#videoBtn.btn-ready', { timeout: 60000 }).catch(() => {});
+    await p7p.waitForSelector('#shareVerticalBtn.btn-ready', { timeout: 60000 }).catch(() => {});
     await p7p.waitForTimeout(1500);
-    const pr = await p7p.evaluate(() => ({ ready: document.getElementById('videoBtn').classList.contains('btn-ready'), busy: document.getElementById('videoBtn').classList.contains('btn-loading'),
+    const pr = await p7p.evaluate(() => ({ ready: document.getElementById('shareVerticalBtn').classList.contains('btn-ready'), busy: document.getElementById('videoBtn').classList.contains('btn-loading'),
       out: !document.getElementById('videoOut').hidden, slides: !!document.getElementById('slide-portada'), toast: document.getElementById('toast').textContent, url: location.search }));
     check(pr.slides && pr.ready && !pr.busy && !pr.out && pr.url === '' && /sin notas: pega tu clave de API-Football/.test(pr.toast),
-      `desde el aviso, el carrusel y te deja en «Crear vídeo» sin crearlo; sin tu clave de API-Football, avisa de que va sin notas (${pr.toast})`);
+      `desde el aviso, el carrusel y te deja en «Compartir 9:16 · TikTok» sin crear el vídeo; sin tu clave de API-Football, avisa de que va sin notas (${pr.toast})`);
     await c7p.close();
     // La respuesta (el final de un Stitch, ?respuesta= con su guion; lo usa tools/corto.mjs): las
     // escenas que pide, en su orden, con el jugador (por una parte de su nombre), sus números, el
@@ -899,6 +899,17 @@ try {
       && nn.actions.map((a) => a.label).join(' | ') === 'Crear el vídeo con notas | Vídeo del robot' && nn.actions[1].url === 'https://tonimas35.github.io/futbol-studio/?video=401882844'
       && pl.notice({ id: '1-previa', kind: 'previa', league: 'esp.1', day: '2026-10-16', title: 'x' }, 't', 'https://w/').click === 'https://w/?video=1-previa',
       `el aviso de un partido abre el Studio para hacerlo con tus notas, y el del robot en su botón (${nn.click})`);
+    // Por defecto, el carrusel en fotos (el vídeo, con «formato»: «video» o video:liga/id); la jornada,
+    // sus fotos, y la previa y los onces, su vídeo. El aviso de las fotos de un partido, igual que el del vídeo
+    check(pl.maker({ kind: 'final' }, 'carrusel') === pl.makeCarrusel && pl.maker({ kind: 'final' }, undefined) === pl.makeCarrusel
+      && pl.maker({ kind: 'final' }, 'video') === pl.makeVideo && pl.maker({ kind: 'final', formato: 'video' }, 'carrusel') === pl.makeVideo
+      && pl.maker({ kind: 'previa' }, 'carrusel') === pl.makeVideo && pl.maker({ kind: 'onces' }, 'carrusel') === pl.makeVideo
+      && pl.maker({ kind: 'jornada' }, 'video') === pl.makeJornada && JSON.parse(readFileSync(join(REPO, 'piloto.json'))).formato === 'carrusel',
+      'al pitido final, el robot hace el carrusel (y el vídeo solo si se le pide)');
+    const nf = pl.notice({ id: '401882844', kind: 'final', league: 'esp.1', day: '2026-10-16', title: 'Deportivo 1-0 Levante', caption: 'x', images: ['401882844-01-portada.png'] }, 'tema', 'https://w/');
+    check(nf.click === 'https://w/?partido=esp.1/401882844&dia=2026-10-16&preparar=1' && nf.actions.map((a) => a.label).join(' | ') === 'Crear el carrusel con notas | Fotos del robot'
+      && nf.actions[1].url === 'https://w/?video=401882844' && nf.tags[0] === 'frame_with_picture',
+      `y su aviso: el carrusel con tus notas en el Studio, y las fotos del robot en su botón (${nf.actions.map((a) => a.label).join(' | ')})`);
     // Las previas: 3 horas antes de los partidos grandes (los del Madrid, el Barça y el Atlético) y de
     // todos los de la Champions, una vez y nunca a menos de 10 minutos del inicio
     const pre = (id, home, away, iso) => ({ id, date: iso, status: { type: { state: 'pre' } },
