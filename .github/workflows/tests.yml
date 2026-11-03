@@ -21,6 +21,9 @@ jobs:
         with:
           node-version: 22
 
+      - name: Test the Quiniela model (Python, no network)
+        run: python3 -m unittest discover -s tools/quiniela
+
       - name: Test the Studio in the browser
         run: |
           npm install --no-save --no-package-lock --silent playwright-core@1 html2canvas@1.4.1 jszip@3.10.1 mp4-muxer@5.2.1 three@0.186.1
