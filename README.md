@@ -286,6 +286,7 @@ En `tools/quiniela/` (Python, solo la biblioteca estándar: funciona en cualquie
 - **El pronóstico:** cuando faltan menos de 30 horas para que cierre la jornada (la que da Losilla como abierta), el robot hace el pronóstico con las cuotas del momento y las 2 fotos. Te llega un aviso 🎯 «Mi quiniela · jornada 20». Lo tocas, se abren las fotos con su descripción y le das a «Compartir 2 fotos».
 - **El resultado:** cuando Losilla da la jornada por escrutada (todos los partidos acabados), el robot hace la revisión, vuelve a aprender y te manda las fotos de «Así acabó», con la nota.
 - Lo que aprende (el pronóstico de cada jornada, el registro, los pesos y el histórico) lo guarda en el repo él solo, con `[skip ci]` para no gastar minutos en pruebas.
+- **El botón «Quiniela»** (arriba en el Studio, al lado de «Para tu IA») abre la última que ha hecho el robot, el pronóstico o el resultado, con sus fotos y su descripción. Sale de `v/quiniela.json`, la lista que deja la web con las quinielas de la semana. Abierto como archivo, va a la de la web.
 - **A mano:** Actions → Piloto automático → Run workflow, con `quiniela:pronostico` (la jornada abierta), `quiniela:resultado` (la última pronosticada) o `quiniela:resultado:2027-19`.
 
 **A mano, en el ordenador:**

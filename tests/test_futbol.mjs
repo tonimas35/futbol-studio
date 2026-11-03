@@ -984,6 +984,10 @@ try {
     const nq = pl.notice({ id: 'quiniela-2027-19-pronostico', kind: 'quiniela', title: 'Mi quiniela · jornada 19', caption: 'x', images: ['quiniela-2027-19-pronostico-01.png'] }, 't', 'https://w/');
     check(nq.title === '🎯 Mi quiniela · jornada 19' && nq.click === 'https://w/?video=quiniela-2027-19-pronostico' && nq.actions.length === 1 && nq.actions[0].label === 'Abrir las fotos',
       `con su aviso («${nq.title}»), que abre sus fotos`);
+    const qi = pl.quinielaIndex([{ name: 'quiniela-2027-19-pronostico.json', created_at: '2026-11-03T12:20:00Z' }, { name: 'quiniela-2027-19-pronostico-01.png', created_at: '2026-11-03T12:20:00Z' },
+      { name: 'quiniela-2027-19-resultado.json', created_at: '2026-11-06T22:10:00Z' }, { name: '401882844.json', created_at: '2026-11-06T22:00:00Z' }], () => ({ title: 't' }));
+    check(qi.length === 2 && qi[0].id === 'quiniela-2027-19-resultado' && qi[1].id === 'quiniela-2027-19-pronostico' && qi[0].title === 't',
+      'y la lista de quinielas de la web, la más nueva primero (la abre el botón «Quiniela»)');
     const cfg = JSON.parse(readFileSync(join(REPO, 'piloto.json')));
     const wf = readFileSync(join(REPO, '.github/workflows/piloto.yml'), 'utf8');
     check(cfg.liga === 'esp.1' && cfg.competiciones.includes('uefa.champions') && cfg.previas.equipos.includes('86') && cfg.previas.horasAntes === 3 && /cron: '3,13,23,33,43,53 11-23 \* \* \*'/.test(wf) && /tools\/piloto\.mjs esperar/.test(wf),
