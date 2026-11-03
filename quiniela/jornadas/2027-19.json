@@ -1,7 +1,7 @@
 {
  "temporada": 2027,
  "jornada": 19,
- "creado": "2026-11-03T09:13+00:00",
+ "creado": "2026-11-03T09:45+00:00",
  "dobles": 4,
  "pesos": {
   "mercado": 0.5284,
@@ -29,6 +29,10 @@
    "dia": "MAR",
    "hora": "21:00",
    "div": 1,
+   "forma": {
+    "local": "VVDDV",
+    "visitante": "VVVDE"
+   },
    "espn": {
     "id": "401915387",
     "liga": "uefa.champions",
@@ -46,7 +50,7 @@
      0.11954459203036052
     ],
     "linea": 4.5,
-    "p_mas": 0.44362292051756
+    "p_mas": 0.4400538841490795
    },
    "fuentes": {
     "mercado": [
@@ -70,7 +74,8 @@
     0.1257,
     0.1034
    ],
-   "signos": "1"
+   "signos": "1",
+   "signo_simple": "1"
   },
   {
    "n": 2,
@@ -79,6 +84,10 @@
    "dia": "MAR",
    "hora": "21:00",
    "div": 5,
+   "forma": {
+    "local": "VVDDV",
+    "visitante": "DEDEV"
+   },
    "espn": {
     "id": "401915384",
     "liga": "uefa.champions",
@@ -105,9 +114,9 @@
      0.2179
     ],
     "losilla": [
-     0.5488,
-     0.2293,
-     0.2219
+     0.552,
+     0.2288,
+     0.2192
     ],
     "publico": [
      0.58,
@@ -116,11 +125,12 @@
     ]
    },
    "prob": [
-    0.5676,
-    0.2212,
-    0.2112
+    0.5692,
+    0.2209,
+    0.2098
    ],
-   "signos": "1"
+   "signos": "1",
+   "signo_simple": "1"
   },
   {
    "n": 3,
@@ -129,6 +139,10 @@
    "dia": "MAR",
    "hora": "21:00",
    "div": 5,
+   "forma": {
+    "local": "DEDDD",
+    "visitante": "VVEVV"
+   },
    "espn": {
     "id": "401915308",
     "liga": "uefa.champions",
@@ -170,7 +184,8 @@
     0.2417,
     0.3301
    ],
-   "signos": "12"
+   "signos": "12",
+   "signo_simple": "1"
   },
   {
    "n": 4,
@@ -179,6 +194,10 @@
    "dia": "MAR",
    "hora": "21:00",
    "div": 1,
+   "forma": {
+    "local": "EDVVD",
+    "visitante": "VVVVV"
+   },
    "espn": {
     "id": "401915309",
     "liga": "uefa.champions",
@@ -205,9 +224,9 @@
      0.5494
     ],
     "losilla": [
-     0.2271,
-     0.2157,
-     0.5572
+     0.2306,
+     0.2169,
+     0.5525
     ],
     "publico": [
      0.12,
@@ -216,11 +235,12 @@
     ]
    },
    "prob": [
-    0.2108,
-    0.2044,
-    0.5848
+    0.2126,
+    0.2051,
+    0.5823
    ],
-   "signos": "2"
+   "signos": "2",
+   "signo_simple": "2"
   },
   {
    "n": 5,
@@ -229,6 +249,10 @@
    "dia": "MIE",
    "hora": "18:45",
    "div": 5,
+   "forma": {
+    "local": "VDDVD",
+    "visitante": "VVVVV"
+   },
    "espn": {
     "id": "401915383",
     "liga": "uefa.champions",
@@ -270,7 +294,8 @@
     0.1233,
     0.7971
    ],
-   "signos": "2"
+   "signos": "2",
+   "signo_simple": "2"
   },
   {
    "n": 6,
@@ -279,6 +304,10 @@
    "dia": "MIE",
    "hora": "18:45",
    "div": 5,
+   "forma": {
+    "local": "DVEDD",
+    "visitante": "VVVVD"
+   },
    "espn": {
     "id": "401915382",
     "liga": "uefa.champions",
@@ -305,9 +334,9 @@
      0.6268
     ],
     "losilla": [
-     0.1741,
-     0.2041,
-     0.6218
+     0.1734,
+     0.2027,
+     0.6239
     ],
     "publico": [
      0.13,
@@ -316,11 +345,12 @@
     ]
    },
    "prob": [
-    0.1555,
-    0.1897,
-    0.6548
+    0.1551,
+    0.189,
+    0.6559
    ],
-   "signos": "2"
+   "signos": "2",
+   "signo_simple": "2"
   },
   {
    "n": 7,
@@ -329,6 +359,10 @@
    "dia": "MIE",
    "hora": "21:00",
    "div": 5,
+   "forma": {
+    "local": "EVVVE",
+    "visitante": "VDVEV"
+   },
    "espn": {
     "id": "401915304",
     "liga": "uefa.champions",
@@ -370,7 +404,8 @@
     0.2234,
     0.209
    ],
-   "signos": "1"
+   "signos": "1",
+   "signo_simple": "1"
   },
   {
    "n": 8,
@@ -379,6 +414,10 @@
    "dia": "MIE",
    "hora": "21:00",
    "div": 5,
+   "forma": {
+    "local": "VDDVV",
+    "visitante": "DVEVD"
+   },
    "espn": {
     "id": "401915301",
     "liga": "uefa.champions",
@@ -405,9 +444,9 @@
      0.2585
     ],
     "losilla": [
-     0.4838,
-     0.2556,
-     0.2606
+     0.4842,
+     0.2558,
+     0.26
     ],
     "publico": [
      0.45,
@@ -416,11 +455,12 @@
     ]
    },
    "prob": [
-    0.4922,
-    0.2521,
-    0.2557
+    0.4924,
+    0.2522,
+    0.2554
    ],
-   "signos": "12"
+   "signos": "12",
+   "signo_simple": "1"
   },
   {
    "n": 9,
@@ -429,6 +469,10 @@
    "dia": "MIE",
    "hora": "21:00",
    "div": 5,
+   "forma": {
+    "local": "DVDVD",
+    "visitante": "VVVVV"
+   },
    "espn": {
     "id": "401915305",
     "liga": "uefa.champions",
@@ -455,9 +499,9 @@
      0.4423
     ],
     "losilla": [
-     0.318,
-     0.2474,
-     0.4346
+     0.317,
+     0.2481,
+     0.4349
     ],
     "publico": [
      0.25,
@@ -466,11 +510,12 @@
     ]
    },
    "prob": [
-    0.306,
-    0.24,
-    0.4539
+    0.3055,
+    0.2404,
+    0.4541
    ],
-   "signos": "12"
+   "signos": "12",
+   "signo_simple": "2"
   },
   {
    "n": 10,
@@ -479,6 +524,10 @@
    "dia": "MIE",
    "hora": "21:00",
    "div": 5,
+   "forma": {
+    "local": "DDVVV",
+    "visitante": "VVDVD"
+   },
    "espn": {
     "id": "401915306",
     "liga": "uefa.champions",
@@ -520,7 +569,8 @@
     0.1874,
     0.6478
    ],
-   "signos": "2"
+   "signos": "2",
+   "signo_simple": "2"
   },
   {
    "n": 11,
@@ -529,6 +579,10 @@
    "dia": "MIE",
    "hora": "21:00",
    "div": 5,
+   "forma": {
+    "local": "DDDDE",
+    "visitante": "VEVDV"
+   },
    "espn": {
     "id": "401915381",
     "liga": "uefa.champions",
@@ -546,7 +600,7 @@
      0.751412429378531
     ],
     "linea": 3.5,
-    "p_mas": 0.42236024844720504
+    "p_mas": 0.4193548387096774
    },
    "fuentes": {
     "mercado": [
@@ -555,9 +609,9 @@
      0.7514
     ],
     "losilla": [
-     0.0907,
-     0.1542,
-     0.7551
+     0.0911,
+     0.1537,
+     0.7552
     ],
     "publico": [
      0.09,
@@ -566,11 +620,12 @@
     ]
    },
    "prob": [
-    0.0754,
-    0.1387,
+    0.0755,
+    0.1384,
     0.786
    ],
-   "signos": "2"
+   "signos": "2",
+   "signo_simple": "2"
   },
   {
    "n": 12,
@@ -579,6 +634,10 @@
    "dia": "JUE",
    "hora": "18:45",
    "div": 1,
+   "forma": {
+    "local": "EVVVD",
+    "visitante": "VVDDV"
+   },
    "espn": {
     "id": "401915537",
     "liga": "uefa.europa",
@@ -620,7 +679,8 @@
     0.2376,
     0.2343
    ],
-   "signos": "1"
+   "signos": "1",
+   "signo_simple": "1"
   },
   {
    "n": 13,
@@ -629,6 +689,10 @@
    "dia": "JUE",
    "hora": "21:00",
    "div": 1,
+   "forma": {
+    "local": "DVVED",
+    "visitante": "EEVVV"
+   },
    "espn": {
     "id": "401915531",
     "liga": "uefa.europa",
@@ -670,7 +734,8 @@
     0.2556,
     0.3042
    ],
-   "signos": "12"
+   "signos": "12",
+   "signo_simple": "1"
   },
   {
    "n": 14,
@@ -679,6 +744,10 @@
    "dia": "JUE",
    "hora": "21:00",
    "div": 1,
+   "forma": {
+    "local": "EDDVV",
+    "visitante": "VEDDV"
+   },
    "espn": {
     "id": "401915821",
     "liga": "uefa.europa.conf",
@@ -720,7 +789,8 @@
     0.2269,
     0.6268
    ],
-   "signos": "2"
+   "signos": "2",
+   "signo_simple": "2"
   },
   {
    "n": 15,
@@ -729,6 +799,10 @@
    "dia": "MAR",
    "hora": "21:00",
    "div": 1,
+   "forma": {
+    "local": "VVEVV",
+    "visitante": "VEVVE"
+   },
    "espn": {
     "id": "401915386",
     "liga": "uefa.champions",
@@ -746,7 +820,7 @@
      0.4056902002107482
     ],
     "linea": 3.5,
-    "p_mas": 0.4632426988922458
+    "p_mas": 0.43439716312056736
    },
    "fuentes": {
     "mercado": [
@@ -761,26 +835,26 @@
     0.4137
    ],
    "goles_esperados": [
-    1.66,
-    1.84
+    1.6,
+    1.77
    ],
    "goles": {
     "L": [
-     0.1902,
-     0.3157,
-     0.262,
-     0.2322
+     0.2029,
+     0.3236,
+     0.2581,
+     0.2154
     ],
     "V": [
-     0.1589,
-     0.2923,
-     0.2688,
-     0.28
+     0.17,
+     0.3013,
+     0.2669,
+     0.2618
     ]
    },
    "goles_fuente": "cuotas",
    "signos": "1-1",
-   "p_signos": 0.0923
+   "p_signos": 0.0975
   }
  ],
  "resumen": {
@@ -788,24 +862,33 @@
   "p10": 0.5232,
   "p11": 0.2964,
   "p12": 0.1227,
-  "p14": 0.004099,
+  "p14": 0.004097,
   "apuestas": 16,
   "coste": 12.0
+ },
+ "resumen_simple": {
+  "esperados": 8.35,
+  "p10": 0.2618,
+  "p11": 0.1106,
+  "p12": 0.0331,
+  "p14": 0.000539,
+  "apuestas": 1,
+  "coste": 1.5
  },
  "valor": [
   {
    "n": 4,
    "signo": "1",
-   "prob": 0.211,
+   "prob": 0.213,
    "publico": 0.12,
-   "ratio": 1.76
+   "ratio": 1.77
   },
   {
    "n": 4,
    "signo": "X",
-   "prob": 0.204,
+   "prob": 0.205,
    "publico": 0.12,
-   "ratio": 1.7
+   "ratio": 1.71
   },
   {
    "n": 12,
@@ -826,9 +909,9 @@
   {
    "n": 4,
    "signo": "2",
-   "prob": 0.585,
+   "prob": 0.582,
    "publico": 0.76,
-   "diferencia": 0.175
+   "diferencia": 0.178
   },
   {
    "n": 14,

@@ -188,18 +188,37 @@ def emparejar(partidos, eventos, minimo=0.62):
     return res
 
 
-def cuotas_espn(evento):
-    """Probabilidades 1X2 sin margen y línea de goles, de las cuotas que muestra ESPN."""
-    d = get_json(f"{ESPN}/{evento['liga']}/summary?event={evento['id']}")
-    for o in (d or {}).get('pickcenter', []) or []:
+def _forma(eventos):
+    """Últimos partidos de un equipo, del más antiguo al más reciente: V (victoria), E (empate), D (derrota)."""
+    letra = {'W': 'V', 'D': 'E', 'L': 'D'}
+    ev = sorted(eventos or [], key=lambda e: e.get('gameDate', ''))
+    return ''.join(letra.get(e.get('gameResult'), '') for e in ev)
+
+
+def resumen_espn(evento):
+    """Cuotas (1X2 sin margen y línea de goles) y forma de los dos equipos, de la ficha del partido en ESPN."""
+    d = get_json(f"{ESPN}/{evento['liga']}/summary?event={evento['id']}") or {}
+    out = {}
+    for o in d.get('pickcenter', []) or []:
         h = _prob_americana((o.get('homeTeamOdds') or {}).get('moneyLine'))
         a = _prob_americana((o.get('awayTeamOdds') or {}).get('moneyLine'))
         x = _prob_americana((o.get('drawOdds') or {}).get('moneyLine'))
         if None in (h, a, x): continue
         ou = o.get('overUnder'); ov = _prob_americana(o.get('overOdds')); un = _prob_americana(o.get('underOdds'))
         mas = ov / (ov + un) if ov and un else None
-        return dict(casa=(o.get('provider') or {}).get('name'), p=sin_margen([h, x, a]), linea=ou, p_mas=mas)
-    return None
+        out['cuotas'] = dict(casa=(o.get('provider') or {}).get('name'), p=sin_margen([h, x, a]), linea=ou, p_mas=mas)
+        break
+    forma = {}
+    for t in d.get('lastFiveGames', []) or []:
+        tid = str((t.get('team') or {}).get('id'))
+        lado = 'local' if tid == str(evento.get('local_id')) else 'visitante' if tid == str(evento.get('visitante_id')) else None
+        if lado: forma[lado] = _forma(t.get('events'))
+    if forma: out['forma'] = forma
+    return out
+
+
+def cuotas_espn(evento):
+    return resumen_espn(evento).get('cuotas')
 
 
 def resultado_espn(evento):

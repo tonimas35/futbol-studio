@@ -26,6 +26,9 @@ CSS = '''
 .q .k{display:flex;gap:5px;justify-content:flex-end}
 .q .k b{width:44px;height:44px;display:grid;place-items:center;border-radius:7px;font-family:Anton;font-size:26px;font-weight:400;color:rgba(11,13,16,.22);border:3px solid rgba(11,13,16,.12)}
 .q .k b.on{background:var(--lime);color:var(--ink);border-color:var(--ink)}
+.q .k b.dob{background:repeating-linear-gradient(135deg,var(--lime) 0 5px,#fff 5px 10px);color:var(--ink);border-color:var(--ink)}
+.ley{display:flex;gap:26px;align-items:center;font-family:'Barlow Condensed';font-weight:800;font-size:26px;text-transform:uppercase;letter-spacing:.04em}
+.ley i{display:inline-block;width:30px;height:30px;border:3px solid var(--ink);border-radius:6px;vertical-align:-7px;margin-right:8px}
 .q.r{grid-template-columns:38px minmax(0,1fr) 112px 150px}
 .q .r{font-family:Anton;font-size:34px;text-align:center}
 .q.r .k{align-items:center;gap:8px}
@@ -57,9 +60,22 @@ def motivo(p, val):
     if v:
         k2 = '1X2'.index(v['signo']); eq2 = [nombre(p['local']), 'el empate', nombre(p['visitante'])][k2]
         return f"La gente le da a {eq2} un {round(100 * v['publico'])}%. Yo un {round(100 * v['prob'])}%"
-    if len(p['signos']) > 1: return f"Igualado: {round(100 * pr[0])} - {round(100 * pr[1])} - {round(100 * pr[2])}"
+    racha = forma_texto(p)
+    if len(p['signos']) > 1: return f"Igualado: {round(100 * pr[0])} - {round(100 * pr[1])} - {round(100 * pr[2])}" + (f" · {racha}" if racha else '')
+    if racha: return f"{eq}, un {round(100 * pr[k])}% · {racha}"
     if pr[k] >= 0.75: return f"{eq} gana {round(100 * pr[k])} de cada 100"
     return f"{eq}, un {round(100 * pr[k])}%"
+
+
+def forma_texto(p):
+    """Una racha que se note (de sus últimos 5 partidos, en todas las competiciones)."""
+    f = p.get('forma') or {}
+    for lado, eq in (('local', p['local']), ('visitante', p['visitante'])):
+        h = f.get(lado, '')
+        v = len(h) - len(h.rstrip('V')); sin = len(h) - len(h.rstrip('ED'))
+        if v >= 4: return f"{nombre(eq)}: {v} victorias seguidas"
+        if sin >= 4: return f"{nombre(eq)}: {sin} sin ganar"
+    return ''
 
 
 def pagina(cuerpo):
@@ -81,13 +97,17 @@ def pronostico(o):
         if p['n'] == 15:
             k = f'<b class="on" style="width:auto;padding:0 14px">{p.get("signos", "")}</b>'
         else:
-            k = ''.join(f'<b class="{"on" if s in p["signos"] else ""}">{s}</b>' for s in '1X2')
+            base = p.get('signo_simple', p['signos'][:1])
+            k = ''.join(f'<b class="{"on" if s == base else "dob" if s in p["signos"] else ""}">{s}</b>' for s in '1X2')
         filas.append(f'<div class="q{" p15" if p["n"] == 15 else ""}"><span class="n">{"P15" if p["n"] == 15 else p["n"]}</span>'
                      f'<div><div class="m">{a}{nombre(p["local"])} – {nombre(p["visitante"])}{b}</div><div class="w">{motivo(p, o["valor"])}</div></div>'
                      f'<div class="k">{k}</div></div>')
     s1 = marco(1, 'left:420px;right:0', f'''
   <div class="chip" style="position:absolute;left:60px;top:385px;font-size:30px">Jornada {o["jornada"]} · mi pronóstico</div>
-  <h1 class="h" style="position:absolute;left:60px;width:860px;top:440px;font-size:84px">Mi quiniela</h1>
+  <h1 class="h" style="position:absolute;left:60px;width:640px;white-space:nowrap;top:440px;font-size:84px">Mi quiniela</h1>
+  <div class="ley" style="position:absolute;right:160px;top:452px;flex-direction:column;align-items:flex-start;gap:8px">
+    <span><i style="background:var(--lime)"></i>Sin dobles</span>
+    <span><i style="background:repeating-linear-gradient(135deg,var(--lime) 0 5px,#fff 5px 10px)"></i>+ {o["dobles"]} dobles</span></div>
   <div style="position:absolute;left:60px;width:860px;top:560px">{"".join(filas)}</div>''', marca=False)
     items = ''
     for v in o.get('inflados', [])[:4]:
