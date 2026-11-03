@@ -278,6 +278,34 @@ El partido en 30 a 40 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
 - **Volumen:** la barra «Volumen» (se recuerda) y «Escuchar la mezcla», que crea solo el sonido en unos segundos. «↺ Por defecto» vuelve a la urbana al 100 %.
 - **El archivo:** MP4 (H.264 + AAC) codificado en el navegador con WebCodecs y `mp4-muxer`. Si el navegador no tiene H.264, sale en VP9 y avisa; con Chrome sale en H.264. También se puede bajar la música sola en WAV. En el iPhone (Safari), el codificador de AAC da una configuración que no vale ([WebKit 302253](https://bugs.webkit.org/show_bug.cgi?id=302253)) y el vídeo salía mudo: el Studio escribe siempre la buena (AAC-LC, la frecuencia y estéreo).
 
+## La Quiniela: un modelo que aprende de sus fallos
+
+En `tools/quiniela/` (Python, solo la biblioteca estándar: funciona en cualquier sitio sin instalar nada). Todo lo que guarda va a `quiniela/`.
+
+**Cada semana:**
+
+```
+python3 tools/quiniela/quiniela.py pronostico            # la jornada que viene (o --jornada 19)
+python3 tools/quiniela/post.py pronostico 19             # las 2 fotos 9:16 …
+node tools/quiniela/render.mjs quiniela/posts/2027-19-pronostico.html   # … en PNG
+python3 tools/quiniela/quiniela.py revisar --jornada 19  # cuando acaba: aciertos, fallos y aprende
+python3 tools/quiniela/post.py resultado 19              # las fotos del resultado
+```
+
+**De dónde salen los datos:**
+- **Eduardo Losilla** (`api.eduardolosilla.es`): los 15 partidos de cada jornada, el resultado, lo que apostó la gente (% LAE), los premios y acertantes de cada categoría y su «probabilidad real». Desde la 2012/13: `quiniela/historico.jsonl` (936 jornadas al empezar). `python3 tools/quiniela/quiniela.py historico` baja lo que falte.
+- **ESPN**: las cuotas de las casas (DraftKings) de cada partido, sin su margen. Los nombres de Losilla («AT.MADRID», «B.MUNICH») se emparejan solos con los de ESPN.
+
+**El modelo** (`modelo.py`): junta tres opiniones de cada partido (cuotas, probabilidad de Losilla y lo que apuesta la gente) con unos pesos y un ajuste por signo (por si los empates salen más de lo que dicen todos). Los pesos se aprenden con el histórico y con cada jornada que revisamos (`quiniela/pesos.json` guarda cómo cambian). El Pleno al 15 sale de los goles esperados que reproducen las cuotas (o de Losilla si no hay).
+
+**La estrategia** (`estrategia.py`): lo más probable en cada partido y los dobles (4 por defecto) donde el segundo signo tiene más opciones. Calcula los aciertos esperados y la probabilidad de 10, 11, 12… También dónde la gente se pasa (un signo que apuesta mucho más de lo que dicen las cuentas), que es lo de la segunda foto.
+
+**La revisión** (`revisar`): cuántos acertamos frente a los esperados, cuánto se habría cobrado de verdad con los premios de esa jornada, cada fallo con su tipo (*sorpresa*: le dábamos menos de un 22%; *igualado*: el favorito no llegaba al 50%; *falla el favorito*) y si alguna fuente lo veía más claro. Guarda cada partido en `quiniela/registro.jsonl` y vuelve a aprender. El informe queda en `quiniela/jornadas/<temporada>-<jornada>-revision.md`.
+
+**Lo que dice el histórico** (`quiniela/analisis.md`, con `quiniela.py analisis`): cómo salen los signos, que la gente se pasa con los favoritos (a lo que apuesta un 74% sale un 62%) y que la probabilidad de Losilla está bien calibrada, qué predice mejor, cuántos aciertos da jugar a lo lógico (con 4 dobles, 8,7 de media y nunca 14 en 936 jornadas) y los premios (con 10 aciertos, un tercio de las jornadas no se cobra).
+
+Pruebas sin red: `python3 -m unittest discover -s tools/quiniela` (también en `tests.yml`).
+
 ## Datos y ajustes
 
 - **ESPN**, sin claves ni servidor (tiene CORS abierto, así que funciona abriendo el archivo):
@@ -305,6 +333,7 @@ El partido en 30 a 40 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
 | `tools/piloto.mjs` | El robot del piloto automático: busca los partidos acabados, hace el vídeo con el Studio, lo deja en la web y avisa |
 | `tools/corto.mjs` | El final de un Stitch: un vídeo corto con las escenas y los textos de un guion, con el Studio (lo usa la skill `/stitch`) |
 | `.claude/skills/stitch/SKILL.md` | La skill `/stitch`: cómo hace Claude el final de un Stitch a partir de una captura |
+| `tools/quiniela/` | La Quiniela: datos (Losilla y ESPN), el modelo que aprende, la estrategia, la revisión y las fotos; lo que guarda está en `quiniela/` |
 | `tools/voz_modal.py` | La voz en Modal: el guion dicho con la voz clonada, con Qwen3-TTS, para el robot y para el Studio a mano |
 | `.github/workflows/piloto.yml` | Lanza el robot cada 10 minutos en las horas de partidos (o a mano) |
 | `.github/workflows/web.yml` | Publica el Studio y los vídeos del robot en GitHub Pages |

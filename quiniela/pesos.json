@@ -1,0 +1,46 @@
+{
+ "pesos": {
+  "mercado": 0.5284,
+  "losilla": 0.5284,
+  "publico": 0.0343,
+  "sesgo": [
+   0.0,
+   0.0338,
+   0.0301
+  ],
+  "solo_publico": {
+   "publico": 0.7017,
+   "sesgo": [
+    0.0,
+    -0.0505,
+    0.0045
+   ]
+  }
+ },
+ "historial": [
+  {
+   "fecha": "2026-11-03T09:11+00:00",
+   "filas": 13104,
+   "jornadas_propias": 0,
+   "pesos": {
+    "mercado": 0.5284,
+    "losilla": 0.5284,
+    "publico": 0.0343,
+    "sesgo": [
+     0.0,
+     0.0338,
+     0.0301
+    ]
+   },
+   "evaluacion": {
+    "historico": {
+     "n": 3000,
+     "logloss": 0.9471,
+     "brier": 0.5616,
+     "acierto": 0.5537
+    },
+    "registro": null
+   }
+  }
+ ]
+}
