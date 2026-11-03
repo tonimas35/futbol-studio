@@ -4,7 +4,8 @@ name: Piloto automático
 # de tus competiciones (piloto.json), hace el vídeo con el Studio, lo publica en la web y te avisa
 # al móvil con ntfy. Si alguno va por el final, se queda vigilándolo cada 30 segundos para avisar
 # a los 3 o 4 minutos del pitido final. Y 3 horas antes de los partidos grandes, su previa; y al
-# acabar la jornada de LaLiga, su resumen en fotos. A mano (Run workflow), hace el de un partido
+# acabar la jornada de LaLiga, su resumen en fotos. Y la Quiniela: su pronóstico el día antes del
+# cierre y su resultado cuando está escrutada (tools/quiniela). A mano (Run workflow), hace el de un partido
 # concreto.
 # Ver tools/piloto.mjs. Los minutos van en lista (3, 13, 23…; no en el minuto 0, el más cargado de
 # GitHub): con «3-59/10» GitHub no lanzaba ninguna. Tampoco así, de momento: el que lo lanza es el
@@ -15,7 +16,7 @@ on:
   workflow_dispatch:
     inputs:
       partido:
-        description: 'Un partido concreto: liga/id de ESPN (p. ej. esp.1/401882846; hace su carrusel), video:liga/id para su vídeo, previa:liga/id para su previa o jornada:esp.1 para el resumen de la jornada. Vacío: los que acaben'
+        description: 'Un partido concreto: liga/id de ESPN (p. ej. esp.1/401882846; hace su carrusel), video:liga/id para su vídeo, previa:liga/id para su previa jornada:esp.1 para el resumen de la jornada, quiniela:pronostico o quiniela:resultado (o quiniela:resultado:2027-19). Vacío: los que acaben'
         required: false
       dia:
         description: 'Su día (AAAA-MM-DD), si no es de hoy'

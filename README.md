@@ -282,7 +282,13 @@ El partido en 30 a 40 segundos, en 1080×1920 para TikTok, Reels y Shorts, con m
 
 En `tools/quiniela/` (Python, solo la biblioteca estándar: funciona en cualquier sitio sin instalar nada). Todo lo que guarda va a `quiniela/`.
 
-**Cada semana:**
+**En el piloto automático (no hay que hacer nada):**
+- **El pronóstico:** cuando faltan menos de 30 horas para que cierre la jornada (la que da Losilla como abierta), el robot hace el pronóstico con las cuotas del momento y las 2 fotos. Te llega un aviso 🎯 «Mi quiniela · jornada 20». Lo tocas, se abren las fotos con su descripción y le das a «Compartir 2 fotos».
+- **El resultado:** cuando Losilla da la jornada por escrutada (todos los partidos acabados), el robot hace la revisión, vuelve a aprender y te manda las fotos de «Así acabó», con la nota.
+- Lo que aprende (el pronóstico de cada jornada, el registro, los pesos y el histórico) lo guarda en el repo él solo, con `[skip ci]` para no gastar minutos en pruebas.
+- **A mano:** Actions → Piloto automático → Run workflow, con `quiniela:pronostico` (la jornada abierta), `quiniela:resultado` (la última pronosticada) o `quiniela:resultado:2027-19`.
+
+**A mano, en el ordenador:**
 
 ```
 python3 tools/quiniela/quiniela.py pronostico            # la jornada que viene (o --jornada 19)
@@ -299,6 +305,8 @@ python3 tools/quiniela/post.py resultado 19              # las fotos del resulta
 **El modelo** (`modelo.py`): junta tres opiniones de cada partido (cuotas, probabilidad de Losilla y lo que apuesta la gente) con unos pesos y un ajuste por signo (por si los empates salen más de lo que dicen todos). Los pesos se aprenden con el histórico y con cada jornada que revisamos (`quiniela/pesos.json` guarda cómo cambian). El Pleno al 15 sale de los goles esperados que reproducen las cuotas (o de Losilla si no hay).
 
 **Forma de los equipos:** de la ficha de ESPN salen sus últimos 5 partidos (en todas las competiciones). Se guardan y salen en las fotos cuando hay racha (4 o más victorias seguidas, o 4 o más sin ganar). No entran en las probabilidades. Con 2.339 partidos de Primera y Segunda (2023/24 a 2026/27), añadir a las cuotas la forma de los últimos 5, los goles, el rendimiento en casa y fuera, los puntos de la temporada o la racha no mejora la predicción (log-loss 0,9846 solo con cuotas; 0,9870 con todo eso). Las cuotas ya lo tienen en cuenta: su correlación con estas variables va de 0,6 a 0,8. Las lesiones no se pueden comprobar así, porque no hay histórico gratis. También entran en las cuotas, que cambian cuando se conoce una baja.
+
+**Las fotos** (`post.py`): la 1.ª, los 14 partidos y el Pleno al 15 con la opción sin dobles en verde y los dobles rayados. La 2.ª, «Por qué»: las rachas más llamativas (de los últimos 5 partidos) contadas en primera persona y con la elección que justifican («El Madrid va lanzado: 5 victorias seguidas. En casa del AEK, 2 y a otra cosa»). Si no hay rachas, los partidos con doble. Y la descripción para TikTok, al lado (`.txt`).
 
 **La estrategia** (`estrategia.py`): dos opciones, sin dobles (el signo más probable) y con dobles (4 por defecto) donde el segundo signo tiene más opciones. Calcula los aciertos esperados y la probabilidad de 10, 11, 12… También dónde la gente se pasa (un signo que apuesta mucho más de lo que dicen las cuentas), que es lo de la segunda foto.
 

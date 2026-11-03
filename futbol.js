@@ -6619,10 +6619,11 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
   // ?video=401882846 abre v/401882846.mp4 y su descripción (v/401882846.json), que el robot
   // (.github/workflows/piloto.yml) deja en esta misma web, listo para compartirlo a TikTok desde el
   // móvil. Es el enlace del aviso que llega con ntfy. Los vídeos se quedan unos días. Con el resumen
-  // de la jornada (?video=jornada-esp-1-2026-10-16), sus fotos (las que diga el .json).
+  // de la jornada (?video=jornada-esp-1-2026-10-16) y la quiniela (?video=quiniela-2027-19-pronostico),
+  // sus fotos (las que diga el .json).
   async function openRobotVideo(params) {
     const id = params.get('video') || '';
-    if (!/^(\d+(-previa|-onces)?|jornada-[a-z0-9-]+)$/.test(id)) return false;
+    if (!/^(\d+(-previa|-onces)?|jornada-[a-z0-9-]+|quiniela-\d{4}-\d{2}-(pronostico|resultado))$/.test(id)) return false;
     history.replaceState(null, '', location.pathname);
     const $ = (x) => document.getElementById(x);
     $('robotBox').hidden = false;
