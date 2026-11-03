@@ -672,9 +672,22 @@ async function video() {
 async function web(dir) {
   mkdirSync(dir, { recursive: true });
   const since = Date.now() - (CONFIG.diasEnLaWeb || 3) * 86400e3;
-  const names = (await releaseAssets()).filter(a => Date.parse(a.created_at) >= since).map(a => a.name);
+  // La quiniela, toda la semana (del pronóstico al resultado pasan días)
+  const assets = (await releaseAssets()).filter(a => Date.parse(a.created_at) >= since || a.name.startsWith('quiniela-'));
+  const names = assets.map(a => a.name);
   if (names.length) gh('release', 'download', RELEASE, '--dir', dir, '--clobber', ...names.flatMap(n => ['--pattern', n]));
+  writeFileSync(join(dir, 'quiniela.json'), JSON.stringify(quinielaIndex(assets, n => {
+    try { return JSON.parse(readFileSync(join(dir, n), 'utf8')); } catch (e) { return {}; }
+  })));
   console.log(`En la web: ${names.length} archivos de vídeos`);
+}
+
+// La lista de las quinielas en la web (v/quiniela.json), de la más nueva a la más vieja: la usa el
+// botón «Quiniela» del Studio para abrir la última.
+export function quinielaIndex(assets, read = () => ({})) {
+  return assets.filter(a => /^quiniela-\d{4}-\d{2}-(pronostico|resultado)\.json$/.test(a.name))
+    .map(a => ({ id: a.name.replace(/\.json$/, ''), title: read(a.name).title || '', made: a.created_at }))
+    .sort((x, y) => Date.parse(y.made) - Date.parse(x.made));
 }
 
 // El aviso al móvil: el resultado y, al tocarlo, las fotos (o el vídeo) listas para compartir. Si

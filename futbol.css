@@ -1266,8 +1266,11 @@ body.zoom-open { overflow: hidden; }
   .live-controls { padding-top: 0; margin-bottom: 6px; }
   .live-grid { grid-template-columns: minmax(0, 1fr); }
   .studio-main { padding: 18px 16px 80px; }
-  .studio-header { margin-bottom: 18px; }
+  .studio-header { margin-bottom: 18px; flex-wrap: wrap; gap: 10px; }
   .studio-brand-name { font-size: 22px; }
+  .studio-actions { gap: 6px; }
+  .studio-iconbtn { height: 36px; padding: 0 10px; gap: 6px; font-size: 13px; }
+  .studio-iconbtn svg { width: 14px; height: 14px; }
   .section { margin-bottom: 36px; }
   .section-title { font-size: 34px; }
   .comp-group { align-items: flex-start; }

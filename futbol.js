@@ -6621,6 +6621,20 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
   // móvil. Es el enlace del aviso que llega con ntfy. Los vídeos se quedan unos días. Con el resumen
   // de la jornada (?video=jornada-esp-1-2026-10-16) y la quiniela (?video=quiniela-2027-19-pronostico),
   // sus fotos (las que diga el .json).
+  const STUDIO_WEB = 'https://tonimas35.github.io/futbol-studio/';
+  async function openLatestQuiniela() {
+    const base = location.protocol === 'file:' ? STUDIO_WEB : '';
+    try {
+      const res = await fetch(`${base}v/quiniela.json`, { cache: 'no-store' });
+      const list = res.ok ? await res.json() : [];
+      const last = (Array.isArray(list) ? list : []).find(q => /^quiniela-\d{4}-\d{2}-(pronostico|resultado)$/.test(q?.id || ''));
+      if (!last) return showToast('El robot aún no tiene ninguna quiniela de estos días', 'error');
+      location.href = `${base || location.pathname}?video=${last.id}`;
+    } catch (e) {
+      showToast('No he podido abrir la quiniela: mira la conexión', 'error');
+    }
+  }
+
   async function openRobotVideo(params) {
     const id = params.get('video') || '';
     if (!/^(\d+(-previa|-onces)?|jornada-[a-z0-9-]+|quiniela-\d{4}-\d{2}-(pronostico|resultado))$/.test(id)) return false;
@@ -6945,6 +6959,10 @@ ${L('¿Cuál fue el partido de la jornada?', 'What was your game of the round?')
     document.getElementById('mixPreviewBtn').addEventListener('click', previewMix);
     loadMix();
     updateVideoBtn();
+
+    // Quiniela: la última que ha hecho el robot (v/quiniela.json, la lista que deja la web), en su
+    // página de fotos. Abierto como archivo, la de la web.
+    document.getElementById('quinielaBtn').addEventListener('click', openLatestQuiniela);
 
     // Para tu IA: copiar el contexto y pegar la respuesta (en el mismo clic de «Colocar»)
     document.getElementById('aiBriefBtn').addEventListener('click', copyAiBrief);
