@@ -7,7 +7,7 @@
 Todo lo importante va dentro de la zona segura de TikTok (y 380–1640, x 60–920 en 1080×1920).
 Si un partido del JSON tiene «motivo», se usa ese texto en vez del automático.
 """
-import json, os, sys
+import json, os, re, sys
 sys.path.insert(0, os.path.dirname(__file__))
 import quiniela as Q
 
@@ -37,7 +37,15 @@ CSS = '''
 .q.ok .k b{background:var(--lime)} .q.ok .k i{background:#1f9d4c}
 .q.ko{background:rgba(230,40,60,.08)} .q.ko .k b{opacity:.45;text-decoration:line-through} .q.ko .k i{background:#d92b3a}
 .q.p15{margin-top:10px;border-top:3px solid var(--ink)} .q.p15 .n{font-size:18px;opacity:.7}
-.vv{display:flex;align-items:center;gap:22px;padding:26px 0;border-bottom:2px solid rgba(0,0,0,.1)}
+.vv{display:flex;align-items:center;gap:22px;padding:22px 0;border-bottom:2px solid rgba(0,0,0,.1)}
+.vv .t2{flex:1;font-family:Barlow;font-weight:600;font-size:31px;line-height:1.25}
+.vv .t2 b{font-weight:800}
+.fm{display:flex;gap:6px;margin-top:10px}
+.fm i{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-family:'Barlow Condensed';font-weight:800;font-size:18px;color:#fff}
+.fm .V{background:#1f9d4c}.fm .E{background:#9a9a9a}.fm .D{background:#d92b3a}
+.vv .pk{display:flex;gap:5px}
+.vv .pk b{min-width:52px;height:52px;padding:0 8px;display:grid;place-items:center;border-radius:8px;font-family:Anton;font-size:30px;font-weight:400;border:3px solid var(--ink);background:var(--lime)}
+.vv .pk b.dob{background:repeating-linear-gradient(135deg,var(--lime) 0 5px,#fff 5px 10px)}
 .vv img{width:84px;height:84px;object-fit:contain}
 .vv .t{font-family:'Barlow Condensed';font-weight:800;font-size:40px;text-transform:uppercase;line-height:1.05}
 .vv .t small{display:block;font-family:Barlow;font-weight:600;font-size:26px;text-transform:none;opacity:.65;margin-top:6px}
@@ -45,6 +53,25 @@ CSS = '''
 
 
 def nombre(x): return NOMBRE.get(x, x.title().replace('.', '. ').replace('  ', ' '))
+
+
+CORTO = {'Real Madrid': 'Madrid', 'Man. United': 'United', 'Man. City': 'City', 'Atlético': 'Atleti', 'Barcelona': 'Barça',
+         'Bodø/Glimt': 'Bodø', 'Fenerbahçe': 'Fenerbahçe', 'Real Madrid F': 'Madrid'}
+FEMENINOS = {'Roma', 'Real Sociedad', 'R. Sociedad', 'Lazio', 'Juventus', 'Fiorentina', 'Atalanta', 'Sampdoria', 'Real', 'Cultural'}
+
+
+def corto(x):
+    n = nombre(x); return CORTO.get(n, n.replace('R. Sociedad', 'Real Sociedad'))
+
+
+def el(x, mayus=False):
+    """«el Madrid», «la Roma»."""
+    n = corto(x); a = 'la' if n in FEMENINOS else 'el'
+    return (a.capitalize() if mayus else a) + ' ' + n
+
+
+def de_el(x):
+    t = el(x); return 'del ' + t[3:] if t.startswith('el ') else 'de ' + t
 
 
 def logos(p):
@@ -78,6 +105,89 @@ def forma_texto(p):
     return ''
 
 
+def _racha(h):
+    """('V', 5) si lleva 5 victorias seguidas; ('S', 4) si lleva 4 sin ganar; None si nada destacable."""
+    v = len(h) - len(h.rstrip('V')); sin = len(h) - len(h.rstrip('ED'))
+    return ('V', v) if v >= 3 else ('S', sin) if sin >= 3 else None
+
+
+def _eleccion(p):
+    base = p.get('signo_simple', p['signos'][:1]); extra = [x for x in p['signos'] if x != base]
+    return base, (extra[0] if extra else None)
+
+
+FIJO = ['fijo', 'sin dudar', 'y a otra cosa', 'fijo']
+GANA = ['llega con {n} victorias seguidas', 'ha ganado sus últimos {n} partidos', 'va lanzado: {n} victorias seguidas', 'suma {n} victorias seguidas']
+
+
+def _signo_txt(base, extra, fijo=True, k=0):
+    if extra: return f"le pongo el {base}, con doble al {extra} por si acaso"
+    return f"{base} {FIJO[k % len(FIJO)] if fijo else 'y que sea lo que Dios quiera'}"
+
+
+def claves(o):
+    """Las rachas más llamativas de la jornada, contadas como lo diría Toni, con la elección que justifican."""
+    out = []
+    for p in o['partidos'][:14]:
+        f = p.get('forma') or {}
+        base, extra = _eleccion(p)
+        for lado, eq, rival in (('local', p['local'], p['visitante']), ('visitante', p['visitante'], p['local'])):
+            r = _racha(f.get(lado, ''))
+            if not r: continue
+            tipo, n = r
+            suyo = '1' if lado == 'local' else '2'
+            donde = f"contra {el(rival)}" if lado == 'local' else f"en casa {de_el(rival)}"
+            a_favor = base == suyo
+            k = len(out)
+            if tipo == 'V':
+                gana = GANA[k % len(GANA)].format(n=n)
+                txt = (f"<b>{el(eq, True)} {gana}.</b> {donde[:1].upper() + donde[1:]}, {_signo_txt(base, extra, k=k)}." if a_favor
+                       else f"<b>{el(eq, True)} {gana}</b>, pero {donde} no me fío: {_signo_txt(base, extra, False)}.")
+                peso = n + (1 if a_favor else 0)
+            else:
+                txt = (f"<b>{el(eq, True)} lleva {n} partidos sin ganar</b> y aun así {donde} {_signo_txt(base, extra, k=k)}." if a_favor
+                       else f"<b>{el(eq, True)} lleva {n} partidos sin ganar.</b> {donde[:1].upper() + donde[1:]}, {_signo_txt(base, extra, k=k)}.")
+                peso = n
+            a, b = logos(p); img = a if lado == 'local' else b
+            puntos = ''.join(f'<i class="{c}">{c}</i>' for c in f.get(lado, '')[-5:])
+            pk = f'<b>{base}</b>' + (f'<b class="dob">{extra}</b>' if extra else '')
+            out.append((peso + 0.5 * (len(p['signos']) == 1), p['n'], (img, txt, puntos, pk)))
+    # Las más fuertes, una por partido
+    vistos, res = set(), []
+    for _, n, it in sorted(out, key=lambda x: -x[0]):
+        if n in vistos: continue
+        vistos.add(n); res.append(it)
+    if res: return res
+    # Sin rachas: los partidos con doble, explicados
+    for p in o['partidos'][:14]:
+        base, extra = _eleccion(p)
+        if not extra: continue
+        a, _ = logos(p); pr = p['prob']
+        res.append((a, f"<b>{nombre(p['local'])}–{nombre(p['visitante'])}</b> está muy igualado ({round(100 * pr[0])}-{round(100 * pr[1])}-{round(100 * pr[2])}): "
+                       f"{_signo_txt(base, extra)}.", '', f'<b>{base}</b><b class="dob">{extra}</b>'))
+    return res
+
+
+def descripcion(o, tipo):
+    """El texto para TikTok, en primera persona y sin adornos."""
+    j = o['jornada']
+    if tipo == 'pronostico':
+        cl = claves(o)
+        frase = re.sub('<[^>]+>', '', cl[0][1]) if cl else ''
+        return (f"Mi quiniela de la jornada {j}. Lo verde es la de sin dobles; lo rayado, si la quieres con {o['dobles']} dobles.\n"
+                + (f"{frase}\n" if frase else '') + "Cuál cambiarías?\n\n#quiniela #futbol #laliga #pronostico")
+    r = o['revision']
+    f = r['fallos'][0] if r['fallos'] else None
+    if f:
+        q = o['partidos'][f['n'] - 1]
+        linea = f"El {nombre(q['local'])}-{nombre(q['visitante'])} ({f['resultado']}) me ha tumbado."
+    else:
+        linea = 'Sin fallos. No me lo creo ni yo.'
+    return (f"{r['aciertos']} de {r['jugados']} en la quiniela de la jornada {j}"
+            + (f" ({r['aciertos_sin_dobles']} sin dobles)" if 'aciertos_sin_dobles' in r else '') + f". {linea}\n"
+            "Cuántas sacaste tú?\n\n#quiniela #futbol #laliga")
+
+
 def pagina(cuerpo):
     base = open(os.path.join(AQUI, 'post_base.html'), encoding='utf-8').read()
     return base + CSS + '</style></head><body>' + cuerpo + '</body></html>'
@@ -109,20 +219,14 @@ def pronostico(o):
     <span><i style="background:var(--lime)"></i>Sin dobles</span>
     <span><i style="background:repeating-linear-gradient(135deg,var(--lime) 0 5px,#fff 5px 10px)"></i>+ {o["dobles"]} dobles</span></div>
   <div style="position:absolute;left:60px;width:860px;top:560px">{"".join(filas)}</div>''', marca=False)
-    items = ''
-    for v in o.get('inflados', [])[:4]:
-        p = o['partidos'][v['n'] - 1]; a, b = logos(p)
-        k = '1X2'.index(v['signo']); img = [a, a, b][k]
-        eq = [nombre(p['local']), 'Empate', nombre(p['visitante'])][k]
-        donde = f"en el {nombre(p['local'])}–{nombre(p['visitante'])}" if k != 0 else f"contra el {nombre(p['visitante'])}"
-        items += (f'<div class="vv">{img}<div class="t">{eq} {donde}'
-                  f'<small>La gente: {round(100 * v["publico"])}%. Las cuentas: {round(100 * v["prob"])}%</small></div></div>')
+    items = ''.join(f'<div class="vv">{img}<div class="t2">{txt}<div class="fm">{puntos}</div></div><div class="pk">{pk}</div></div>'
+                    for img, txt, puntos, pk in claves(o)[:4])
     r = o['resumen']
     s2 = marco(2, 'left:0;right:420px', f'''
-  <h1 class="h" style="position:absolute;left:60px;width:860px;top:400px;font-size:92px">{"Aquí la gente se pasa" if items else "Cuál cambiarías?"}</h1>
-  <div style="position:absolute;left:60px;width:860px;top:{620 if items else 420}px">{items}</div>
+  <h1 class="h" style="position:absolute;left:60px;width:860px;top:400px;font-size:92px">Por qué</h1>
+  <div style="position:absolute;left:60px;width:860px;top:530px">{items}</div>
   <div style="position:absolute;left:60px;width:860px;top:1230px;background:var(--ink);color:#fff;padding:30px 40px">
-    <div class="h" style="font-size:58px;color:var(--lime)">{"Cuál cambiarías?" if items else "Pon la tuya 👇"}</div>
+    <div class="h" style="font-size:58px;color:var(--lime)">Cuál cambiarías?</div>
     <div class="lab" style="font-size:30px;margin-top:10px;opacity:.8">Al acabar la jornada subo cuántas acerté</div>
   </div>''')
     return pagina(s1 + s2)
@@ -164,5 +268,6 @@ if __name__ == '__main__':
     html = pronostico(o) if tipo == 'pronostico' else resultado(o)
     dst = Q.ruta('posts', f'{t}-{j:02d}-{tipo}.html'); os.makedirs(os.path.dirname(dst), exist_ok=True)
     open(dst, 'w', encoding='utf-8').write(html)
+    open(dst.replace('.html', '.txt'), 'w', encoding='utf-8').write(descripcion(o, tipo))
     import shutil; shutil.copy(os.path.join(AQUI, '..', '..', 'jornada90-logo.png'), os.path.join(os.path.dirname(dst), 'jornada90-logo.png'))
     print(dst)

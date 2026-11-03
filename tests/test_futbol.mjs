@@ -967,6 +967,23 @@ try {
     check(nj.title === '📊 Así fue la jornada · LaLiga · 16-19 oct 2026' && nj.click === 'https://w/?video=jornada-esp-1-2026-10-16' && nj.actions[0].label === 'Abrir las fotos'
       && pl.notice({ id: 'jornada-esp-1-2026-10-16', kind: 'jornada', title: 'x' }, 't', 'https://w/', false).click === 'https://github.com/tonimas35/futbol-studio/releases/tag/videos',
       `con su aviso («${nj.title}»)`);
+    // La Quiniela: el pronóstico cuando faltan menos de 30 horas para el cierre (y más de 2), una vez; el
+    // resultado de las pronosticadas cuando Losilla las da por escrutadas
+    const gen = { temporada: 2027, jornada: 19, fechaFinApuestas: Date.parse('2026-11-03T19:00Z') / 1000 };
+    const qp = pl.findQuiniela(gen, Date.parse('2026-11-03T09:00Z'), new Set());
+    check(qp.length === 1 && qp[0].kind === 'quiniela' && qp[0].fase === 'pronostico' && qp[0].id === 'quiniela-2027-19-pronostico'
+      && pl.findQuiniela(gen, Date.parse('2026-11-01T09:00Z'), new Set()).length === 0 && pl.findQuiniela(gen, Date.parse('2026-11-03T18:00Z'), new Set()).length === 0
+      && pl.findQuiniela(gen, Date.parse('2026-11-03T09:00Z'), new Set(['quiniela-2027-19-pronostico'])).length === 0,
+      'la quiniela: su pronóstico entre 30 y 2 horas antes del cierre, una sola vez');
+    const qr = pl.findQuiniela(null, Date.now(), new Set(['quiniela-2027-19-pronostico']), new Set(['2027-19']));
+    check(qr.length === 1 && qr[0].fase === 'resultado' && qr[0].id === 'quiniela-2027-19-resultado' && qr[0].jornada === 19
+      && pl.findQuiniela(null, Date.now(), new Set(['quiniela-2027-19-pronostico']), new Set()).length === 0
+      && pl.findQuiniela(null, Date.now(), new Set(['quiniela-2027-19-pronostico', 'quiniela-2027-19-resultado']), new Set(['2027-19'])).length === 0
+      && pl.maker({ kind: 'quiniela' }, 'video') === pl.makeQuiniela,
+      'y su resultado cuando está escrutada, también una sola vez');
+    const nq = pl.notice({ id: 'quiniela-2027-19-pronostico', kind: 'quiniela', title: 'Mi quiniela · jornada 19', caption: 'x', images: ['quiniela-2027-19-pronostico-01.png'] }, 't', 'https://w/');
+    check(nq.title === '🎯 Mi quiniela · jornada 19' && nq.click === 'https://w/?video=quiniela-2027-19-pronostico' && nq.actions.length === 1 && nq.actions[0].label === 'Abrir las fotos',
+      `con su aviso («${nq.title}»), que abre sus fotos`);
     const cfg = JSON.parse(readFileSync(join(REPO, 'piloto.json')));
     const wf = readFileSync(join(REPO, '.github/workflows/piloto.yml'), 'utf8');
     check(cfg.liga === 'esp.1' && cfg.competiciones.includes('uefa.champions') && cfg.previas.equipos.includes('86') && cfg.previas.horasAntes === 3 && /cron: '3,13,23,33,43,53 11-23 \* \* \*'/.test(wf) && /tools\/piloto\.mjs esperar/.test(wf),

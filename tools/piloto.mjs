@@ -11,6 +11,10 @@
 //   node tools/piloto.mjs web <carpeta>  baja a la web los vídeos de los últimos días
 //   node tools/piloto.mjs avisar         manda el aviso de cada vídeo nuevo
 //
+// Y la Quiniela (tools/quiniela, en Python): su pronóstico cuando faltan menos de 30 horas para el
+// cierre de la jornada, y su resultado cuando Losilla la da por escrutada. Lo que aprende el modelo
+// (quiniela/) lo guarda en el repo.
+//
 // Los vídeos y su descripción se guardan como archivos de la release «videos» del repositorio
 // (<id>.mp4 y <id>.json; las fotos de un partido, <id>-01-portada.png…; las de la jornada,
 // jornada-…-01-portada.png…), que es también la lista de lo que ya está hecho (su .json). Sin API-Football: desde
@@ -20,7 +24,7 @@ import { appendFileSync, createReadStream, existsSync, mkdirSync, readdirSync, r
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { extname, join, normalize, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 // (con fileURLToPath, también en Windows)
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
@@ -168,6 +172,40 @@ export function findJornada(boards, now, done, league = CONFIG.liga) {
   return done.has(id) ? [] : [{ kind: 'jornada', league, id, day: last.b.day, title: `Jornada de ${league} (${list.length} partidos)` }];
 }
 
+// LA QUINIELA · cuándo toca: el pronóstico de la jornada abierta cuando faltan menos de 30 horas
+// (y más de 2) para que cierre, y el resultado de las que pronosticamos cuando Losilla las da por
+// escrutadas (todos los partidos acabados). gen: los datos generales de Losilla (la jornada abierta
+// y su cierre); escrutadas: las «temporada-jornada» ya escrutadas.
+const LOSILLA = 'https://api.eduardolosilla.es';
+const UA = { 'user-agent': 'Mozilla/5.0 (jornada90 quiniela)' };
+export const QUINIELA_ANTES = 30 * 3600e3;
+export const quinielaId = (t, j, fase) => `quiniela-${t}-${String(j).padStart(2, '0')}-${fase}`;
+export function findQuiniela(gen, now, done, escrutadas = new Set()) {
+  const out = [];
+  const left = (gen?.fechaFinApuestas || 0) * 1000 - now;
+  if (gen?.jornada && gen?.temporada && left > 2 * 3600e3 && left <= QUINIELA_ANTES) {
+    const id = quinielaId(gen.temporada, gen.jornada, 'pronostico');
+    if (!done.has(id)) out.push({ kind: 'quiniela', fase: 'pronostico', temporada: gen.temporada, jornada: gen.jornada, id, title: `Mi quiniela · jornada ${gen.jornada}` });
+  }
+  for (const d of done) {
+    const m = d.match(/^quiniela-(\d{4})-(\d{2})-pronostico$/);
+    if (!m || done.has(quinielaId(m[1], m[2], 'resultado')) || !escrutadas.has(`${m[1]}-${+m[2]}`)) continue;
+    out.push({ kind: 'quiniela', fase: 'resultado', temporada: +m[1], jornada: +m[2], id: quinielaId(m[1], m[2], 'resultado'), title: `Así acabó mi quiniela · jornada ${+m[2]}` });
+  }
+  return out;
+}
+
+async function scanQuiniela(now, done) {
+  const gen = await getJson(`${LOSILLA}/datosgeneralesjornada`, UA);
+  const escrutadas = new Set();
+  const pend = [...done].map(d => d.match(/^quiniela-(\d{4})-(\d{2})-pronostico$/)).filter(m => m && !done.has(quinielaId(m[1], m[2], 'resultado'))).slice(-3);
+  for (const m of pend) {
+    const d = await getJson(`${LOSILLA}/escrutinios?num_jornada=${+m[2]}&num_temporada=${m[1]}`, UA);
+    if (d?.estado === 'ESCRUTADA') escrutadas.add(`${m[1]}-${+m[2]}`);
+  }
+  return findQuiniela(gen, now, done, escrutadas);
+}
+
 // Lo que ya está hecho: los <id>.mp4 y <id>.json de la release (las fotos de un partido y la jornada, su .json). Si GitHub no
 // contesta, error: sin la lista, el robot repetiría cada 10 minutos los vídeos y los avisos.
 async function releaseAssets() {
@@ -195,6 +233,20 @@ async function buscar() {
   // jornada de ese día.
   const forced = (process.env.PARTIDO || '').trim();
   const day = /^\d{4}-\d{2}-\d{2}$/.test(process.env.DIA || '') ? process.env.DIA : madridIso(Date.now());
+  // «quiniela:pronostico» o «quiniela:resultado» (la última pronosticada), o con su jornada: «quiniela:resultado:2027-19»
+  if (/^quiniela/i.test(forced)) {
+    const [, fase = 'pronostico', tj] = forced.toLowerCase().split(':');
+    let t, j;
+    if (tj) [t, j] = tj.split('-').map(Number);
+    else if (fase === 'pronostico') ({ temporada: t, jornada: j } = await getJson(`${LOSILLA}/datosgeneralesjornada`, UA) || {});
+    else {
+      const files = readdirSync(join(ROOT, 'quiniela/jornadas')).filter(n => /^\d{4}-\d{2}\.json$/.test(n)).sort();
+      [t, j] = (files.at(-1) || '').replace('.json', '').split('-').map(Number);
+    }
+    if (!['pronostico', 'resultado'].includes(fase) || !t || !j) throw new Error(`Quiniela no válida: ${forced} (quiniela:pronostico, quiniela:resultado o quiniela:resultado:2027-19)`);
+    output('partidos', JSON.stringify([{ kind: 'quiniela', fase, temporada: t, jornada: j, id: quinielaId(t, j, fase), title: `Quiniela · jornada ${j} · ${fase}` }]));
+    return;
+  }
   if (/^jornada:/i.test(forced)) {
     const league = forced.replace(/^jornada:/i, '');
     if (!/^[a-z]+\.[\w.]+$/.test(league)) throw new Error(`Liga no válida: ${forced} (p. ej. jornada:esp.1)`);
@@ -210,22 +262,23 @@ async function buscar() {
     output('partidos', JSON.stringify([{ kind, league, id, day, title: `${league}/${id}`, ...(tag === 'video' ? { formato: 'video' } : {}) }]));
     return;
   }
-  const { found, near, previas, onces, jornadas } = await scan();
+  const { found, near, previas, onces, jornadas, quinielas } = await scan();
   console.log(found.length ? `Acabados: ${found.map(f => f.title).join(' · ')}`
     : near.length ? `Por el final: ${near.map(f => f.title).join(' · ')}` : 'Ningún partido acabado sin vídeo');
   if (previas.length) console.log(`Previas: ${previas.map(f => f.title).join(' · ')}`);
   if (onces.length) console.log(`Onces confirmados: ${onces.map(f => f.title).join(' · ')}`);
   if (jornadas.length) console.log(`Jornada acabada: ${jornadas.map(f => f.title).join(' · ')}`);
+  if (quinielas.length) console.log(`Quiniela: ${quinielas.map(f => f.title).join(' · ')}`);
   // Los onces, primero: tienen que llegar antes de que empiece el partido
-  output('partidos', JSON.stringify([...onces, ...found, ...previas, ...jornadas]));
-  output('cerca', String(!found.length && !previas.length && !onces.length && !jornadas.length && near.length > 0));
+  output('partidos', JSON.stringify([...onces, ...found, ...previas, ...jornadas, ...quinielas]));
+  output('cerca', String(!found.length && !previas.length && !onces.length && !jornadas.length && !quinielas.length && near.length > 0));
 }
 
 // Los marcadores de hoy (y, de madrugada, de ayer): los acabados sin vídeo y los que van por el final.
 async function scan(ctx = {}) {
   const now = Date.now();
   const days = [...new Set([madridIso(now), madridIso(now - 6 * 3600e3)])];
-  ctx.done ??= new Set((await releaseAssets()).map(a => (a.name.match(/^(\d+(?:-previa|-onces)?)\.(?:mp4|json)$/) || a.name.match(/^(jornada-[\w-]+)\.json$/))?.[1]).filter(Boolean));
+  ctx.done ??= new Set((await releaseAssets()).map(a => (a.name.match(/^(\d+(?:-previa|-onces)?)\.(?:mp4|json)$/) || a.name.match(/^((?:jornada|quiniela)-[\w-]+)\.json$/))?.[1]).filter(Boolean));
   if (!ctx.local) {
     const teams = await getJson(`${ESPN}/${CONFIG.liga}/teams`);
     const ids = (teams?.sports?.[0]?.leagues?.[0]?.teams || []).map(t => String(t.team?.id));
@@ -249,7 +302,9 @@ async function scan(ctx = {}) {
   // Los onces: de los que empiezan pronto, los que ESPN ya tiene (su resumen, uno a uno)
   const soon = findOnces(boards, now, ctx.done, ctx.local);
   const ready = await Promise.all(soon.map(async o => lineupsReady(await getJson(`${ESPN}/${o.league}/summary?event=${o.id}`))));
+  ctx.quinielas ??= await scanQuiniela(now, ctx.done).catch(() => []);
   return {
+    quinielas: ctx.quinielas,
     found: findFinished(boards, now, ctx.done, ctx.local),
     near: findNearEnd(boards, now, ctx.done, ctx.local),
     previas: findPrevias(boards, now, ctx.done),
@@ -509,9 +564,66 @@ export async function makeJornada(browser, base, p, dir) {
   }
 }
 
+// La Quiniela: el modelo en Python hace el pronóstico (o la revisión, que además vuelve a aprender) y
+// las fotos en HTML; aquí se sacan en PNG con el mismo navegador. Lo que aprende (quiniela/) se
+// guarda en el repo, para la revisión y para la próxima vez.
+export async function makeQuiniela(browser, base, p, dir) {
+  const T = String(p.temporada), J = String(p.jornada);
+  const py = (...a) => execFileSync('python3', [join(ROOT, 'tools/quiniela', a[0]), ...a.slice(1)], { cwd: ROOT, stdio: ['ignore', 'inherit', 'inherit'], timeout: 20 * 60e3 });
+  py('quiniela.py', p.fase === 'resultado' ? 'revisar' : 'pronostico', '--jornada', J, '--temporada', T);
+  py('post.py', p.fase, J, '--temporada', T);
+  const html = join(ROOT, 'quiniela/posts', `${T}-${J.padStart(2, '0')}-${p.fase}.html`);
+  const ctx = await browser.newContext({ viewport: { width: 1080, height: 1920 } });
+  const images = [];
+  try {
+    const page = await ctx.newPage();
+    await page.goto(pathToFileURL(html).href, { waitUntil: 'networkidle', timeout: 2 * 60e3 });
+    await page.evaluate(() => document.fonts.ready);
+    await page.waitForTimeout(500);
+    for (const [i, sid] of (await page.$$eval('section.s', x => x.map(e => e.id))).entries()) {
+      const name = `${p.id}-${String(i + 1).padStart(2, '0')}.png`;
+      await (await page.$(`#${sid}`)).screenshot({ path: join(dir, name) });
+      images.push(name);
+    }
+  } finally {
+    await ctx.close();
+  }
+  if (!images.length) throw new Error('el post de la quiniela no tiene fotos');
+  const caption = readFileSync(html.replace(/\.html$/, '.txt'), 'utf8');
+  const jor = JSON.parse(readFileSync(join(ROOT, 'quiniela/jornadas', `${T}-${J.padStart(2, '0')}.json`), 'utf8'));
+  const r = jor.revision;
+  const title = p.fase === 'resultado' && r ? `Mi quiniela · jornada ${J}: ${r.aciertos} de ${r.jugados}` : `Mi quiniela · jornada ${J}`;
+  writeFileSync(join(dir, `${p.id}.json`), JSON.stringify({ id: p.id, kind: 'quiniela', fase: p.fase, title, caption, images, made: new Date().toISOString() }, null, 2));
+  guardarQuiniela(`Quiniela: ${p.fase === 'resultado' ? 'revisión' : 'pronóstico'} de la jornada ${J}`);
+  return { id: p.id, kind: 'quiniela', title, caption, images, files: [...images, `${p.id}.json`] };
+}
+
+// Lo que ha aprendido, al repo (solo en GitHub Actions). «[skip ci]»: sin pruebas ni web por esto.
+function guardarQuiniela(msg) {
+  if (!process.env.GITHUB_ACTIONS) return;
+  const git = (...a) => execFileSync('git', a, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] });
+  try {
+    git('add', 'quiniela/jornadas', 'quiniela/registro.jsonl', 'quiniela/pesos.json', 'quiniela/historico.jsonl');
+  } catch (e) {
+    git('add', 'quiniela/jornadas');
+  }
+  if (!git('diff', '--cached', '--name-only').trim()) return;
+  git('-c', 'user.name=Jornada90 robot', '-c', 'user.email=41898282+github-actions[bot]@users.noreply.github.com', 'commit', '-q', '-m', `${msg} [skip ci]`);
+  for (let i = 0; i < 3; i++) {
+    try {
+      git('pull', '-q', '--rebase', 'origin', 'main');
+      git('push', '-q', 'origin', 'HEAD:main');
+      return;
+    } catch (e) {
+      console.warn(`  no he podido guardar la quiniela en el repo (${i + 1}/3): ${e.message}`);
+    }
+  }
+}
+
 // Qué hace con cada uno: la jornada, sus fotos; la previa y los onces, su vídeo; un partido
 // acabado, el carrusel (o el vídeo, con «formato»: «video» en piloto.json o video:liga/id a mano).
 export function maker(p, formato = CONFIG.formato) {
+  if (p.kind === 'quiniela') return makeQuiniela;
   if (p.kind === 'jornada') return makeJornada;
   if (p.kind === 'previa' || p.kind === 'onces') return makeVideo;
   return (p.formato || formato || 'carrusel') === 'video' ? makeVideo : makeCarrusel;
@@ -535,7 +647,7 @@ async function video() {
   const made = [];
   for (const p of list) {
     const make = maker(p);
-    console.log(`${{ [makeJornada.name]: 'Jornada', [makeCarrusel.name]: 'Carrusel' }[make.name] || 'Vídeo'}: ${p.title} (${p.league}/${p.id})`);
+    console.log(`${{ [makeJornada.name]: 'Jornada', [makeCarrusel.name]: 'Carrusel', [makeQuiniela.name]: 'Quiniela' }[make.name] || 'Vídeo'}: ${p.title} (${p.league ? `${p.league}/` : ''}${p.id})`);
     try {
       const { files, ...v } = await make(browser, base, p, dir);
       gh('release', 'upload', RELEASE, ...files.map(f => join(dir, f)), '--clobber');
@@ -573,15 +685,15 @@ async function web(dir) {
 // (o el vídeo) del robot, sin notas, en su botón. El de los onces, igual: te deja en «Crear onces»,
 // para hacerlo con las caras de API-Football de los dos equipos. Las previas y la jornada, lo del robot.
 export function notice(v, topic, web, webOk = true) {
-  const photos = v.kind === 'jornada' || !!v.images?.length;
+  const photos = v.kind === 'jornada' || v.kind === 'quiniela' || !!v.images?.length;
   const url = webOk ? `${web}?video=${v.id}`
     : `https://github.com/${repo()}/releases/${photos ? `tag/${RELEASE}` : `download/${RELEASE}/${v.id}.mp4`}`;
   const onces = v.kind === 'onces';
-  const studio = webOk && v.kind !== 'jornada' && v.kind !== 'previa' && v.league && v.day
+  const studio = webOk && !['jornada', 'previa', 'quiniela'].includes(v.kind) && v.league && v.day
     ? `${web}?${onces ? 'onces' : 'partido'}=${v.league}/${String(v.id).replace(/-onces$/, '')}&dia=${v.day}&preparar=1` : null;
   const own = onces ? 'Crear los onces con caras' : photos ? 'Crear el carrusel con notas' : 'Crear el vídeo con notas';
   return {
-    topic, title: `${{ previa: '🔥', onces: '📋', jornada: '📊' }[v.kind] || '⚽'} ${v.title}`, message: v.caption || (photos ? 'Tus fotos están listas' : 'Tu vídeo está listo'),
+    topic, title: `${{ previa: '🔥', onces: '📋', jornada: '📊', quiniela: '🎯' }[v.kind] || '⚽'} ${v.title}`, message: v.caption || (photos ? 'Tus fotos están listas' : 'Tu vídeo está listo'),
     click: studio || url, tags: [photos ? 'frame_with_picture' : 'movie_camera'], priority: onces ? 5 : 4,
     actions: studio ? [{ action: 'view', label: own, url: studio }, { action: 'view', label: photos ? 'Fotos del robot' : 'Vídeo del robot', url }]
       : [{ action: 'view', label: photos ? 'Abrir las fotos' : 'Abrir el vídeo', url }],

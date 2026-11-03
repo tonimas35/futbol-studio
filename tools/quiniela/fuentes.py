@@ -176,15 +176,17 @@ def eventos_espn(desde, dias=8, ligas=LIGAS):
     return out
 
 
-def emparejar(partidos, eventos, minimo=0.62):
-    """Para cada partido de la quiniela, el evento de ESPN que es (o None)."""
+def emparejar(partidos, eventos, minimo=0.55, media=0.7):
+    """Para cada partido de la quiniela, el evento de ESPN que es (o None). Tienen que parecerse los dos
+    equipos: con uno solo («Barcelona») saldría otro partido suyo de esos días."""
     res = {}
     for p in partidos:
-        best, bs = None, 0
+        best, bs = None, (0, 0)
         for e in eventos:
-            s = (parecido(p['local'], e['local']) + parecido(p['visitante'], e['visitante'])) / 2
-            if s > bs: best, bs = e, s
-        res[p['n']] = (best, round(bs, 3)) if bs >= minimo else (None, round(bs, 3))
+            a, b = parecido(p['local'], e['local']), parecido(p['visitante'], e['visitante'])
+            sc = (min(a, b), (a + b) / 2)
+            if sc[1] > bs[1] and sc[0] >= minimo: best, bs = e, sc
+        res[p['n']] = (best, round(bs[1], 3)) if best and bs[1] >= media else (None, round(bs[1], 3))
     return res
 
 

@@ -14,6 +14,11 @@ class Nombres(unittest.TestCase):
         self.assertLess(fuentes.parecido('R.SOCIEDAD', 'Real Madrid'), 0.6)
         self.assertLess(fuentes.parecido('B.MUNICH', 'Borussia Dortmund'), 0.5)
 
+    def test_no_empareja_con_un_solo_equipo(self):
+        ev = [dict(id='1', local='Barcelona', visitante='Aston Villa'), dict(id='2', local='Racing Santander', visitante='Valencia')]
+        r = fuentes.emparejar([dict(n=1, local='BARCELONA', visitante='ALAVÉS'), dict(n=2, local='RACING S.', visitante='R.MADRID')], ev)
+        self.assertIsNone(r[1][0]); self.assertIsNone(r[2][0])
+
     def test_emparejar(self):
         ev = [dict(id='1', local='Real Madrid', visitante='Real Sociedad'), dict(id='2', local='Real Sociedad', visitante='Lyon')]
         r = fuentes.emparejar([dict(n=1, local='R.SOCIEDAD', visitante='OL. LYON')], ev)
