@@ -73,6 +73,22 @@ class Estrategia(unittest.TestCase):
         total, mejor = quiniela.premio_columnas(signos, ['1'] * 14, tabla, False)
         self.assertEqual(mejor, 14); self.assertEqual(total, 1e5 + 1e3)
 
+    def test_columna_valor(self):
+        # Cambia como mucho 3 signos, solo por otros con un 25 % o más que la gente juega menos de lo que salen
+        P = [[.44, .30, .26], [.7, .2, .1], [.4, .35, .25], [.5, .3, .2], [.5, .26, .24]]
+        Q = [[.55, .22, .23], [.8, .12, .08], [.4, .30, .30], [.5, .2, .3], [.5, .3, .2]]
+        v = estrategia.columna_valor(P, Q)
+        self.assertEqual(v[1], '1')       # el empate tiene solo un 20 %: no se toca
+        self.assertEqual(v[0], 'X'); self.assertEqual(v[3], 'X')
+        self.assertEqual(v[4], '1')       # la gente ya juega el empate más de lo que sale
+        self.assertLessEqual(sum(a != b for a, b in zip(v, estrategia.elegir(P, 0))), 3)
+
+    def test_columna_de_empates(self):
+        P = [[.44, .30, .26], [.6, .26, .14], [.30, .25, .45]]
+        Q = [[.55, .22, .23], [.7, .18, .12], [.10, .30, .60]]
+        v = estrategia.columna_valor(P, Q, signos='X')
+        self.assertEqual(v, ['X', 'X', '2'])   # el 1 del tercero tiene valor, pero no es empate
+
     def test_tipo_fallo(self):
         self.assertEqual(quiniela.tipo_fallo([.7, .2, .1], 2), 'sorpresa')
         self.assertEqual(quiniela.tipo_fallo([.45, .3, .25], 2), 'igualado')
