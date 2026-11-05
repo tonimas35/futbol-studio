@@ -13,7 +13,7 @@ Todo se guarda en la carpeta quiniela/ del repo:
   pesos.json             lo que ha aprendido el modelo (y cómo ha ido cambiando)
   analisis.md            lo que dice el histórico
 """
-import json, math, os, sys, itertools
+import json, math, os, re, sys, itertools
 from datetime import datetime, timezone
 sys.path.insert(0, os.path.dirname(__file__))
 import fuentes, modelo, estrategia, historico
@@ -57,6 +57,19 @@ def siguiente_jornada(t):
 def pct(p): return f'{round(100 * p):>3}'
 
 
+def dia_serie(t, j):
+    """«Día N» de la serie «jugando hasta que Claude haga pleno» (quiniela/serie.json dice dónde empezó)."""
+    ini = (leer(ruta('serie.json')) or {}).get('inicio') or {}
+    t0, j0 = ini.get('temporada', t), ini.get('jornada', j)
+    hechas = set()
+    if os.path.isdir(ruta('jornadas')):
+        for f in os.listdir(ruta('jornadas')):
+            m = re.match(r'^(\d{4})-(\d{2})\.json$', f)
+            if m: hechas.add((int(m[1]), int(m[2])))
+    hechas.add((t, j))
+    return len([k for k in sorted(hechas) if k >= (t0, j0) and k <= (t, j)]) or 1
+
+
 # ---------------------------------------------------------------- pronóstico
 def pronostico(jornada=None, temporada=None, dobles=4, ligas=fuentes.LIGAS, log=print):
     t = temporada or temporada_actual(); j = jornada or siguiente_jornada(t)
@@ -88,7 +101,8 @@ def pronostico(jornada=None, temporada=None, dobles=4, ligas=fuentes.LIGAS, log=
         filas.append(p)
     probs = [p['prob'] for p in filas[:14]]
     signos = estrategia.elegir(probs, dobles); simples = estrategia.elegir(probs, 0)
-    for p, s, s1 in zip(filas, signos, simples): p['signos'] = s; p['signo_simple'] = s1
+    valor = estrategia.columna_valor(probs, [p['fuentes'].get('publico') for p in filas[:14]])
+    for p, s, s1, sv in zip(filas, signos, simples, valor): p['signos'] = s; p['signo_simple'] = s1; p['signo_valor'] = sv
     # Pleno al 15: goles de cada equipo con las cuotas (si hay) o con lo que dice Losilla
     p15 = filas[14] if len(filas) > 14 else None
     if p15:
@@ -102,10 +116,12 @@ def pronostico(jornada=None, temporada=None, dobles=4, ligas=fuentes.LIGAS, log=
             p15['goles'] = {k: [round(x, 4) for x in v] for k, v in g.items()}; p15['goles_fuente'] = fuente
             p15['signos'], p15['p_signos'] = estrategia.pleno15(g)
     res = estrategia.resumen(probs, signos); res_simple = estrategia.resumen(probs, simples)
+    res_valor = estrategia.resumen(probs, valor)
     pub = [p['fuentes'].get('publico') for p in filas[:14]]
     val = estrategia.valor(probs, pub); inf = estrategia.inflados(probs, pub)
     out = dict(temporada=t, jornada=j, creado=datetime.now(timezone.utc).isoformat(timespec='minutes'), dobles=dobles,
-               pesos=pesos, partidos=filas, resumen=res, resumen_simple=res_simple, valor=val, inflados=inf)
+               pesos=pesos, partidos=filas, resumen=res, resumen_simple=res_simple, resumen_valor=res_valor, valor=val, inflados=inf,
+               dia=dia_serie(t, j))
     escribir(ruta('jornadas', f'{t}-{j:02d}.json'), out)
     imprimir(out, log)
     return out
@@ -163,7 +179,7 @@ def revisar(jornada=None, temporada=None, log=print):
     if not o: raise SystemExit('No hay pronóstico guardado de esa jornada')
     d = fuentes.escrutinio(jornada, t)
     reales = {p['num']: p for p in d['partidos']}
-    filas, aciertos, fallos, simples = [], 0, [], 0
+    filas, aciertos, fallos, simples, valores = [], 0, [], 0, 0
     for p in o['partidos']:
         r = reales.get(p['n'], {}); y = _y(r.get('signo'))
         p['resultado'] = r.get('resultado'); p['signo_real'] = r.get('signo') or None
@@ -171,7 +187,9 @@ def revisar(jornada=None, temporada=None, log=print):
         if p['n'] <= 14:
             ok = SIG[y] in p['signos']; aciertos += ok; p['acierto'] = ok
             p['acierto_simple'] = SIG[y] == p.get('signo_simple', p['signos'][:1]); simples += p['acierto_simple']
-            if not ok:
+            if p.get('signo_valor'): p['acierto_valor'] = SIG[y] == p['signo_valor']; valores += p['acierto_valor']
+            # Con las dos columnas jugadas, el fallo es el de la columna 1 (la de lo más probable)
+            if not (p['acierto_simple'] if p.get('signo_valor') else ok):
                 p['fallo'] = tipo_fallo(p['prob'], y)
                 mejor = max(((k, v[y]) for k, v in p['fuentes'].items()), key=lambda x: x[1], default=(None, 0))
                 if mejor[0] and mejor[1] >= p['prob'][y] + 0.08: p['pista'] = f"{mejor[0]} le daba un {100 * mejor[1]:.0f}%"
@@ -185,14 +203,21 @@ def revisar(jornada=None, temporada=None, log=print):
     dist = estrategia.distribucion(qs)
     premio, mejor = premio_columnas([p['signos'] for p in o['partidos'][:14]], [p.get('signo_real') for p in o['partidos'][:14]],
                                     d.get('acertantes'), p15_ok)
+    jugada = None
+    if all(p.get('signo_valor') for p in o['partidos'][:14]):
+        reales = [p.get('signo_real') for p in o['partidos'][:14]]
+        p1, _ = premio_columnas([p.get('signo_simple') for p in o['partidos'][:14]], reales, d.get('acertantes'), p15_ok)
+        p2, _ = premio_columnas([p['signo_valor'] for p in o['partidos'][:14]], reales, d.get('acertantes'), p15_ok)
+        jugada = dict(columna1=simples, columna2=valores, premio=round(p1 + p2, 2), coste=1.5)
     ll = {}
     for fu in ('final',) + modelo.FUENTES:
         v = [modelo.logloss(r['prob'] if fu == 'final' else r['fuentes'][fu], r['y']) for r in filas if r['n'] <= 14 and (fu == 'final' or fu in r['fuentes'])]
         if v: ll[fu] = round(sum(v) / len(v), 4)
     rev = dict(revisado=datetime.now(timezone.utc).isoformat(timespec='minutes'), estado=d.get('estado'), jugados=len(jugados),
-               aciertos=aciertos, aciertos_sin_dobles=simples, esperados=round(sum(qs), 2), p_igual_o_mas=round(sum(dist[aciertos:]), 4),
+               aciertos=aciertos, aciertos_sin_dobles=simples, jugada=jugada, esperados=round(sum(qs), 2), p_igual_o_mas=round(sum(dist[aciertos:]), 4),
                pleno15=p15_ok, premio=premio, coste=o['resumen']['coste'], acertantes=d.get('acertantes'),
-               fallos=[dict(n=p['n'], partido=f"{p['local']} - {p['visitante']}", resultado=p['resultado'], puse=p['signos'],
+               fallos=[dict(n=p['n'], partido=f"{p['local']} - {p['visitante']}", resultado=p['resultado'],
+                            puse=p['signo_simple'] if p.get('signo_valor') else p['signos'],
                             salio=p['signo_real'], prob=round(p['prob'][_y(p['signo_real'])], 3), tipo=p['fallo'], pista=p.get('pista'))
                        for p in fallos],
                logloss=ll)
@@ -215,6 +240,7 @@ def texto_revision(o):
     L = [f"# Jornada {o['jornada']}: {r['aciertos']} de {r['jugados']} con dobles · {r.get('aciertos_sin_dobles', '?')} sin dobles", '',
          f"- Esperábamos {r['esperados']} aciertos. Sacar {r['aciertos']} o más tenía un {100 * r['p_igual_o_mas']:.0f}% de probabilidad.",
          f"- Pleno al 15: {'sí' if r['pleno15'] else 'no'}.",
+         *([f"- Las dos columnas jugadas: {r['jugada']['columna1']} y {r['jugada']['columna2']} aciertos; {r['jugada']['premio']} € por {r['jugada']['coste']} €."] if r.get('jugada') else []),
          f"- Jugándola habría costado {r['coste']} € y se habrían cobrado {r['premio']} €.", '']
     if r['fallos']:
         L += ['## Fallos', '']

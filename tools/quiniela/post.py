@@ -82,15 +82,20 @@ def logos(p):
 
 def motivo(p, val):
     if p.get('motivo'): return p['motivo']
-    pr = p['prob']; f = p['fuentes']; k = pr.index(max(pr)); eq = [nombre(p['local']), 'empate', nombre(p['visitante'])][k]
+    pr = p['prob']; k = pr.index(max(pr)); eq = [nombre(p['local']), 'empate', nombre(p['visitante'])][k]
+    racha = forma_texto(p)
+    if p.get('signo_valor'):  # con las dos columnas: corto
+        if p['signo_valor'] != p.get('signo_simple'): return f"Columna 2: {p['signo_valor']}"
+        if racha: return racha
+        if pr[k] >= 0.55: return f"{eq}, un {round(100 * pr[k])}%"
+        return f"Igualado: {round(100 * pr[0])} - {round(100 * pr[1])} - {round(100 * pr[2])}"
     v = next((x for x in val if x['n'] == p['n']), None)
     if v:
-        k2 = '1X2'.index(v['signo']); eq2 = [nombre(p['local']), 'el empate', nombre(p['visitante'])][k2]
-        return f"La gente le da a {eq2} un {round(100 * v['publico'])}%. Yo un {round(100 * v['prob'])}%"
-    racha = forma_texto(p)
+        k2 = '1X2'.index(v['signo']); eq2 = [f"a {nombre(p['local'])}", 'al empate', f"a {nombre(p['visitante'])}"][k2]
+        return f"La gente le da {eq2} un {round(100 * v['publico'])}%. Yo un {round(100 * v['prob'])}%"
     if len(p['signos']) > 1: return f"Igualado: {round(100 * pr[0])} - {round(100 * pr[1])} - {round(100 * pr[2])}" + (f" · {racha}" if racha else '')
-    if racha: return f"{eq}, un {round(100 * pr[k])}% · {racha}"
     if pr[k] >= 0.75: return f"{eq} gana {round(100 * pr[k])} de cada 100"
+    if racha: return f"{eq}, un {round(100 * pr[k])}% · {racha}"
     return f"{eq}, un {round(100 * pr[k])}%"
 
 
@@ -112,7 +117,10 @@ def _racha(h):
 
 
 def _eleccion(p):
-    base = p.get('signo_simple', p['signos'][:1]); extra = [x for x in p['signos'] if x != base]
+    base = p.get('signo_simple', p['signos'][:1])
+    if p.get('signo_valor'):
+        return base, (p['signo_valor'] if p['signo_valor'] != base else None)
+    extra = [x for x in p['signos'] if x != base]
     return base, (extra[0] if extra else None)
 
 
@@ -120,13 +128,34 @@ FIJO = ['fijo', 'sin dudar', 'y a otra cosa', 'fijo']
 GANA = ['llega con {n} victorias seguidas', 'ha ganado sus últimos {n} partidos', 'va lanzado: {n} victorias seguidas', 'suma {n} victorias seguidas']
 
 
+COL2 = False
+
+
 def _signo_txt(base, extra, fijo=True, k=0):
+    if extra and COL2: return f"le pongo el {base}, y en la columna 2 el {extra}"
     if extra: return f"le pongo el {base}, con doble al {extra} por si acaso"
     return f"{base} {FIJO[k % len(FIJO)] if fijo else 'y que sea lo que Dios quiera'}"
 
 
+def cambios_col2(o):
+    """Los partidos donde la columna 2 cambia el signo, en una frase corta cada uno."""
+    res = []
+    for p in o['partidos'][:14]:
+        base, extra = _eleccion(p)
+        if not (extra and p.get('signo_valor')): continue
+        k = '1X2'.index(extra); q = (p['fuentes'].get('publico') or [0, 0, 0])[k]
+        a, b = logos(p); img = [a, a, b][k] or a
+        que = 'empate' if extra == 'X' else f"el {extra}"
+        txt = (f"<b>{nombre(p['local'])}–{nombre(p['visitante'])}.</b> Solo el {round(100 * q)}% de la gente pone {que} "
+               f"y sale un {round(100 * p['prob'][k])}% de las veces. Lo meto en la columna 2.")
+        res.append((img, txt, '', f'<b>{base}</b><b class="dob">{extra}</b>'))
+    return res
+
+
 def claves(o):
     """Las rachas más llamativas de la jornada, contadas como lo diría Toni, con la elección que justifican."""
+    global COL2
+    COL2 = any(p.get('signo_valor') for p in o['partidos'][:14])
     out = []
     for p in o['partidos'][:14]:
         f = p.get('forma') or {}
@@ -169,23 +198,21 @@ def claves(o):
 
 
 def descripcion(o, tipo):
-    """El texto para TikTok, en primera persona y sin adornos."""
-    j = o['jornada']
+    """El texto para TikTok, corto y en primera persona."""
+    j = o['jornada']; dia = o.get('dia')
+    serie = f"Día {dia} jugando a la Quiniela hasta que Claude haga pleno" if dia else f"Mi quiniela de la jornada {j}"
     if tipo == 'pronostico':
-        cl = claves(o)
-        frase = re.sub('<[^>]+>', '', cl[0][1]) if cl else ''
-        return (f"Mi quiniela de la jornada {j}. Lo verde es la de sin dobles; lo rayado, si la quieres con {o['dobles']} dobles.\n"
-                + (f"{frase}\n" if frase else '') + "Cuál cambiarías?\n\n#quiniela #futbol #laliga #pronostico")
-    r = o['revision']
-    f = r['fallos'][0] if r['fallos'] else None
-    if f:
-        q = o['partidos'][f['n'] - 1]
-        linea = f"El {nombre(q['local'])}-{nombre(q['visitante'])} ({f['resultado']}) me ha tumbado."
-    else:
-        linea = 'Sin fallos. No me lo creo ni yo.'
-    return (f"{r['aciertos']} de {r['jugados']} en la quiniela de la jornada {j}"
-            + (f" ({r['aciertos_sin_dobles']} sin dobles)" if 'aciertos_sin_dobles' in r else '') + f". {linea}\n"
-            "Cuántas sacaste tú?\n\n#quiniela #futbol #laliga")
+        if any(p.get('signo_valor') for p in o['partidos'][:14]):
+            ch = [p for p in o['partidos'][:14] if p.get('signo_valor') and p['signo_valor'] != p.get('signo_simple')]
+            nx = sum(p['signo_valor'] == 'X' for p in ch)
+            return (f"{serie} 🤖\nColumna 1, lo que dice. Columna 2, {len(ch)} cambios que casi nadie juega"
+                    + (f" ({nx} empate{'s' if nx > 1 else ''})" if nx else '') + ".\nCuál cambiarías?\n\n#quiniela #ia #laliga #futbol")
+        return f"{serie}. Lo verde, sin dobles; lo rayado, con {o['dobles']} dobles.\nCuál cambiarías?\n\n#quiniela #futbol #laliga"
+    r = o['revision']; jg = r.get('jugada')
+    if jg:
+        return (f"{serie}: {jg['columna1']} de {r['jugados']} 🤖\nColumna 2: {jg['columna2']}."
+                + (f" Cobrado: {str(jg['premio']).replace('.', ',')} €." if jg['premio'] else '') + "\n\n#quiniela #ia #futbol")
+    return f"{serie}: {r['aciertos_sin_dobles']} de {r['jugados']} 🤖\n\n#quiniela #ia #futbol"
 
 
 def pagina(cuerpo):
@@ -201,6 +228,7 @@ def marco(i, lima_izq, contenido, marca=True):
 
 
 def pronostico(o):
+    col2 = any(p.get('signo_valor') for p in o['partidos'][:14])
     filas = []
     for p in o['partidos']:
         a, b = logos(p)
@@ -208,19 +236,21 @@ def pronostico(o):
             k = f'<b class="on" style="width:auto;padding:0 14px">{p.get("signos", "")}</b>'
         else:
             base = p.get('signo_simple', p['signos'][:1])
-            k = ''.join(f'<b class="{"on" if s == base else "dob" if s in p["signos"] else ""}">{s}</b>' for s in '1X2')
+            otros = p['signo_valor'] if p.get('signo_valor') else p['signos']
+            k = ''.join(f'<b class="{"on" if s == base else "dob" if s in otros else ""}">{s}</b>' for s in '1X2')
         filas.append(f'<div class="q{" p15" if p["n"] == 15 else ""}"><span class="n">{"P15" if p["n"] == 15 else p["n"]}</span>'
                      f'<div><div class="m">{a}{nombre(p["local"])} – {nombre(p["visitante"])}{b}</div><div class="w">{motivo(p, o["valor"])}</div></div>'
                      f'<div class="k">{k}</div></div>')
     s1 = marco(1, 'left:420px;right:0', f'''
-  <div class="chip" style="position:absolute;left:60px;top:385px;font-size:30px">Jornada {o["jornada"]} · mi pronóstico</div>
+  <div class="chip" style="position:absolute;left:60px;top:385px;font-size:28px">{f"Día {o['dia']} · jugando hasta que Claude haga pleno" if o.get("dia") else f"Jornada {o['jornada']} · mi pronóstico"}</div>
   <h1 class="h" style="position:absolute;left:60px;width:640px;white-space:nowrap;top:440px;font-size:84px">Mi quiniela</h1>
   <div class="ley" style="position:absolute;right:160px;top:452px;flex-direction:column;align-items:flex-start;gap:8px">
-    <span><i style="background:var(--lime)"></i>Sin dobles</span>
-    <span><i style="background:repeating-linear-gradient(135deg,var(--lime) 0 5px,#fff 5px 10px)"></i>+ {o["dobles"]} dobles</span></div>
+    <span><i style="background:var(--lime)"></i>{"Columna 1" if col2 else "Sin dobles"}</span>
+    <span><i style="background:repeating-linear-gradient(135deg,var(--lime) 0 5px,#fff 5px 10px)"></i>{"Columna 2" if col2 else f"+ {o['dobles']} dobles"}</span></div>
   <div style="position:absolute;left:60px;width:860px;top:560px">{"".join(filas)}</div>''', marca=False)
+    lista = (cambios_col2(o) + [c for c in claves(o) if c[3].count('<b') == 1])[:4] if col2 else claves(o)[:4]
     items = ''.join(f'<div class="vv">{img}<div class="t2">{txt}<div class="fm">{puntos}</div></div><div class="pk">{pk}</div></div>'
-                    for img, txt, puntos, pk in claves(o)[:4])
+                    for img, txt, puntos, pk in lista)
     r = o['resumen']
     s2 = marco(2, 'left:0;right:420px', f'''
   <h1 class="h" style="position:absolute;left:60px;width:860px;top:400px;font-size:92px">Por qué</h1>
@@ -237,27 +267,32 @@ def resultado(o):
     for p in o['partidos']:
         if not p.get('signo_real'): continue
         a, b = logos(p)
-        ok = p.get('acierto') if p['n'] <= 14 else r['pleno15']
+        if p['n'] <= 14 and r.get('jugada'):
+            sg = p.get('signo_simple'); ok = p.get('acierto_simple')
+        else:
+            sg = p.get('signos', ''); ok = p.get('acierto') if p['n'] <= 14 else r['pleno15']
         filas.append(f'<div class="q r {"ok" if ok else "ko"}{" p15" if p["n"] == 15 else ""}"><span class="n">{"P15" if p["n"] == 15 else p["n"]}</span>'
                      f'<div class="m">{a}{nombre(p["local"])} – {nombre(p["visitante"])}{b}</div><div class="r">{p["resultado"]}</div>'
-                     f'<div class="k"><b>{p.get("signos", "")}</b><i>{"✓" if ok else "✕"}</i></div></div>')
+                     f'<div class="k"><b>{sg}</b><i>{"✓" if ok else "✕"}</i></div></div>')
+    jg = r.get('jugada'); total = jg['columna1'] if jg else r['aciertos']
     s1 = marco(1, 'left:420px;right:0', f'''
-  <div class="chip" style="position:absolute;left:60px;top:385px;font-size:30px">Jornada {o["jornada"]} · así acabó</div>
+  <div class="chip" style="position:absolute;left:60px;top:385px;font-size:28px">{f"Día {o['dia']} · jugando hasta que Claude haga pleno" if o.get("dia") else f"Jornada {o['jornada']} · así acabó"}</div>
   <div style="position:absolute;left:60px;width:860px;top:440px;display:flex;align-items:flex-end;justify-content:space-between">
     <h1 class="h" style="font-size:84px">Mi quiniela</h1>
-    <div class="big" style="font-size:96px;background:var(--ink);color:var(--lime);padding:6px 20px 0">{r["aciertos"]}/{r["jugados"]}</div></div>
-  <div style="position:absolute;left:60px;width:860px;top:570px">{"".join(filas)}</div>''', marca=False)
+    <div class="big" style="font-size:96px;background:var(--ink);color:var(--lime);padding:6px 20px 0">{total}/{r["jugados"]}</div></div>
+  <div style="position:absolute;left:60px;width:860px;top:570px">{"".join(filas)}</div>
+  {f'<div class="lab" style="position:absolute;left:60px;width:860px;top:1592px;font-size:30px">Columna 2: {jg["columna2"]} de {r["jugados"]}</div>' if jg else ''}''', marca=False)
     fallos = ''.join(f'<div style="display:flex;align-items:center;gap:16px;height:84px;border-bottom:2px solid rgba(0,0,0,.1);font-family:Barlow Condensed;'
                      f'font-weight:800;font-size:36px;text-transform:uppercase">{logos(o["partidos"][f["n"] - 1])[0]}'
                      f'{nombre(o["partidos"][f["n"] - 1]["local"])} {f["resultado"]} {nombre(o["partidos"][f["n"] - 1]["visitante"])}'
                      f'<span style="margin-left:auto;font-size:26px;opacity:.5">yo: {f["puse"]}</span></div>' for f in r['fallos'][:5])
     s2 = marco(2, 'left:0;right:420px', f'''
-  <div class="big" style="position:absolute;left:60px;top:400px;font-size:300px;line-height:.9">{r["aciertos"]}<span style="opacity:.25">/{r["jugados"]}</span></div>
+  <div class="big" style="position:absolute;left:60px;top:400px;font-size:300px;line-height:.9">{total}<span style="opacity:.25">/{r["jugados"]}</span></div>
   <div class="lab" style="position:absolute;left:60px;width:860px;top:700px;font-size:44px">Me tumbaron estas:</div>
   <div style="position:absolute;left:60px;width:860px;top:780px">{fallos}</div>
   <div style="position:absolute;left:60px;width:860px;top:1240px;background:var(--ink);color:#fff;padding:30px 40px">
     <div class="h" style="font-size:58px;color:var(--lime)">Cuántas sacaste tú?</div>
-    <div class="lab" style="font-size:30px;margin-top:10px;opacity:.8">La semana que viene, otra 👇</div></div>''')
+    <div class="lab" style="font-size:30px;margin-top:10px;opacity:.8">{f"Próximo: día {o['dia'] + 1}" if o.get("dia") else "La semana que viene, otra 👇"}</div></div>''')
     return pagina(s1 + s2)
 
 
