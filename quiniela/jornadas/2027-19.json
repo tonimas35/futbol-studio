@@ -75,7 +75,11 @@
     0.1007
    ],
    "signos": "1",
-   "signo_simple": "1"
+   "signo_simple": "1",
+   "resultado": "3-0",
+   "signo_real": "1",
+   "acierto": true,
+   "acierto_simple": true
   },
   {
    "n": 2,
@@ -130,7 +134,12 @@
     0.2087
    ],
    "signos": "1",
-   "signo_simple": "1"
+   "signo_simple": "1",
+   "resultado": "0-0",
+   "signo_real": "X",
+   "acierto": false,
+   "acierto_simple": false,
+   "fallo": "falla el favorito"
   },
   {
    "n": 3,
@@ -185,7 +194,11 @@
     0.3301
    ],
    "signos": "12",
-   "signo_simple": "1"
+   "signo_simple": "1",
+   "resultado": "3-2",
+   "signo_real": "1",
+   "acierto": true,
+   "acierto_simple": true
   },
   {
    "n": 4,
@@ -240,7 +253,11 @@
     0.587
    ],
    "signos": "2",
-   "signo_simple": "2"
+   "signo_simple": "2",
+   "resultado": "0-6",
+   "signo_real": "2",
+   "acierto": true,
+   "acierto_simple": true
   },
   {
    "n": 5,
@@ -295,7 +312,11 @@
     0.7997
    ],
    "signos": "2",
-   "signo_simple": "2"
+   "signo_simple": "2",
+   "resultado": "2-3",
+   "signo_real": "2",
+   "acierto": true,
+   "acierto_simple": true
   },
   {
    "n": 6,
@@ -350,7 +371,12 @@
     0.6576
    ],
    "signos": "2",
-   "signo_simple": "2"
+   "signo_simple": "2",
+   "resultado": "3-2",
+   "signo_real": "1",
+   "acierto": false,
+   "acierto_simple": false,
+   "fallo": "sorpresa"
   },
   {
    "n": 7,
@@ -405,7 +431,11 @@
     0.2095
    ],
    "signos": "1",
-   "signo_simple": "1"
+   "signo_simple": "1",
+   "resultado": "2-1",
+   "signo_real": "1",
+   "acierto": true,
+   "acierto_simple": true
   },
   {
    "n": 8,
@@ -460,7 +490,11 @@
     0.2534
    ],
    "signos": "12",
-   "signo_simple": "1"
+   "signo_simple": "1",
+   "resultado": "4-1",
+   "signo_real": "1",
+   "acierto": true,
+   "acierto_simple": true
   },
   {
    "n": 9,
@@ -515,7 +549,11 @@
     0.4539
    ],
    "signos": "12",
-   "signo_simple": "2"
+   "signo_simple": "2",
+   "resultado": "1-9",
+   "signo_real": "2",
+   "acierto": true,
+   "acierto_simple": true
   },
   {
    "n": 10,
@@ -570,7 +608,11 @@
     0.6478
    ],
    "signos": "2",
-   "signo_simple": "2"
+   "signo_simple": "2",
+   "resultado": "2-3",
+   "signo_real": "2",
+   "acierto": true,
+   "acierto_simple": true
   },
   {
    "n": 11,
@@ -625,7 +667,11 @@
     0.7854
    ],
    "signos": "2",
-   "signo_simple": "2"
+   "signo_simple": "2",
+   "resultado": "1-2",
+   "signo_real": "2",
+   "acierto": true,
+   "acierto_simple": true
   },
   {
    "n": 12,
@@ -680,7 +726,12 @@
     0.2339
    ],
    "signos": "1",
-   "signo_simple": "1"
+   "signo_simple": "1",
+   "resultado": "1-1",
+   "signo_real": "X",
+   "acierto": false,
+   "acierto_simple": false,
+   "fallo": "falla el favorito"
   },
   {
    "n": 13,
@@ -735,7 +786,11 @@
     0.3042
    ],
    "signos": "12",
-   "signo_simple": "1"
+   "signo_simple": "1",
+   "resultado": "1-2",
+   "signo_real": "2",
+   "acierto": true,
+   "acierto_simple": false
   },
   {
    "n": 14,
@@ -790,7 +845,11 @@
     0.6276
    ],
    "signos": "2",
-   "signo_simple": "2"
+   "signo_simple": "2",
+   "resultado": "0-1",
+   "signo_real": "2",
+   "acierto": true,
+   "acierto_simple": true
   },
   {
    "n": 15,
@@ -854,7 +913,9 @@
    },
    "goles_fuente": "cuotas",
    "signos": "1-1",
-   "p_signos": 0.1002
+   "p_signos": 0.1002,
+   "resultado": "0-2",
+   "signo_real": "2"
   }
  ],
  "resumen": {
@@ -927,5 +988,87 @@
    "publico": 0.73,
    "diferencia": 0.082
   }
- ]
+ ],
+ "revision": {
+  "revisado": "2026-11-05T22:30+00:00",
+  "estado": "ESCRUTADA",
+  "jugados": 14,
+  "aciertos": 11,
+  "aciertos_sin_dobles": 10,
+  "esperados": 9.56,
+  "p_igual_o_mas": 0.2991,
+  "pleno15": false,
+  "premio": 1.88,
+  "coste": 12.0,
+  "acertantes": [
+   {
+    "acierto": 15,
+    "acertantes": 2,
+    "premio": 41804.06
+   },
+   {
+    "acierto": 14,
+    "acertantes": 18,
+    "premio": 10016.02
+   },
+   {
+    "acierto": 13,
+    "acertantes": 534,
+    "premio": 158.26
+   },
+   {
+    "acierto": 12,
+    "acertantes": 7285,
+    "premio": 11.6
+   },
+   {
+    "acierto": 11,
+    "acertantes": 45070,
+    "premio": 1.88
+   },
+   {
+    "acierto": 10,
+    "acertantes": 152115,
+    "premio": 0
+   }
+  ],
+  "fallos": [
+   {
+    "n": 2,
+    "partido": "BODO GLIMT - LOSC LILLE",
+    "resultado": "0-0",
+    "puse": "1",
+    "salio": "X",
+    "prob": 0.221,
+    "tipo": "falla el favorito",
+    "pista": null
+   },
+   {
+    "n": 6,
+    "partido": "FENERBAHCE - LIVERPOOL",
+    "resultado": "3-2",
+    "puse": "2",
+    "salio": "1",
+    "prob": 0.154,
+    "tipo": "sorpresa",
+    "pista": null
+   },
+   {
+    "n": 12,
+    "partido": "R.SOCIEDAD - OL. LYON",
+    "resultado": "1-1",
+    "puse": "1",
+    "salio": "X",
+    "prob": 0.237,
+    "tipo": "falla el favorito",
+    "pista": null
+   }
+  ],
+  "logloss": {
+   "final": 0.791,
+   "mercado": 0.7998,
+   "losilla": 0.808,
+   "publico": 0.7784
+  }
+ }
 }
