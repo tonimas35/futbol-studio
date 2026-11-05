@@ -1,7 +1,7 @@
 {
  "temporada": 2027,
  "jornada": 20,
- "creado": "2026-11-05T22:34+00:00",
+ "creado": "2026-11-05T22:41+00:00",
  "dobles": 4,
  "pesos": {
   "mercado": 0.5328,
@@ -244,7 +244,7 @@
    ],
    "signos": "2",
    "signo_simple": "2",
-   "signo_valor": "1"
+   "signo_valor": "2"
   },
   {
    "n": 5,
@@ -580,7 +580,7 @@
    ],
    "signos": "1X",
    "signo_simple": "1",
-   "signo_valor": "2"
+   "signo_valor": "X"
   },
   {
    "n": 11,
@@ -621,7 +621,7 @@
    ],
    "signos": "2",
    "signo_simple": "2",
-   "signo_valor": "2"
+   "signo_valor": "X"
   },
   {
    "n": 12,
@@ -817,11 +817,11 @@
   "coste": 1.5
  },
  "resumen_valor": {
-  "esperados": 6.54,
-  "p10": 0.0483,
-  "p11": 0.0125,
-  "p12": 0.0022,
-  "p14": 1.2e-05,
+  "esperados": 6.49,
+  "p10": 0.0453,
+  "p11": 0.0116,
+  "p12": 0.002,
+  "p14": 1.1e-05,
   "apuestas": 1,
   "coste": 1.5
  },

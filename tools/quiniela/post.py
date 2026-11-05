@@ -205,8 +205,9 @@ def descripcion(o, tipo):
         if any(p.get('signo_valor') for p in o['partidos'][:14]):
             ch = [p for p in o['partidos'][:14] if p.get('signo_valor') and p['signo_valor'] != p.get('signo_simple')]
             nx = sum(p['signo_valor'] == 'X' for p in ch)
-            return (f"{serie} 🤖\nColumna 1, lo que dice. Columna 2, {len(ch)} cambios que casi nadie juega"
-                    + (f" ({nx} empate{'s' if nx > 1 else ''})" if nx else '') + ".\nCuál cambiarías?\n\n#quiniela #ia #laliga #futbol")
+            col2 = (f"con {nx} empate{'s' if nx > 1 else ''} que casi nadie juega" if ch and nx == len(ch)
+                    else f"{len(ch)} cambios que casi nadie juega" + (f" ({nx} empate{'s' if nx > 1 else ''})" if nx else ''))
+            return f"{serie} 🤖\nColumna 1, lo que dice. Columna 2, {col2}.\nCuál cambiarías?\n\n#quiniela #ia #laliga #futbol"
         return f"{serie}. Lo verde, sin dobles; lo rayado, con {o['dobles']} dobles.\nCuál cambiarías?\n\n#quiniela #futbol #laliga"
     r = o['revision']; jg = r.get('jugada')
     if jg:

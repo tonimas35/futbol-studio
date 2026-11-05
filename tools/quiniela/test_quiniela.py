@@ -83,6 +83,12 @@ class Estrategia(unittest.TestCase):
         self.assertEqual(v[4], '1')       # la gente ya juega el empate más de lo que sale
         self.assertLessEqual(sum(a != b for a, b in zip(v, estrategia.elegir(P, 0))), 3)
 
+    def test_columna_de_empates(self):
+        P = [[.44, .30, .26], [.6, .26, .14], [.30, .25, .45]]
+        Q = [[.55, .22, .23], [.7, .18, .12], [.10, .30, .60]]
+        v = estrategia.columna_valor(P, Q, signos='X')
+        self.assertEqual(v, ['X', 'X', '2'])   # el 1 del tercero tiene valor, pero no es empate
+
     def test_tipo_fallo(self):
         self.assertEqual(quiniela.tipo_fallo([.7, .2, .1], 2), 'sorpresa')
         self.assertEqual(quiniela.tipo_fallo([.45, .3, .25], 2), 'igualado')

@@ -70,17 +70,18 @@ def inflados(probs, pub, minimo=0.06):
     return sorted(out, key=lambda x: -x['diferencia'])
 
 
-def columna_valor(probs, pub, cambios=3, minimo=0.25):
+def columna_valor(probs, pub, cambios=3, minimo=0.25, signos=SIGNOS):
     """La segunda columna: la misma que la de sin dobles, pero con hasta 3 signos cambiados por otros
     que tienen opciones de verdad (25 % o más) y que la gente juega menos de lo que salen (empates,
     sobre todo). Si sale, se reparte con mucha menos gente. Con el histórico, una columna así
-    devolvió el 77-89 % de lo jugado y la de lo más probable, el 42 %."""
+    devolvió el 77-89 % de lo jugado y la de lo más probable, el 42 %. Con signos='X', solo empates
+    (los de más valor): devolvió el 62-83 %."""
     base = elegir(probs, 0)
     cands = []
     for i, (p, q) in enumerate(zip(probs, pub)):
         if not q: continue
         for k in range(3):
-            if SIGNOS[k] != base[i] and p[k] >= minimo and q[k] > 0 and p[k] / q[k] > 1:
+            if SIGNOS[k] in signos and SIGNOS[k] != base[i] and p[k] >= minimo and q[k] > 0 and p[k] / q[k] > 1:
                 cands.append((p[k] / q[k], i, SIGNOS[k]))
     out = list(base); usados = set()
     for _, i, sg in sorted(cands, reverse=True):

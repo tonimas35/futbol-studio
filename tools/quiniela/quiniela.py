@@ -101,7 +101,8 @@ def pronostico(jornada=None, temporada=None, dobles=4, ligas=fuentes.LIGAS, log=
         filas.append(p)
     probs = [p['prob'] for p in filas[:14]]
     signos = estrategia.elegir(probs, dobles); simples = estrategia.elegir(probs, 0)
-    valor = estrategia.columna_valor(probs, [p['fuentes'].get('publico') for p in filas[:14]])
+    col2 = (leer(ruta('serie.json')) or {}).get('columna2', 'valor')
+    valor = estrategia.columna_valor(probs, [p['fuentes'].get('publico') for p in filas[:14]], signos='X' if col2 == 'empates' else 'X12')
     for p, s, s1, sv in zip(filas, signos, simples, valor): p['signos'] = s; p['signo_simple'] = s1; p['signo_valor'] = sv
     # Pleno al 15: goles de cada equipo con las cuotas (si hay) o con lo que dice Losilla
     p15 = filas[14] if len(filas) > 14 else None
