@@ -76,7 +76,13 @@
    ],
    "signos": "12",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "1-2",
+   "signo_real": "2",
+   "acierto": true,
+   "acierto_simple": false,
+   "acierto_valor": false,
+   "fallo": "igualado"
   },
   {
    "n": 2,
@@ -132,7 +138,13 @@
    ],
    "signos": "2",
    "signo_simple": "2",
-   "signo_valor": "2"
+   "signo_valor": "2",
+   "resultado": "1-1",
+   "signo_real": "X",
+   "acierto": false,
+   "acierto_simple": false,
+   "acierto_valor": false,
+   "fallo": "igualado"
   },
   {
    "n": 3,
@@ -188,7 +200,12 @@
    ],
    "signos": "2",
    "signo_simple": "2",
-   "signo_valor": "2"
+   "signo_valor": "2",
+   "resultado": "0-3",
+   "signo_real": "2",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 4,
@@ -244,7 +261,12 @@
    ],
    "signos": "2",
    "signo_simple": "2",
-   "signo_valor": "2"
+   "signo_valor": "2",
+   "resultado": "0-2",
+   "signo_real": "2",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 5,
@@ -300,7 +322,12 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "1-0",
+   "signo_real": "1",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 6,
@@ -356,7 +383,13 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "0-0",
+   "signo_real": "X",
+   "acierto": false,
+   "acierto_simple": false,
+   "acierto_valor": false,
+   "fallo": "falla el favorito"
   },
   {
    "n": 7,
@@ -412,7 +445,12 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "2-0",
+   "signo_real": "1",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 8,
@@ -468,7 +506,12 @@
    ],
    "signos": "12",
    "signo_simple": "2",
-   "signo_valor": "2"
+   "signo_valor": "2",
+   "resultado": "1-2",
+   "signo_real": "2",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 9,
@@ -524,7 +567,13 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "0-1",
+   "signo_real": "2",
+   "acierto": false,
+   "acierto_simple": false,
+   "acierto_valor": false,
+   "fallo": "igualado"
   },
   {
    "n": 10,
@@ -580,7 +629,13 @@
    ],
    "signos": "1X",
    "signo_simple": "1",
-   "signo_valor": "X"
+   "signo_valor": "X",
+   "resultado": "1-2",
+   "signo_real": "2",
+   "acierto": false,
+   "acierto_simple": false,
+   "acierto_valor": false,
+   "fallo": "igualado"
   },
   {
    "n": 11,
@@ -621,7 +676,13 @@
    ],
    "signos": "2",
    "signo_simple": "2",
-   "signo_valor": "X"
+   "signo_valor": "X",
+   "resultado": "1-1",
+   "signo_real": "X",
+   "acierto": false,
+   "acierto_simple": false,
+   "acierto_valor": true,
+   "fallo": "falla el favorito"
   },
   {
    "n": 12,
@@ -649,7 +710,13 @@
    ],
    "signos": "12",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "2-2",
+   "signo_real": "X",
+   "acierto": false,
+   "acierto_simple": false,
+   "acierto_valor": false,
+   "fallo": "igualado"
   },
   {
    "n": 13,
@@ -690,7 +757,12 @@
    ],
    "signos": "2",
    "signo_simple": "2",
-   "signo_valor": "2"
+   "signo_valor": "2",
+   "resultado": "1-2",
+   "signo_real": "2",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 14,
@@ -731,7 +803,12 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "X"
+   "signo_valor": "X",
+   "resultado": "1-0",
+   "signo_real": "1",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": false
   },
   {
    "n": 15,
@@ -795,7 +872,9 @@
    },
    "goles_fuente": "cuotas",
    "signos": "1-M",
-   "p_signos": 0.131
+   "p_signos": 0.131,
+   "resultado": "1-2",
+   "signo_real": "2"
   }
  ],
  "resumen": {
@@ -962,5 +1041,133 @@
    "diferencia": 0.064
   }
  ],
- "dia": 2
+ "dia": 2,
+ "revision": {
+  "revisado": "2026-11-08T22:34+00:00",
+  "estado": "ESCRUTADA",
+  "jugados": 14,
+  "aciertos": 8,
+  "aciertos_sin_dobles": 7,
+  "jugada": {
+   "columna1": 7,
+   "columna2": 7,
+   "premio": 0.0,
+   "coste": 1.5
+  },
+  "esperados": 8.38,
+  "p_igual_o_mas": 0.6924,
+  "pleno15": false,
+  "premio": 0.0,
+  "coste": 12.0,
+  "acertantes": [
+   {
+    "acierto": 15,
+    "acertantes": 1,
+    "premio": 1326389.24
+   },
+   {
+    "acierto": 14,
+    "acertantes": 6,
+    "premio": 80079.2
+   },
+   {
+    "acierto": 13,
+    "acertantes": 185,
+    "premio": 1369.75
+   },
+   {
+    "acierto": 12,
+    "acertantes": 2301,
+    "premio": 110.13
+   },
+   {
+    "acierto": 11,
+    "acertantes": 17496,
+    "premio": 14.48
+   },
+   {
+    "acierto": 10,
+    "acertantes": 89116,
+    "premio": 3.41
+   }
+  ],
+  "fallos": [
+   {
+    "n": 1,
+    "partido": "MÁLAGA - RACING S.",
+    "resultado": "1-2",
+    "puse": "1",
+    "salio": "2",
+    "prob": 0.339,
+    "tipo": "igualado",
+    "pista": null
+   },
+   {
+    "n": 2,
+    "partido": "OSASUNA - ATH.CLUB",
+    "resultado": "1-1",
+    "puse": "2",
+    "salio": "X",
+    "prob": 0.276,
+    "tipo": "igualado",
+    "pista": null
+   },
+   {
+    "n": 6,
+    "partido": "CELTA - LEVANTE",
+    "resultado": "0-0",
+    "puse": "1",
+    "salio": "X",
+    "prob": 0.251,
+    "tipo": "falla el favorito",
+    "pista": null
+   },
+   {
+    "n": 9,
+    "partido": "GIRONA - ALMERÍA",
+    "resultado": "0-1",
+    "puse": "1",
+    "salio": "2",
+    "prob": 0.278,
+    "tipo": "igualado",
+    "pista": null
+   },
+   {
+    "n": 10,
+    "partido": "SPORTING - VALLADOLID",
+    "resultado": "1-2",
+    "puse": "1",
+    "salio": "2",
+    "prob": 0.298,
+    "tipo": "igualado",
+    "pista": null
+   },
+   {
+    "n": 11,
+    "partido": "ATH.CLUB (F) - R.MADRID (F)",
+    "resultado": "1-1",
+    "puse": "2",
+    "salio": "X",
+    "prob": 0.258,
+    "tipo": "falla el favorito",
+    "pista": null
+   },
+   {
+    "n": 12,
+    "partido": "LOGROÑO (F) - SEVILLA (F)",
+    "resultado": "2-2",
+    "puse": "1",
+    "salio": "X",
+    "prob": 0.271,
+    "tipo": "igualado",
+    "pista": null
+   }
+  ],
+  "logloss": {
+   "final": 0.9388,
+   "mercado": 0.9312,
+   "losilla": 0.95,
+   "publico": 0.9733
+  }
+ }
 }
