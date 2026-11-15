@@ -76,7 +76,12 @@
    ],
    "signos": "12",
    "signo_simple": "2",
-   "signo_valor": "2"
+   "signo_valor": "2",
+   "resultado": "0-1",
+   "signo_real": "2",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 2,
@@ -132,7 +137,13 @@
    ],
    "signos": "12",
    "signo_simple": "1",
-   "signo_valor": "X"
+   "signo_valor": "X",
+   "resultado": "2-2",
+   "signo_real": "X",
+   "acierto": false,
+   "acierto_simple": false,
+   "acierto_valor": true,
+   "fallo": "igualado"
   },
   {
    "n": 3,
@@ -188,7 +199,12 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "2-1",
+   "signo_real": "1",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 4,
@@ -244,7 +260,13 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "3-3",
+   "signo_real": "X",
+   "acierto": false,
+   "acierto_simple": false,
+   "acierto_valor": false,
+   "fallo": "falla el favorito"
   },
   {
    "n": 5,
@@ -300,7 +322,13 @@
    ],
    "signos": "12",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "1-2",
+   "signo_real": "2",
+   "acierto": true,
+   "acierto_simple": false,
+   "acierto_valor": false,
+   "fallo": "igualado"
   },
   {
    "n": 6,
@@ -341,7 +369,12 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "X"
+   "signo_valor": "X",
+   "resultado": "2-0",
+   "signo_real": "1",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": false
   },
   {
    "n": 7,
@@ -397,7 +430,12 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "1-0",
+   "signo_real": "1",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 8,
@@ -453,7 +491,13 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "1-1",
+   "signo_real": "X",
+   "acierto": false,
+   "acierto_simple": false,
+   "acierto_valor": false,
+   "fallo": "falla el favorito"
   },
   {
    "n": 9,
@@ -509,7 +553,12 @@
    ],
    "signos": "1X",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "2-0",
+   "signo_real": "1",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 10,
@@ -537,7 +586,12 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "4-1",
+   "signo_real": "1",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 11,
@@ -578,7 +632,12 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "2-1",
+   "signo_real": "1",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 12,
@@ -619,7 +678,13 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "1-4",
+   "signo_real": "2",
+   "acierto": false,
+   "acierto_simple": false,
+   "acierto_valor": false,
+   "fallo": "igualado"
   },
   {
    "n": 13,
@@ -660,7 +725,12 @@
    ],
    "signos": "2",
    "signo_simple": "2",
-   "signo_valor": "2"
+   "signo_valor": "2",
+   "resultado": "1-2",
+   "signo_real": "2",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 14,
@@ -701,7 +771,13 @@
    ],
    "signos": "2",
    "signo_simple": "2",
-   "signo_valor": "X"
+   "signo_valor": "X",
+   "resultado": "0-0",
+   "signo_real": "X",
+   "acierto": false,
+   "acierto_simple": false,
+   "acierto_valor": true,
+   "fallo": "igualado"
   },
   {
    "n": 15,
@@ -732,7 +808,9 @@
    },
    "goles_fuente": "losilla",
    "signos": "1-0",
-   "p_signos": 0.113
+   "p_signos": 0.113,
+   "resultado": "2-3",
+   "signo_real": "2"
   }
  ],
  "resumen": {
@@ -864,5 +942,123 @@
    "diferencia": 0.076
   }
  ],
- "dia": 3
+ "dia": 3,
+ "revision": {
+  "revisado": "2026-11-15T22:13+00:00",
+  "estado": "ESCRUTADA",
+  "jugados": 14,
+  "aciertos": 9,
+  "aciertos_sin_dobles": 8,
+  "jugada": {
+   "columna1": 8,
+   "columna2": 9,
+   "premio": 0.0,
+   "coste": 1.5
+  },
+  "esperados": 7.96,
+  "p_igual_o_mas": 0.3877,
+  "pleno15": false,
+  "premio": 0.0,
+  "coste": 12.0,
+  "acertantes": [
+   {
+    "acierto": 15,
+    "acertantes": 0,
+    "premio": 0
+   },
+   {
+    "acierto": 14,
+    "acertantes": 4,
+    "premio": 58759.21
+   },
+   {
+    "acierto": 13,
+    "acertantes": 40,
+    "premio": 2974.17
+   },
+   {
+    "acierto": 12,
+    "acertantes": 459,
+    "premio": 259.19
+   },
+   {
+    "acierto": 11,
+    "acertantes": 3831,
+    "premio": 31.05
+   },
+   {
+    "acierto": 10,
+    "acertantes": 21762,
+    "premio": 6.56
+   }
+  ],
+  "fallos": [
+   {
+    "n": 2,
+    "partido": "R.SOCIEDAD B - SPORTING",
+    "resultado": "2-2",
+    "puse": "1",
+    "salio": "X",
+    "prob": 0.3,
+    "tipo": "igualado",
+    "pista": null
+   },
+   {
+    "n": 4,
+    "partido": "MALLORCA - CÓRDOBA",
+    "resultado": "3-3",
+    "puse": "1",
+    "salio": "X",
+    "prob": 0.237,
+    "tipo": "falla el favorito",
+    "pista": null
+   },
+   {
+    "n": 5,
+    "partido": "R.OVIEDO - GIRONA",
+    "resultado": "1-2",
+    "puse": "1",
+    "salio": "2",
+    "prob": 0.317,
+    "tipo": "igualado",
+    "pista": null
+   },
+   {
+    "n": 8,
+    "partido": "EIBAR - CÁDIZ",
+    "resultado": "1-1",
+    "puse": "1",
+    "salio": "X",
+    "prob": 0.229,
+    "tipo": "falla el favorito",
+    "pista": null
+   },
+   {
+    "n": 12,
+    "partido": "R.SOCIEDAD (F) - ATH.CLUB (F)",
+    "resultado": "1-4",
+    "puse": "1",
+    "salio": "2",
+    "prob": 0.261,
+    "tipo": "igualado",
+    "pista": null
+   },
+   {
+    "n": 14,
+    "partido": "VALENCIA (F) - GRANADA (F)",
+    "resultado": "0-0",
+    "puse": "2",
+    "salio": "X",
+    "prob": 0.281,
+    "tipo": "igualado",
+    "pista": null
+   }
+  ],
+  "logloss": {
+   "final": 0.976,
+   "mercado": 1.0264,
+   "losilla": 0.982,
+   "publico": 1.0044
+  }
+ }
 }
