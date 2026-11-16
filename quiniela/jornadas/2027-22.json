@@ -1,0 +1,663 @@
+{
+ "temporada": 2027,
+ "jornada": 22,
+ "creado": "2026-11-16T12:46+00:00",
+ "dobles": 4,
+ "pesos": {
+  "mercado": 0.5347,
+  "losilla": 0.5308,
+  "publico": 0.0349,
+  "sesgo": [
+   0.0,
+   0.0411,
+   0.0382
+  ],
+  "solo_publico": {
+   "publico": 0.7069,
+   "sesgo": [
+    0.0,
+    -0.0448,
+    0.0128
+   ]
+  }
+ },
+ "partidos": [
+  {
+   "n": 1,
+   "local": "BOSNIA HERZEGOVINA",
+   "visitante": "RUMANÍA",
+   "dia": "MAR",
+   "hora": "20:45",
+   "div": 5,
+   "forma": {
+    "local": "EVEVD",
+    "visitante": "DDDDV"
+   },
+   "espn": {
+    "id": "401861196",
+    "liga": "uefa.nations",
+    "partido": "Bosnia-Herzegovina - Romania",
+    "fecha": "2026-11-17T19:45Z",
+    "parecido": 0.843,
+    "local_id": "452",
+    "visitante_id": "473"
+   },
+   "cuotas": {
+    "casa": "DraftKings",
+    "p": [
+     0.5052177042101476,
+     0.25728679381072334,
+     0.2374955019791292
+    ],
+    "linea": 2.5,
+    "p_mas": 0.5052301255230125
+   },
+   "fuentes": {
+    "mercado": [
+     0.5052,
+     0.2573,
+     0.2375
+    ],
+    "losilla": [
+     0.504,
+     0.2604,
+     0.2356
+    ],
+    "publico": [
+     0.51,
+     0.25,
+     0.24
+    ]
+   },
+   "prob": [
+    0.5127,
+    0.2559,
+    0.2314
+   ],
+   "signos": "1",
+   "signo_simple": "1",
+   "signo_valor": "1"
+  },
+  {
+   "n": 2,
+   "local": "UCRANIA",
+   "visitante": "GEORGIA",
+   "dia": "MAR",
+   "hora": "20:45",
+   "div": 5,
+   "fuentes": {
+    "losilla": [
+     0.4252,
+     0.2887,
+     0.2861
+    ],
+    "publico": [
+     0.55,
+     0.27,
+     0.18
+    ]
+   },
+   "prob": [
+    0.4296,
+    0.289,
+    0.2814
+   ],
+   "signos": "1",
+   "signo_simple": "1",
+   "signo_valor": "X"
+  },
+  {
+   "n": 3,
+   "local": "GALES",
+   "visitante": "PORTUGAL",
+   "dia": "MAR",
+   "hora": "20:45",
+   "div": 5,
+   "forma": {
+    "local": "DDVDD",
+    "visitante": "VVVVD"
+   },
+   "espn": {
+    "id": "401861189",
+    "liga": "uefa.nations",
+    "partido": "Wales - Portugal",
+    "fecha": "2026-11-17T19:45Z",
+    "parecido": 0.82,
+    "local_id": "578",
+    "visitante_id": "482"
+   },
+   "cuotas": {
+    "casa": "DraftKings",
+    "p": [
+     0.15356525081683642,
+     0.19604074572362098,
+     0.6503940034595426
+    ],
+    "linea": 3.5,
+    "p_mas": 0.4032860343539955
+   },
+   "fuentes": {
+    "mercado": [
+     0.1536,
+     0.196,
+     0.6504
+    ],
+    "losilla": [
+     0.1406,
+     0.1923,
+     0.6671
+    ],
+    "publico": [
+     0.21,
+     0.18,
+     0.61
+    ]
+   },
+   "prob": [
+    0.1294,
+    0.1805,
+    0.6901
+   ],
+   "signos": "2",
+   "signo_simple": "2",
+   "signo_valor": "2"
+  },
+  {
+   "n": 4,
+   "local": "HUNGRÍA",
+   "visitante": "IRLANDA N.",
+   "dia": "MAR",
+   "hora": "20:45",
+   "div": 5,
+   "fuentes": {
+    "losilla": [
+     0.486,
+     0.2889,
+     0.2251
+    ],
+    "publico": [
+     0.5,
+     0.27,
+     0.23
+    ]
+   },
+   "prob": [
+    0.4923,
+    0.2884,
+    0.2192
+   ],
+   "signos": "1",
+   "signo_simple": "1",
+   "signo_valor": "1"
+  },
+  {
+   "n": 5,
+   "local": "POLONIA",
+   "visitante": "SUECIA",
+   "dia": "MAR",
+   "hora": "20:45",
+   "div": 5,
+   "fuentes": {
+    "losilla": [
+     0.4212,
+     0.2643,
+     0.3145
+    ],
+    "publico": [
+     0.33,
+     0.24,
+     0.43
+    ]
+   },
+   "prob": [
+    0.4175,
+    0.2618,
+    0.3207
+   ],
+   "signos": "12",
+   "signo_simple": "1",
+   "signo_valor": "X"
+  },
+  {
+   "n": 6,
+   "local": "REP.IRLANDA",
+   "visitante": "KOSOVO",
+   "dia": "MAR",
+   "hora": "20:45",
+   "div": 5,
+   "forma": {
+    "local": "DVEED",
+    "visitante": "VDEEE"
+   },
+   "espn": {
+    "id": "401861192",
+    "liga": "uefa.nations",
+    "partido": "Republic of Ireland - Kosovo",
+    "fecha": "2026-11-17T19:45Z",
+    "parecido": 0.83,
+    "local_id": "476",
+    "visitante_id": "18272"
+   },
+   "cuotas": {
+    "casa": "DraftKings",
+    "p": [
+     0.4423305588585018,
+     0.2996432818073722,
+     0.2580261593341261
+    ],
+    "linea": 2.5,
+    "p_mas": 0.39325842696629215
+   },
+   "fuentes": {
+    "mercado": [
+     0.4423,
+     0.2996,
+     0.258
+    ],
+    "losilla": [
+     0.4503,
+     0.2988,
+     0.2509
+    ],
+    "publico": [
+     0.56,
+     0.25,
+     0.19
+    ]
+   },
+   "prob": [
+    0.4522,
+    0.2992,
+    0.2486
+   ],
+   "signos": "1X",
+   "signo_simple": "1",
+   "signo_valor": "X"
+  },
+  {
+   "n": 7,
+   "local": "R.MADRID (F)",
+   "visitante": "INTER (F)",
+   "dia": "MIE",
+   "hora": "18:45",
+   "div": 10,
+   "fuentes": {
+    "losilla": [
+     0.7208,
+     0.1749,
+     0.1043
+    ],
+    "publico": [
+     0.66,
+     0.17,
+     0.17
+    ]
+   },
+   "prob": [
+    0.7429,
+    0.1633,
+    0.0938
+   ],
+   "signos": "1",
+   "signo_simple": "1",
+   "signo_valor": "1"
+  },
+  {
+   "n": 8,
+   "local": "BK HACKEN (F)",
+   "visitante": "MAN.CITY (F)",
+   "dia": "MIE",
+   "hora": "18:45",
+   "div": 10,
+   "fuentes": {
+    "losilla": [
+     0.1015,
+     0.1707,
+     0.7278
+    ],
+    "publico": [
+     0.2,
+     0.17,
+     0.63
+    ]
+   },
+   "prob": [
+    0.086,
+    0.1551,
+    0.7589
+   ],
+   "signos": "2",
+   "signo_simple": "2",
+   "signo_valor": "2"
+  },
+  {
+   "n": 9,
+   "local": "CHELSEA (F)",
+   "visitante": "PSG (F)",
+   "dia": "MIE",
+   "hora": "21:00",
+   "div": 10,
+   "fuentes": {
+    "losilla": [
+     0.7413,
+     0.1691,
+     0.0896
+    ],
+    "publico": [
+     0.49,
+     0.24,
+     0.27
+    ]
+   },
+   "prob": [
+    0.759,
+    0.1597,
+    0.0813
+   ],
+   "signos": "1",
+   "signo_simple": "1",
+   "signo_valor": "1"
+  },
+  {
+   "n": 10,
+   "local": "JUVENTUS (F)",
+   "visitante": "LEUVEN (F)",
+   "dia": "MIE",
+   "hora": "21:00",
+   "div": 10,
+   "fuentes": {
+    "losilla": [
+     0.6704,
+     0.199,
+     0.1306
+    ],
+    "publico": [
+     0.71,
+     0.17,
+     0.12
+    ]
+   },
+   "prob": [
+    0.6932,
+    0.1884,
+    0.1185
+   ],
+   "signos": "1",
+   "signo_simple": "1",
+   "signo_valor": "1"
+  },
+  {
+   "n": 11,
+   "local": "AUSTRIA WIEN (F)",
+   "visitante": "B.MUNICH (F)",
+   "dia": "JUE",
+   "hora": "18:45",
+   "div": 10,
+   "fuentes": {
+    "losilla": [
+     0.1091,
+     0.155,
+     0.7359
+    ],
+    "publico": [
+     0.19,
+     0.16,
+     0.65
+    ]
+   },
+   "prob": [
+    0.0926,
+    0.1395,
+    0.7679
+   ],
+   "signos": "2",
+   "signo_simple": "2",
+   "signo_valor": "2"
+  },
+  {
+   "n": 12,
+   "local": "ARSENAL (F)",
+   "visitante": "OL. LYONNES (F)",
+   "dia": "JUE",
+   "hora": "21:00",
+   "div": 10,
+   "fuentes": {
+    "losilla": [
+     0.3763,
+     0.2314,
+     0.3923
+    ],
+    "publico": [
+     0.41,
+     0.26,
+     0.33
+    ]
+   },
+   "prob": [
+    0.3719,
+    0.2272,
+    0.4009
+   ],
+   "signos": "12",
+   "signo_simple": "2",
+   "signo_valor": "2"
+  },
+  {
+   "n": 13,
+   "local": "BARCELONA (F)",
+   "visitante": "SERVETTE (F)",
+   "dia": "JUE",
+   "hora": "21:00",
+   "div": 10,
+   "fuentes": {
+    "losilla": [
+     0.8332,
+     0.155,
+     0.0118
+    ],
+    "publico": [
+     0.74,
+     0.14,
+     0.12
+    ]
+   },
+   "prob": [
+    0.8516,
+    0.1395,
+    0.0089
+   ],
+   "signos": "1",
+   "signo_simple": "1",
+   "signo_valor": "1"
+  },
+  {
+   "n": 14,
+   "local": "BENFICA (F)",
+   "visitante": "ROMA (F)",
+   "dia": "JUE",
+   "hora": "21:00",
+   "div": 10,
+   "fuentes": {
+    "losilla": [
+     0.4277,
+     0.24,
+     0.3323
+    ],
+    "publico": [
+     0.45,
+     0.3,
+     0.25
+    ]
+   },
+   "prob": [
+    0.4287,
+    0.2379,
+    0.3334
+   ],
+   "signos": "12",
+   "signo_simple": "1",
+   "signo_valor": "1"
+  },
+  {
+   "n": 15,
+   "local": "DINAMARCA",
+   "visitante": "NORUEGA",
+   "dia": "MAR",
+   "hora": "20:45",
+   "div": 5,
+   "fuentes": {},
+   "prob": [
+    0.3333,
+    0.3333,
+    0.3333
+   ],
+   "goles": {
+    "L": [
+     0.253,
+     0.3477,
+     0.2389,
+     0.1604
+    ],
+    "V": [
+     0.2751,
+     0.355,
+     0.2291,
+     0.1408
+    ]
+   },
+   "goles_fuente": "losilla",
+   "signos": "1-1",
+   "p_signos": 0.1234
+  }
+ ],
+ "resumen": {
+  "esperados": 9.72,
+  "p10": 0.5672,
+  "p11": 0.3311,
+  "p12": 0.1404,
+  "p14": 0.004742,
+  "apuestas": 16,
+  "coste": 12.0
+ },
+ "resumen_simple": {
+  "esperados": 8.4,
+  "p10": 0.2653,
+  "p11": 0.11,
+  "p12": 0.0318,
+  "p14": 0.000471,
+  "apuestas": 1,
+  "coste": 1.5
+ },
+ "resumen_valor": {
+  "esperados": 7.95,
+  "p10": 0.1794,
+  "p11": 0.0624,
+  "p12": 0.0147,
+  "p14": 0.000131,
+  "apuestas": 1,
+  "coste": 1.5
+ },
+ "valor": [
+  {
+   "n": 2,
+   "signo": "2",
+   "prob": 0.281,
+   "publico": 0.18,
+   "ratio": 1.56
+  },
+  {
+   "n": 6,
+   "signo": "2",
+   "prob": 0.249,
+   "publico": 0.19,
+   "ratio": 1.31
+  },
+  {
+   "n": 9,
+   "signo": "1",
+   "prob": 0.759,
+   "publico": 0.49,
+   "ratio": 1.55
+  },
+  {
+   "n": 14,
+   "signo": "2",
+   "prob": 0.333,
+   "publico": 0.25,
+   "ratio": 1.33
+  }
+ ],
+ "inflados": [
+  {
+   "n": 9,
+   "signo": "2",
+   "prob": 0.081,
+   "publico": 0.27,
+   "diferencia": 0.189
+  },
+  {
+   "n": 2,
+   "signo": "1",
+   "prob": 0.43,
+   "publico": 0.55,
+   "diferencia": 0.12
+  },
+  {
+   "n": 8,
+   "signo": "1",
+   "prob": 0.086,
+   "publico": 0.2,
+   "diferencia": 0.114
+  },
+  {
+   "n": 13,
+   "signo": "2",
+   "prob": 0.009,
+   "publico": 0.12,
+   "diferencia": 0.111
+  },
+  {
+   "n": 5,
+   "signo": "2",
+   "prob": 0.321,
+   "publico": 0.43,
+   "diferencia": 0.109
+  },
+  {
+   "n": 6,
+   "signo": "1",
+   "prob": 0.452,
+   "publico": 0.56,
+   "diferencia": 0.108
+  },
+  {
+   "n": 11,
+   "signo": "1",
+   "prob": 0.093,
+   "publico": 0.19,
+   "diferencia": 0.097
+  },
+  {
+   "n": 3,
+   "signo": "1",
+   "prob": 0.129,
+   "publico": 0.21,
+   "diferencia": 0.081
+  },
+  {
+   "n": 7,
+   "signo": "2",
+   "prob": 0.094,
+   "publico": 0.17,
+   "diferencia": 0.076
+  },
+  {
+   "n": 14,
+   "signo": "X",
+   "prob": 0.238,
+   "publico": 0.3,
+   "diferencia": 0.062
+  }
+ ],
+ "dia": 4
+}
