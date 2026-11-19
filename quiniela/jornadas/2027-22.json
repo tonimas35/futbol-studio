@@ -76,7 +76,12 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "2-1",
+   "signo_real": "1",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 2,
@@ -104,7 +109,12 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "X"
+   "signo_valor": "X",
+   "resultado": "1-0",
+   "signo_real": "1",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": false
   },
   {
    "n": 3,
@@ -160,7 +170,12 @@
    ],
    "signos": "2",
    "signo_simple": "2",
-   "signo_valor": "2"
+   "signo_valor": "2",
+   "resultado": "2-3",
+   "signo_real": "2",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 4,
@@ -188,7 +203,13 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "1-1",
+   "signo_real": "X",
+   "acierto": false,
+   "acierto_simple": false,
+   "acierto_valor": false,
+   "fallo": "igualado"
   },
   {
    "n": 5,
@@ -216,7 +237,13 @@
    ],
    "signos": "12",
    "signo_simple": "1",
-   "signo_valor": "X"
+   "signo_valor": "X",
+   "resultado": "1-1",
+   "signo_real": "X",
+   "acierto": false,
+   "acierto_simple": false,
+   "acierto_valor": true,
+   "fallo": "igualado"
   },
   {
    "n": 6,
@@ -272,7 +299,12 @@
    ],
    "signos": "1X",
    "signo_simple": "1",
-   "signo_valor": "X"
+   "signo_valor": "X",
+   "resultado": "3-0",
+   "signo_real": "1",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": false
   },
   {
    "n": 7,
@@ -300,7 +332,12 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "3-1",
+   "signo_real": "1",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 8,
@@ -328,7 +365,12 @@
    ],
    "signos": "2",
    "signo_simple": "2",
-   "signo_valor": "2"
+   "signo_valor": "2",
+   "resultado": "0-2",
+   "signo_real": "2",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 9,
@@ -356,7 +398,12 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "1-0",
+   "signo_real": "1",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 10,
@@ -384,7 +431,12 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "2-0",
+   "signo_real": "1",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 11,
@@ -412,7 +464,12 @@
    ],
    "signos": "2",
    "signo_simple": "2",
-   "signo_valor": "2"
+   "signo_valor": "2",
+   "resultado": "0-4",
+   "signo_real": "2",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 12,
@@ -440,7 +497,12 @@
    ],
    "signos": "12",
    "signo_simple": "2",
-   "signo_valor": "2"
+   "signo_valor": "2",
+   "resultado": "0-2",
+   "signo_real": "2",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 13,
@@ -468,7 +530,12 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "6-0",
+   "signo_real": "1",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 14,
@@ -496,7 +563,13 @@
    ],
    "signos": "12",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "2-3",
+   "signo_real": "2",
+   "acierto": true,
+   "acierto_simple": false,
+   "acierto_valor": false,
+   "fallo": "igualado"
   },
   {
    "n": 15,
@@ -527,7 +600,9 @@
    },
    "goles_fuente": "losilla",
    "signos": "1-1",
-   "p_signos": 0.1234
+   "p_signos": 0.1234,
+   "resultado": "2-3",
+   "signo_real": "2"
   }
  ],
  "resumen": {
@@ -659,5 +734,93 @@
    "diferencia": 0.062
   }
  ],
- "dia": 4
+ "dia": 4,
+ "revision": {
+  "revisado": "2026-11-19T22:30+00:00",
+  "estado": "ESCRUTADA",
+  "jugados": 14,
+  "aciertos": 12,
+  "aciertos_sin_dobles": 11,
+  "jugada": {
+   "columna1": 11,
+   "columna2": 10,
+   "premio": 0.0,
+   "coste": 1.5
+  },
+  "esperados": 9.72,
+  "p_igual_o_mas": 0.1404,
+  "pleno15": false,
+  "premio": 6.14,
+  "coste": 12.0,
+  "acertantes": [
+   {
+    "acierto": 15,
+    "acertantes": 14,
+    "premio": 3331.61
+   },
+   {
+    "acierto": 14,
+    "acertantes": 267,
+    "premio": 372.67
+   },
+   {
+    "acierto": 13,
+    "acertantes": 4832,
+    "premio": 9.65
+   },
+   {
+    "acierto": 12,
+    "acertantes": 30425,
+    "premio": 3.07
+   },
+   {
+    "acierto": 11,
+    "acertantes": 90814,
+    "premio": 0
+   },
+   {
+    "acierto": 10,
+    "acertantes": 155685,
+    "premio": 0
+   }
+  ],
+  "fallos": [
+   {
+    "n": 4,
+    "partido": "HUNGRÍA - IRLANDA N.",
+    "resultado": "1-1",
+    "puse": "1",
+    "salio": "X",
+    "prob": 0.288,
+    "tipo": "igualado",
+    "pista": null
+   },
+   {
+    "n": 5,
+    "partido": "POLONIA - SUECIA",
+    "resultado": "1-1",
+    "puse": "1",
+    "salio": "X",
+    "prob": 0.262,
+    "tipo": "igualado",
+    "pista": null
+   },
+   {
+    "n": 14,
+    "partido": "BENFICA (F) - ROMA (F)",
+    "resultado": "2-3",
+    "puse": "1",
+    "salio": "2",
+    "prob": 0.333,
+    "tipo": "igualado",
+    "pista": null
+   }
+  ],
+  "logloss": {
+   "final": 0.6367,
+   "mercado": 0.6429,
+   "losilla": 0.6562,
+   "publico": 0.7316
+  }
+ }
 }
