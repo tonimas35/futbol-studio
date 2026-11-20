@@ -1,0 +1,923 @@
+{
+ "temporada": 2027,
+ "jornada": 23,
+ "creado": "2026-11-20T06:10+00:00",
+ "dobles": 4,
+ "pesos": {
+  "mercado": 0.5408,
+  "losilla": 0.539,
+  "publico": 0.0291,
+  "sesgo": [
+   0.0,
+   0.0432,
+   0.0402
+  ],
+  "solo_publico": {
+   "publico": 0.7105,
+   "sesgo": [
+    0.0,
+    -0.0442,
+    0.0146
+   ]
+  }
+ },
+ "partidos": [
+  {
+   "n": 1,
+   "local": "ALAVÉS",
+   "visitante": "DEPORTIVO",
+   "dia": "SAB",
+   "hora": "14:00",
+   "div": 1,
+   "forma": {
+    "local": "DEDEV",
+    "visitante": "EDVVE"
+   },
+   "espn": {
+    "id": "401882806",
+    "liga": "esp.1",
+    "partido": "Alavés - Deportivo",
+    "fecha": "2026-11-21T13:00Z",
+    "parecido": 1.0,
+    "local_id": "96",
+    "visitante_id": "90"
+   },
+   "cuotas": {
+    "casa": "DraftKings",
+    "p": [
+     0.4267515923566879,
+     0.28662420382165604,
+     0.28662420382165604
+    ],
+    "linea": 2.5,
+    "p_mas": 0.4400538841490795
+   },
+   "fuentes": {
+    "mercado": [
+     0.4268,
+     0.2866,
+     0.2866
+    ],
+    "losilla": [
+     0.4374,
+     0.2867,
+     0.2759
+    ],
+    "publico": [
+     0.42,
+     0.35,
+     0.23
+    ]
+   },
+   "prob": [
+    0.4329,
+    0.2887,
+    0.2785
+   ],
+   "signos": "1X",
+   "signo_simple": "1",
+   "signo_valor": "1"
+  },
+  {
+   "n": 2,
+   "local": "RAYO",
+   "visitante": "VALENCIA",
+   "dia": "SAB",
+   "hora": "16:15",
+   "div": 1,
+   "forma": {
+    "local": "EDVVD",
+    "visitante": "EDVDV"
+   },
+   "espn": {
+    "id": "401882799",
+    "liga": "esp.1",
+    "partido": "Rayo Vallecano - Valencia",
+    "fecha": "2026-11-21T15:15Z",
+    "parecido": 1.0,
+    "local_id": "101",
+    "visitante_id": "94"
+   },
+   "cuotas": {
+    "casa": "DraftKings",
+    "p": [
+     0.49066227889757297,
+     0.269847799259564,
+     0.239489921842863
+    ],
+    "linea": 2.5,
+    "p_mas": 0.47368421052631576
+   },
+   "fuentes": {
+    "mercado": [
+     0.4907,
+     0.2698,
+     0.2395
+    ],
+    "losilla": [
+     0.497,
+     0.2699,
+     0.2331
+    ],
+    "publico": [
+     0.46,
+     0.3,
+     0.24
+    ]
+   },
+   "prob": [
+    0.5005,
+    0.2688,
+    0.2307
+   ],
+   "signos": "1",
+   "signo_simple": "1",
+   "signo_valor": "1"
+  },
+  {
+   "n": 3,
+   "local": "R.MADRID",
+   "visitante": "CELTA",
+   "dia": "SAB",
+   "hora": "21:00",
+   "div": 1,
+   "forma": {
+    "local": "VVVVV",
+    "visitante": "EDDEV"
+   },
+   "espn": {
+    "id": "401882798",
+    "liga": "esp.1",
+    "partido": "Real Madrid - Celta Vigo",
+    "fecha": "2026-11-21T20:00Z",
+    "parecido": 1.0,
+    "local_id": "86",
+    "visitante_id": "85"
+   },
+   "cuotas": {
+    "casa": "DraftKings",
+    "p": [
+     0.8098591549295775,
+     0.1267605633802817,
+     0.06338028169014084
+    ],
+    "linea": 3.5,
+    "p_mas": 0.4891657638136511
+   },
+   "fuentes": {
+    "mercado": [
+     0.8099,
+     0.1268,
+     0.0634
+    ],
+    "losilla": [
+     0.813,
+     0.1225,
+     0.0645
+    ],
+    "publico": [
+     0.9,
+     0.05,
+     0.05
+    ]
+   },
+   "prob": [
+    0.8414,
+    0.1068,
+    0.0518
+   ],
+   "signos": "1",
+   "signo_simple": "1",
+   "signo_valor": "1"
+  },
+  {
+   "n": 4,
+   "local": "BARCELONA",
+   "visitante": "VILLARREAL",
+   "dia": "DOM",
+   "hora": "14:00",
+   "div": 1,
+   "forma": {
+    "local": "DDVVV",
+    "visitante": "VVDDV"
+   },
+   "espn": {
+    "id": "401882804",
+    "liga": "esp.1",
+    "partido": "Barcelona - Villarreal",
+    "fecha": "2026-11-22T13:00Z",
+    "parecido": 1.0,
+    "local_id": "83",
+    "visitante_id": "102"
+   },
+   "cuotas": {
+    "casa": "DraftKings",
+    "p": [
+     0.7922168172341904,
+     0.12786657400972898,
+     0.0799166087560806
+    ],
+    "linea": 4.5,
+    "p_mas": 0.4592085979482169
+   },
+   "fuentes": {
+    "mercado": [
+     0.7922,
+     0.1279,
+     0.0799
+    ],
+    "losilla": [
+     0.7855,
+     0.1233,
+     0.0912
+    ],
+    "publico": [
+     0.85,
+     0.09,
+     0.06
+    ]
+   },
+   "prob": [
+    0.8185,
+    0.1101,
+    0.0715
+   ],
+   "signos": "1",
+   "signo_simple": "1",
+   "signo_valor": "1"
+  },
+  {
+   "n": 5,
+   "local": "RACING S.",
+   "visitante": "R.SOCIEDAD",
+   "dia": "DOM",
+   "hora": "16:15",
+   "div": 1,
+   "forma": {
+    "local": "DVVDV",
+    "visitante": "VVDEV"
+   },
+   "espn": {
+    "id": "401882800",
+    "liga": "esp.1",
+    "partido": "Racing Santander - Real Sociedad",
+    "fecha": "2026-11-22T15:15Z",
+    "parecido": 1.0,
+    "local_id": "87",
+    "visitante_id": "89"
+   },
+   "cuotas": {
+    "casa": "DraftKings",
+    "p": [
+     0.2958152958152958,
+     0.23088023088023088,
+     0.4733044733044733
+    ],
+    "linea": 3.5,
+    "p_mas": 0.5157232704402516
+   },
+   "fuentes": {
+    "mercado": [
+     0.2958,
+     0.2309,
+     0.4733
+    ],
+    "losilla": [
+     0.2955,
+     0.2317,
+     0.4728
+    ],
+    "publico": [
+     0.21,
+     0.31,
+     0.48
+    ]
+   },
+   "prob": [
+    0.2792,
+    0.2262,
+    0.4946
+   ],
+   "signos": "12",
+   "signo_simple": "2",
+   "signo_valor": "2"
+  },
+  {
+   "n": 6,
+   "local": "OSASUNA",
+   "visitante": "MÁLAGA",
+   "dia": "DOM",
+   "hora": "18:30",
+   "div": 1,
+   "forma": {
+    "local": "VDVDE",
+    "visitante": "DEVDD"
+   },
+   "espn": {
+    "id": "401882801",
+    "liga": "esp.1",
+    "partido": "Osasuna - Málaga",
+    "fecha": "2026-11-22T17:30Z",
+    "parecido": 1.0,
+    "local_id": "97",
+    "visitante_id": "99"
+   },
+   "cuotas": {
+    "casa": "DraftKings",
+    "p": [
+     0.5192307692307693,
+     0.264423076923077,
+     0.21634615384615385
+    ],
+    "linea": 2.5,
+    "p_mas": 0.47368421052631576
+   },
+   "fuentes": {
+    "mercado": [
+     0.5192,
+     0.2644,
+     0.2163
+    ],
+    "losilla": [
+     0.5259,
+     0.2637,
+     0.2104
+    ],
+    "publico": [
+     0.69,
+     0.2,
+     0.11
+    ]
+   },
+   "prob": [
+    0.5385,
+    0.2595,
+    0.202
+   ],
+   "signos": "1",
+   "signo_simple": "1",
+   "signo_valor": "X"
+  },
+  {
+   "n": 7,
+   "local": "GETAFE",
+   "visitante": "AT.MADRID",
+   "dia": "DOM",
+   "hora": "21:00",
+   "div": 1,
+   "forma": {
+    "local": "DVVDD",
+    "visitante": "EVVDD"
+   },
+   "espn": {
+    "id": "401882803",
+    "liga": "esp.1",
+    "partido": "Getafe - Atlético Madrid",
+    "fecha": "2026-11-22T20:00Z",
+    "parecido": 1.0,
+    "local_id": "2922",
+    "visitante_id": "1068"
+   },
+   "cuotas": {
+    "casa": "DraftKings",
+    "p": [
+     0.15827338129496402,
+     0.23741007194244607,
+     0.60431654676259
+    ],
+    "linea": 2.5,
+    "p_mas": 0.47368421052631576
+   },
+   "fuentes": {
+    "mercado": [
+     0.1583,
+     0.2374,
+     0.6043
+    ],
+    "losilla": [
+     0.156,
+     0.24,
+     0.604
+    ],
+    "publico": [
+     0.1,
+     0.15,
+     0.75
+    ]
+   },
+   "prob": [
+    0.1354,
+    0.2247,
+    0.6399
+   ],
+   "signos": "2",
+   "signo_simple": "2",
+   "signo_valor": "2"
+  },
+  {
+   "n": 8,
+   "local": "TENERIFE",
+   "visitante": "MALLORCA",
+   "dia": "SAB",
+   "hora": "21:00",
+   "div": 2,
+   "forma": {
+    "local": "EEEVV",
+    "visitante": "EEVEV"
+   },
+   "espn": {
+    "id": "401883107",
+    "liga": "esp.2",
+    "partido": "Tenerife - Mallorca",
+    "fecha": "2026-11-21T20:00Z",
+    "parecido": 1.0,
+    "local_id": "245",
+    "visitante_id": "84"
+   },
+   "cuotas": {
+    "casa": "DraftKings",
+    "p": [
+     0.2888402625820569,
+     0.2844638949671772,
+     0.42669584245076586
+    ],
+    "linea": 2.5,
+    "p_mas": 0.44843049327354256
+   },
+   "fuentes": {
+    "mercado": [
+     0.2888,
+     0.2845,
+     0.4267
+    ],
+    "losilla": [
+     0.2822,
+     0.29,
+     0.4278
+    ],
+    "publico": [
+     0.28,
+     0.35,
+     0.37
+    ]
+   },
+   "prob": [
+    0.2717,
+    0.2875,
+    0.4408
+   ],
+   "signos": "X2",
+   "signo_simple": "2",
+   "signo_valor": "2"
+  },
+  {
+   "n": 9,
+   "local": "SPORTING",
+   "visitante": "LAS PALMAS",
+   "dia": "DOM",
+   "hora": "16:15",
+   "div": 2,
+   "forma": {
+    "local": "DVVDE",
+    "visitante": "VVVVD"
+   },
+   "espn": {
+    "id": "401882298",
+    "liga": "esp.2",
+    "partido": "Sporting Gijón - Las Palmas",
+    "fecha": "2026-11-22T15:15Z",
+    "parecido": 0.838,
+    "local_id": "3788",
+    "visitante_id": "98"
+   },
+   "cuotas": {
+    "casa": "DraftKings",
+    "p": [
+     0.44553099941326035,
+     0.2751809114023079,
+     0.2792880891844318
+    ],
+    "linea": 2.5,
+    "p_mas": 0.4951076320939334
+   },
+   "fuentes": {
+    "mercado": [
+     0.4455,
+     0.2752,
+     0.2793
+    ],
+    "losilla": [
+     0.4506,
+     0.2743,
+     0.2751
+    ],
+    "publico": [
+     0.49,
+     0.31,
+     0.2
+    ]
+   },
+   "prob": [
+    0.4522,
+    0.2748,
+    0.2731
+   ],
+   "signos": "1X",
+   "signo_simple": "1",
+   "signo_valor": "1"
+  },
+  {
+   "n": 10,
+   "local": "GIRONA",
+   "visitante": "EIBAR",
+   "dia": "DOM",
+   "hora": "18:30",
+   "div": 2,
+   "forma": {
+    "local": "VVDDV",
+    "visitante": "EDEVE"
+   },
+   "espn": {
+    "id": "401883109",
+    "liga": "esp.2",
+    "partido": "Girona - Eibar",
+    "fecha": "2026-11-22T17:30Z",
+    "parecido": 1.0,
+    "local_id": "9812",
+    "visitante_id": "3752"
+   },
+   "cuotas": {
+    "casa": "DraftKings",
+    "p": [
+     0.529988760600797,
+     0.2467559006845816,
+     0.22325533871462147
+    ],
+    "linea": 2.5,
+    "p_mas": 0.5384615384615384
+   },
+   "fuentes": {
+    "mercado": [
+     0.53,
+     0.2468,
+     0.2233
+    ],
+    "losilla": [
+     0.5206,
+     0.2532,
+     0.2262
+    ],
+    "publico": [
+     0.59,
+     0.26,
+     0.15
+    ]
+   },
+   "prob": [
+    0.5384,
+    0.2462,
+    0.2154
+   ],
+   "signos": "1",
+   "signo_simple": "1",
+   "signo_valor": "1"
+  },
+  {
+   "n": 11,
+   "local": "EIBAR (F)",
+   "visitante": "AT.MADRID (F)",
+   "dia": "SAB",
+   "hora": "17:00",
+   "div": 10,
+   "forma": {
+    "local": "EDDDV",
+    "visitante": "VVEVV"
+   },
+   "espn": {
+    "id": "401882450",
+    "liga": "esp.w.1",
+    "partido": "Eibar - Atlético Madrid",
+    "fecha": "2026-11-21T16:00Z",
+    "parecido": 0.769,
+    "local_id": "21376",
+    "visitante_id": "20093"
+   },
+   "fuentes": {
+    "losilla": [
+     0.1162,
+     0.2048,
+     0.679
+    ],
+    "publico": [
+     0.11,
+     0.16,
+     0.73
+    ]
+   },
+   "prob": [
+    0.0967,
+    0.1881,
+    0.7152
+   ],
+   "signos": "2",
+   "signo_simple": "2",
+   "signo_valor": "2"
+  },
+  {
+   "n": 12,
+   "local": "GRANADA (F)",
+   "visitante": "R.MADRID (F)",
+   "dia": "DOM",
+   "hora": "12:00",
+   "div": 10,
+   "forma": {
+    "local": "VDEDE",
+    "visitante": "VEVEV"
+   },
+   "espn": {
+    "id": "401882447",
+    "liga": "esp.w.1",
+    "partido": "Granada - Real Madrid",
+    "fecha": "2026-11-22T11:00Z",
+    "parecido": 0.769,
+    "local_id": "21140",
+    "visitante_id": "21128"
+   },
+   "fuentes": {
+    "losilla": [
+     0.0962,
+     0.1606,
+     0.7432
+    ],
+    "publico": [
+     0.09,
+     0.09,
+     0.82
+    ]
+   },
+   "prob": [
+    0.0774,
+    0.1406,
+    0.7819
+   ],
+   "signos": "2",
+   "signo_simple": "2",
+   "signo_valor": "2"
+  },
+  {
+   "n": 13,
+   "local": "R.SOCIEDAD (F)",
+   "visitante": "SEVILLA (F)",
+   "dia": "DOM",
+   "hora": "12:00",
+   "div": 10,
+   "forma": {
+    "local": "VEVVD",
+    "visitante": "EEDED"
+   },
+   "espn": {
+    "id": "401882445",
+    "liga": "esp.w.1",
+    "partido": "Real Sociedad - Sevilla",
+    "fecha": "2026-11-22T11:00Z",
+    "parecido": 0.769,
+    "local_id": "21428",
+    "visitante_id": "21424"
+   },
+   "fuentes": {
+    "losilla": [
+     0.6184,
+     0.2209,
+     0.1607
+    ],
+    "publico": [
+     0.66,
+     0.23,
+     0.11
+    ]
+   },
+   "prob": [
+    0.6395,
+    0.2131,
+    0.1475
+   ],
+   "signos": "1",
+   "signo_simple": "1",
+   "signo_valor": "1"
+  },
+  {
+   "n": 14,
+   "local": "TENERIFE (F)",
+   "visitante": "MADRID CFF (F)",
+   "dia": "DOM",
+   "hora": "17:00",
+   "div": 10,
+   "forma": {
+    "local": "VVDVV",
+    "visitante": "EVDDD"
+   },
+   "espn": {
+    "id": "401882452",
+    "liga": "esp.w.1",
+    "partido": "Tenerife - Madrid CFF",
+    "fecha": "2026-11-22T16:00Z",
+    "parecido": 0.847,
+    "local_id": "131393",
+    "visitante_id": "21425"
+   },
+   "fuentes": {
+    "losilla": [
+     0.5222,
+     0.2544,
+     0.2234
+    ],
+    "publico": [
+     0.42,
+     0.3,
+     0.28
+    ]
+   },
+   "prob": [
+    0.53,
+    0.2521,
+    0.218
+   ],
+   "signos": "1",
+   "signo_simple": "1",
+   "signo_valor": "1"
+  },
+  {
+   "n": 15,
+   "local": "SEVILLA",
+   "visitante": "BETIS",
+   "dia": "SAB",
+   "hora": "18:30",
+   "div": 1,
+   "forma": {
+    "local": "DVVDE",
+    "visitante": "EVDVV"
+   },
+   "espn": {
+    "id": "401882797",
+    "liga": "esp.1",
+    "partido": "Sevilla - Real Betis",
+    "fecha": "2026-11-21T17:30Z",
+    "parecido": 0.947,
+    "local_id": "243",
+    "visitante_id": "244"
+   },
+   "cuotas": {
+    "casa": "DraftKings",
+    "p": [
+     0.3242290748898678,
+     0.2772393538913363,
+     0.3985315712187959
+    ],
+    "linea": 2.5,
+    "p_mas": 0.5157232704402516
+   },
+   "fuentes": {
+    "mercado": [
+     0.3242,
+     0.2772,
+     0.3985
+    ]
+   },
+   "prob": [
+    0.3142,
+    0.277,
+    0.4087
+   ],
+   "goles_esperados": [
+    1.27,
+    1.47
+   ],
+   "goles": {
+    "L": [
+     0.282,
+     0.357,
+     0.2259,
+     0.1351
+    ],
+    "V": [
+     0.2293,
+     0.3377,
+     0.2486,
+     0.1843
+    ]
+   },
+   "goles_fuente": "cuotas",
+   "signos": "1-1",
+   "p_signos": 0.1206
+  }
+ ],
+ "resumen": {
+  "esperados": 9.49,
+  "p10": 0.5115,
+  "p11": 0.2846,
+  "p12": 0.115,
+  "p14": 0.003583,
+  "apuestas": 16,
+  "coste": 12.0
+ },
+ "resumen_simple": {
+  "esperados": 8.36,
+  "p10": 0.2626,
+  "p11": 0.1102,
+  "p12": 0.0326,
+  "p14": 0.000517,
+  "apuestas": 1,
+  "coste": 1.5
+ },
+ "resumen_valor": {
+  "esperados": 8.09,
+  "p10": 0.2097,
+  "p11": 0.0799,
+  "p12": 0.0211,
+  "p14": 0.000249,
+  "apuestas": 1,
+  "coste": 1.5
+ },
+ "valor": [
+  {
+   "n": 5,
+   "signo": "1",
+   "prob": 0.279,
+   "publico": 0.21,
+   "ratio": 1.33
+  },
+  {
+   "n": 6,
+   "signo": "2",
+   "prob": 0.202,
+   "publico": 0.11,
+   "ratio": 1.84
+  },
+  {
+   "n": 7,
+   "signo": "X",
+   "prob": 0.225,
+   "publico": 0.15,
+   "ratio": 1.5
+  },
+  {
+   "n": 9,
+   "signo": "2",
+   "prob": 0.273,
+   "publico": 0.2,
+   "ratio": 1.37
+  },
+  {
+   "n": 10,
+   "signo": "2",
+   "prob": 0.215,
+   "publico": 0.15,
+   "ratio": 1.44
+  }
+ ],
+ "inflados": [
+  {
+   "n": 6,
+   "signo": "1",
+   "prob": 0.538,
+   "publico": 0.69,
+   "diferencia": 0.151
+  },
+  {
+   "n": 7,
+   "signo": "2",
+   "prob": 0.64,
+   "publico": 0.75,
+   "diferencia": 0.11
+  },
+  {
+   "n": 5,
+   "signo": "X",
+   "prob": 0.226,
+   "publico": 0.31,
+   "diferencia": 0.084
+  },
+  {
+   "n": 8,
+   "signo": "X",
+   "prob": 0.287,
+   "publico": 0.35,
+   "diferencia": 0.062
+  },
+  {
+   "n": 14,
+   "signo": "2",
+   "prob": 0.218,
+   "publico": 0.28,
+   "diferencia": 0.062
+  },
+  {
+   "n": 1,
+   "signo": "X",
+   "prob": 0.289,
+   "publico": 0.35,
+   "diferencia": 0.061
+  }
+ ],
+ "dia": 5
+}
