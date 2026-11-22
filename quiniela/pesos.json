@@ -1,19 +1,19 @@
 {
  "pesos": {
-  "mercado": 0.5408,
-  "losilla": 0.539,
-  "publico": 0.0291,
+  "mercado": 0.5407,
+  "losilla": 0.5383,
+  "publico": 0.0316,
   "sesgo": [
    0.0,
-   0.0432,
-   0.0402
+   0.0416,
+   0.042
   ],
   "solo_publico": {
-   "publico": 0.7105,
+   "publico": 0.7127,
    "sesgo": [
     0.0,
-    -0.0442,
-    0.0146
+    -0.0461,
+    0.0164
    ]
   }
  },
@@ -154,6 +154,35 @@
      "n": 56,
      "logloss": 0.834,
      "brier": 0.4821,
+     "acierto": 0.6429
+    }
+   }
+  },
+  {
+   "fecha": "2026-11-22T22:28+00:00",
+   "filas": 13384,
+   "jornadas_propias": 5,
+   "pesos": {
+    "mercado": 0.5407,
+    "losilla": 0.5383,
+    "publico": 0.0316,
+    "sesgo": [
+     0.0,
+     0.0416,
+     0.042
+    ]
+   },
+   "evaluacion": {
+    "historico": {
+     "n": 3000,
+     "logloss": 0.9446,
+     "brier": 0.5599,
+     "acierto": 0.553
+    },
+    "registro": {
+     "n": 70,
+     "logloss": 0.8201,
+     "brier": 0.4722,
      "acierto": 0.6429
     }
    }

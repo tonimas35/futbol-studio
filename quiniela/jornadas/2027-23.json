@@ -76,7 +76,12 @@
    ],
    "signos": "1X",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "3-1",
+   "signo_real": "1",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 2,
@@ -132,7 +137,13 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "0-1",
+   "signo_real": "2",
+   "acierto": false,
+   "acierto_simple": false,
+   "acierto_valor": false,
+   "fallo": "falla el favorito"
   },
   {
    "n": 3,
@@ -188,7 +199,12 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "2-1",
+   "signo_real": "1",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 4,
@@ -244,7 +260,12 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "3-2",
+   "signo_real": "1",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 5,
@@ -300,7 +321,13 @@
    ],
    "signos": "12",
    "signo_simple": "2",
-   "signo_valor": "2"
+   "signo_valor": "2",
+   "resultado": "3-2",
+   "signo_real": "1",
+   "acierto": true,
+   "acierto_simple": false,
+   "acierto_valor": false,
+   "fallo": "igualado"
   },
   {
    "n": 6,
@@ -356,7 +383,12 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "X"
+   "signo_valor": "X",
+   "resultado": "1-0",
+   "signo_real": "1",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": false
   },
   {
    "n": 7,
@@ -412,7 +444,12 @@
    ],
    "signos": "2",
    "signo_simple": "2",
-   "signo_valor": "2"
+   "signo_valor": "2",
+   "resultado": "0-3",
+   "signo_real": "2",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 8,
@@ -468,7 +505,13 @@
    ],
    "signos": "X2",
    "signo_simple": "2",
-   "signo_valor": "2"
+   "signo_valor": "2",
+   "resultado": "0-0",
+   "signo_real": "X",
+   "acierto": true,
+   "acierto_simple": false,
+   "acierto_valor": false,
+   "fallo": "igualado"
   },
   {
    "n": 9,
@@ -524,7 +567,13 @@
    ],
    "signos": "1X",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "0-2",
+   "signo_real": "2",
+   "acierto": false,
+   "acierto_simple": false,
+   "acierto_valor": false,
+   "fallo": "igualado"
   },
   {
    "n": 10,
@@ -580,7 +629,12 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "2-1",
+   "signo_real": "1",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 11,
@@ -621,7 +675,12 @@
    ],
    "signos": "2",
    "signo_simple": "2",
-   "signo_valor": "2"
+   "signo_valor": "2",
+   "resultado": "1-3",
+   "signo_real": "2",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 12,
@@ -662,7 +721,12 @@
    ],
    "signos": "2",
    "signo_simple": "2",
-   "signo_valor": "2"
+   "signo_valor": "2",
+   "resultado": "1-5",
+   "signo_real": "2",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 13,
@@ -703,7 +767,12 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "1-0",
+   "signo_real": "1",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 14,
@@ -744,7 +813,13 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "0-3",
+   "signo_real": "2",
+   "acierto": false,
+   "acierto_simple": false,
+   "acierto_valor": false,
+   "fallo": "sorpresa"
   },
   {
    "n": 15,
@@ -808,7 +883,9 @@
    },
    "goles_fuente": "cuotas",
    "signos": "1-1",
-   "p_signos": 0.1206
+   "p_signos": 0.1206,
+   "resultado": "1-1",
+   "signo_real": "X"
   }
  ],
  "resumen": {
@@ -919,5 +996,113 @@
    "diferencia": 0.061
   }
  ],
- "dia": 5
+ "dia": 5,
+ "revision": {
+  "revisado": "2026-11-22T22:28+00:00",
+  "estado": "ESCRUTADA",
+  "jugados": 14,
+  "aciertos": 11,
+  "aciertos_sin_dobles": 9,
+  "jugada": {
+   "columna1": 9,
+   "columna2": 8,
+   "premio": 0.0,
+   "coste": 1.5
+  },
+  "esperados": 9.49,
+  "p_igual_o_mas": 0.2846,
+  "pleno15": true,
+  "premio": 2.96,
+  "coste": 12.0,
+  "acertantes": [
+   {
+    "acierto": 15,
+    "acertantes": 30,
+    "premio": 14696.74
+   },
+   {
+    "acierto": 14,
+    "acertantes": 152,
+    "premio": 3095.06
+   },
+   {
+    "acierto": 13,
+    "acertantes": 3105,
+    "premio": 71.02
+   },
+   {
+    "acierto": 12,
+    "acertantes": 28917,
+    "premio": 7.63
+   },
+   {
+    "acierto": 11,
+    "acertantes": 148971,
+    "premio": 1.48
+   },
+   {
+    "acierto": 10,
+    "acertantes": 455229,
+    "premio": 0
+   }
+  ],
+  "fallos": [
+   {
+    "n": 2,
+    "partido": "RAYO - VALENCIA",
+    "resultado": "0-1",
+    "puse": "1",
+    "salio": "2",
+    "prob": 0.231,
+    "tipo": "falla el favorito",
+    "pista": null
+   },
+   {
+    "n": 5,
+    "partido": "RACING S. - R.SOCIEDAD",
+    "resultado": "3-2",
+    "puse": "2",
+    "salio": "1",
+    "prob": 0.279,
+    "tipo": "igualado",
+    "pista": null
+   },
+   {
+    "n": 8,
+    "partido": "TENERIFE - MALLORCA",
+    "resultado": "0-0",
+    "puse": "2",
+    "salio": "X",
+    "prob": 0.287,
+    "tipo": "igualado",
+    "pista": null
+   },
+   {
+    "n": 9,
+    "partido": "SPORTING - LAS PALMAS",
+    "resultado": "0-2",
+    "puse": "1",
+    "salio": "2",
+    "prob": 0.273,
+    "tipo": "igualado",
+    "pista": null
+   },
+   {
+    "n": 14,
+    "partido": "TENERIFE (F) - MADRID CFF (F)",
+    "resultado": "0-3",
+    "puse": "1",
+    "salio": "2",
+    "prob": 0.218,
+    "tipo": "sorpresa",
+    "pista": null
+   }
+  ],
+  "logloss": {
+   "final": 0.7667,
+   "mercado": 0.8269,
+   "losilla": 0.7816,
+   "publico": 0.7265
+  }
+ }
 }
