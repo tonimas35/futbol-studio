@@ -1,0 +1,941 @@
+{
+ "temporada": 2027,
+ "jornada": 24,
+ "creado": "2026-11-23T10:01+00:00",
+ "dobles": 4,
+ "pesos": {
+  "mercado": 0.5407,
+  "losilla": 0.5383,
+  "publico": 0.0316,
+  "sesgo": [
+   0.0,
+   0.0416,
+   0.042
+  ],
+  "solo_publico": {
+   "publico": 0.7127,
+   "sesgo": [
+    0.0,
+    -0.0461,
+    0.0164
+   ]
+  }
+ },
+ "partidos": [
+  {
+   "n": 1,
+   "local": "ARSENAL",
+   "visitante": "B.DORTMUND",
+   "dia": "MAR",
+   "hora": "21:00",
+   "div": 5,
+   "forma": {
+    "local": "DVVVE",
+    "visitante": "VEVVV"
+   },
+   "espn": {
+    "id": "401915295",
+    "liga": "uefa.champions",
+    "partido": "Arsenal - Borussia Dortmund",
+    "fecha": "2026-11-24T20:00Z",
+    "parecido": 0.955,
+    "local_id": "359",
+    "visitante_id": "124"
+   },
+   "cuotas": {
+    "casa": "DraftKings",
+    "p": [
+     0.689655172413793,
+     0.19098143236074272,
+     0.11936339522546419
+    ],
+    "linea": 2.5,
+    "p_mas": 0.5776397515527951
+   },
+   "fuentes": {
+    "mercado": [
+     0.6897,
+     0.191,
+     0.1194
+    ],
+    "losilla": [
+     0.6852,
+     0.193,
+     0.1218
+    ],
+    "publico": [
+     0.7,
+     0.17,
+     0.13
+    ]
+   },
+   "prob": [
+    0.7128,
+    0.1794,
+    0.1078
+   ],
+   "signos": "1",
+   "signo_simple": "1",
+   "signo_valor": "1"
+  },
+  {
+   "n": 2,
+   "local": "FEYENOORD",
+   "visitante": "OPORTO",
+   "dia": "MAR",
+   "hora": "21:00",
+   "div": 5,
+   "forma": {
+    "local": "EEDDD",
+    "visitante": "VVVVV"
+   },
+   "espn": {
+    "id": "401915294",
+    "liga": "uefa.champions",
+    "partido": "Feyenoord Rotterdam - FC Porto",
+    "fecha": "2026-11-24T20:00Z",
+    "parecido": 0.908,
+    "local_id": "142",
+    "visitante_id": "437"
+   },
+   "cuotas": {
+    "casa": "DraftKings",
+    "p": [
+     0.3420647149460709,
+     0.2588597842835131,
+     0.39907550077041604
+    ],
+    "linea": 2.5,
+    "p_mas": 0.5859872611464969
+   },
+   "fuentes": {
+    "mercado": [
+     0.3421,
+     0.2589,
+     0.3991
+    ],
+    "losilla": [
+     0.3441,
+     0.26,
+     0.3959
+    ],
+    "publico": [
+     0.32,
+     0.31,
+     0.37
+    ]
+   },
+   "prob": [
+    0.3335,
+    0.2569,
+    0.4096
+   ],
+   "signos": "12",
+   "signo_simple": "2",
+   "signo_valor": "2"
+  },
+  {
+   "n": 3,
+   "local": "MAN.CITY",
+   "visitante": "NAPOLI",
+   "dia": "MAR",
+   "hora": "21:00",
+   "div": 5,
+   "forma": {
+    "local": "VDVDE",
+    "visitante": "VDDEV"
+   },
+   "espn": {
+    "id": "401915379",
+    "liga": "uefa.champions",
+    "partido": "Manchester City - Napoli",
+    "fecha": "2026-11-24T20:00Z",
+    "parecido": 1.0,
+    "local_id": "382",
+    "visitante_id": "114"
+   },
+   "cuotas": {
+    "casa": "DraftKings",
+    "p": [
+     0.7572041692213365,
+     0.14714898835070508,
+     0.0956468424279583
+    ],
+    "linea": 3.5,
+    "p_mas": 0.5
+   },
+   "fuentes": {
+    "mercado": [
+     0.7572,
+     0.1471,
+     0.0956
+    ],
+    "losilla": [
+     0.7579,
+     0.1478,
+     0.0943
+    ],
+    "publico": [
+     0.73,
+     0.15,
+     0.12
+    ]
+   },
+   "prob": [
+    0.7847,
+    0.1331,
+    0.0822
+   ],
+   "signos": "1",
+   "signo_simple": "1",
+   "signo_valor": "1"
+  },
+  {
+   "n": 4,
+   "local": "R.MADRID",
+   "visitante": "PSV",
+   "dia": "MAR",
+   "hora": "21:00",
+   "div": 1,
+   "forma": {
+    "local": "VVVVV",
+    "visitante": "EVDVV"
+   },
+   "espn": {
+    "id": "401915298",
+    "liga": "uefa.champions",
+    "partido": "Real Madrid - PSV Eindhoven",
+    "fecha": "2026-11-24T20:00Z",
+    "parecido": 0.892,
+    "local_id": "86",
+    "visitante_id": "148"
+   },
+   "cuotas": {
+    "casa": "DraftKings",
+    "p": [
+     0.8080662585523947,
+     0.11235145840835434,
+     0.07958228303925098
+    ],
+    "linea": 4.5,
+    "p_mas": 0.47368421052631576
+   },
+   "fuentes": {
+    "mercado": [
+     0.8081,
+     0.1124,
+     0.0796
+    ],
+    "losilla": [
+     0.8084,
+     0.1137,
+     0.0779
+    ],
+    "publico": [
+     0.77,
+     0.12,
+     0.11
+    ]
+   },
+   "prob": [
+    0.8353,
+    0.0983,
+    0.0664
+   ],
+   "signos": "1",
+   "signo_simple": "1",
+   "signo_valor": "1"
+  },
+  {
+   "n": 5,
+   "local": "SLOVAN BRATISLAVA",
+   "visitante": "BETIS",
+   "dia": "MAR",
+   "hora": "21:00",
+   "div": 5,
+   "forma": {
+    "local": "VDDDD",
+    "visitante": "VDVVE"
+   },
+   "espn": {
+    "id": "401915297",
+    "liga": "uefa.champions",
+    "partido": "Slovan Bratislava - Real Betis",
+    "fecha": "2026-11-24T20:00Z",
+    "parecido": 0.947,
+    "local_id": "521",
+    "visitante_id": "244"
+   },
+   "cuotas": {
+    "casa": "DraftKings",
+    "p": [
+     0.0909090909090909,
+     0.13636363636363635,
+     0.7727272727272727
+    ],
+    "linea": 3.5,
+    "p_mas": 0.5
+   },
+   "fuentes": {
+    "mercado": [
+     0.0909,
+     0.1364,
+     0.7727
+    ],
+    "losilla": [
+     0.087,
+     0.1461,
+     0.7669
+    ],
+    "publico": [
+     0.18,
+     0.21,
+     0.61
+    ]
+   },
+   "prob": [
+    0.0722,
+    0.1245,
+    0.8033
+   ],
+   "signos": "2",
+   "signo_simple": "2",
+   "signo_valor": "2"
+  },
+  {
+   "n": 6,
+   "local": "SABAH",
+   "visitante": "BARCELONA",
+   "dia": "MIE",
+   "hora": "18:45",
+   "div": 5,
+   "forma": {
+    "local": "VDVDD",
+    "visitante": "DVVVV"
+   },
+   "espn": {
+    "id": "401915378",
+    "liga": "uefa.champions",
+    "partido": "Sabah FK - Barcelona",
+    "fecha": "2026-11-25T17:45Z",
+    "parecido": 1.0,
+    "local_id": "21922",
+    "visitante_id": "83"
+   },
+   "cuotas": {
+    "casa": "DraftKings",
+    "p": [
+     0.047869542346133616,
+     0.06838506049447658,
+     0.8837453971593898
+    ],
+    "linea": 4.5,
+    "p_mas": 0.5776397515527951
+   },
+   "fuentes": {
+    "mercado": [
+     0.0479,
+     0.0684,
+     0.8837
+    ],
+    "losilla": [
+     0.0341,
+     0.155,
+     0.8109
+    ],
+    "publico": [
+     0.16,
+     0.11,
+     0.73
+    ]
+   },
+   "prob": [
+    0.0303,
+    0.0856,
+    0.884
+   ],
+   "signos": "2",
+   "signo_simple": "2",
+   "signo_valor": "2"
+  },
+  {
+   "n": 7,
+   "local": "SLAVIA PRAGA",
+   "visitante": "VILLARREAL",
+   "dia": "MIE",
+   "hora": "18:45",
+   "div": 5,
+   "forma": {
+    "local": "DDDED",
+    "visitante": "VDDVD"
+   },
+   "espn": {
+    "id": "401915293",
+    "liga": "uefa.champions",
+    "partido": "Slavia Prague - Villarreal",
+    "fecha": "2026-11-25T17:45Z",
+    "parecido": 1.0,
+    "local_id": "494",
+    "visitante_id": "102"
+   },
+   "cuotas": {
+    "casa": "DraftKings",
+    "p": [
+     0.31340529569148445,
+     0.24199649414152602,
+     0.44459821016698964
+    ],
+    "linea": 3.5,
+    "p_mas": 0.4140127388535032
+   },
+   "fuentes": {
+    "mercado": [
+     0.3134,
+     0.242,
+     0.4446
+    ],
+    "losilla": [
+     0.3095,
+     0.2507,
+     0.4398
+    ],
+    "publico": [
+     0.26,
+     0.26,
+     0.48
+    ]
+   },
+   "prob": [
+    0.2975,
+    0.2408,
+    0.4617
+   ],
+   "signos": "12",
+   "signo_simple": "2",
+   "signo_valor": "2"
+  },
+  {
+   "n": 8,
+   "local": "BRUJAS",
+   "visitante": "LIVERPOOL",
+   "dia": "MIE",
+   "hora": "21:00",
+   "div": 5,
+   "forma": {
+    "local": "VVVEV",
+    "visitante": "VDDVV"
+   },
+   "espn": {
+    "id": "401915292",
+    "liga": "uefa.champions",
+    "partido": "Club Brugge - Liverpool",
+    "fecha": "2026-11-25T20:00Z",
+    "parecido": 1.0,
+    "local_id": "570",
+    "visitante_id": "364"
+   },
+   "cuotas": {
+    "casa": "DraftKings",
+    "p": [
+     0.2168877467923777,
+     0.20304384806094936,
+     0.5800684051466729
+    ],
+    "linea": 3.5,
+    "p_mas": 0.5367573011077543
+   },
+   "fuentes": {
+    "mercado": [
+     0.2169,
+     0.203,
+     0.5801
+    ],
+    "losilla": [
+     0.2181,
+     0.2117,
+     0.5702
+    ],
+    "publico": [
+     0.27,
+     0.23,
+     0.5
+    ]
+   },
+   "prob": [
+    0.1991,
+    0.1961,
+    0.6047
+   ],
+   "signos": "2",
+   "signo_simple": "2",
+   "signo_valor": "2"
+  },
+  {
+   "n": 9,
+   "local": "INTER",
+   "visitante": "STUTTGART",
+   "dia": "MIE",
+   "hora": "21:00",
+   "div": 5,
+   "forma": {
+    "local": "VDVVE",
+    "visitante": "VVDVE"
+   },
+   "espn": {
+    "id": "401915376",
+    "liga": "uefa.champions",
+    "partido": "Internazionale - VfB Stuttgart",
+    "fecha": "2026-11-25T20:00Z",
+    "parecido": 0.875,
+    "local_id": "110",
+    "visitante_id": "134"
+   },
+   "cuotas": {
+    "casa": "DraftKings",
+    "p": [
+     0.6681025199224639,
+     0.17316390264914927,
+     0.1587335774283868
+    ],
+    "linea": 3.5,
+    "p_mas": 0.5806451612903226
+   },
+   "fuentes": {
+    "mercado": [
+     0.6681,
+     0.1732,
+     0.1587
+    ],
+    "losilla": [
+     0.675,
+     0.175,
+     0.15
+    ],
+    "publico": [
+     0.69,
+     0.18,
+     0.13
+    ]
+   },
+   "prob": [
+    0.6968,
+    0.1622,
+    0.141
+   ],
+   "signos": "1",
+   "signo_simple": "1",
+   "signo_valor": "1"
+  },
+  {
+   "n": 10,
+   "local": "PSG",
+   "visitante": "ROMA",
+   "dia": "MIE",
+   "hora": "21:00",
+   "div": 5,
+   "forma": {
+    "local": "VVVVV",
+    "visitante": "VVDVV"
+   },
+   "espn": {
+    "id": "401915374",
+    "liga": "uefa.champions",
+    "partido": "Paris Saint-Germain - AS Roma",
+    "fecha": "2026-11-25T20:00Z",
+    "parecido": 1.0,
+    "local_id": "160",
+    "visitante_id": "104"
+   },
+   "cuotas": {
+    "casa": "DraftKings",
+    "p": [
+     0.68986905582357,
+     0.17367332873880084,
+     0.13645761543762924
+    ],
+    "linea": 3.5,
+    "p_mas": 0.5157232704402516
+   },
+   "fuentes": {
+    "mercado": [
+     0.6899,
+     0.1737,
+     0.1365
+    ],
+    "losilla": [
+     0.7192,
+     0.1658,
+     0.115
+    ],
+    "publico": [
+     0.75,
+     0.14,
+     0.11
+    ]
+   },
+   "prob": [
+    0.7325,
+    0.1559,
+    0.1116
+   ],
+   "signos": "1",
+   "signo_simple": "1",
+   "signo_valor": "1"
+  },
+  {
+   "n": 11,
+   "local": "SHAKHTAR DONETSK",
+   "visitante": "FENERBAHCE",
+   "dia": "MIE",
+   "hora": "21:00",
+   "div": 5,
+   "forma": {
+    "local": "EVVDD",
+    "visitante": "DDVVE"
+   },
+   "espn": {
+    "id": "401915375",
+    "liga": "uefa.champions",
+    "partido": "Shakhtar Donetsk - Fenerbahce",
+    "fecha": "2026-11-25T20:00Z",
+    "parecido": 1.0,
+    "local_id": "493",
+    "visitante_id": "436"
+   },
+   "cuotas": {
+    "casa": "DraftKings",
+    "p": [
+     0.36018207005739167,
+     0.2727092816148822,
+     0.3671086483277261
+    ],
+    "linea": 2.5,
+    "p_mas": 0.5563770794824399
+   },
+   "fuentes": {
+    "mercado": [
+     0.3602,
+     0.2727,
+     0.3671
+    ],
+    "losilla": [
+     0.3615,
+     0.2729,
+     0.3656
+    ],
+    "publico": [
+     0.36,
+     0.32,
+     0.32
+    ]
+   },
+   "prob": [
+    0.3541,
+    0.2719,
+    0.374
+   ],
+   "signos": "12",
+   "signo_simple": "2",
+   "signo_valor": "2"
+  },
+  {
+   "n": 12,
+   "local": "SPORTING PORT.",
+   "visitante": "MAN.UNITED",
+   "dia": "MIE",
+   "hora": "21:00",
+   "div": 5,
+   "forma": {
+    "local": "DVVVV",
+    "visitante": "DDVED"
+   },
+   "espn": {
+    "id": "401915373",
+    "liga": "uefa.champions",
+    "partido": "Sporting CP - Manchester United",
+    "fecha": "2026-11-25T20:00Z",
+    "parecido": 0.778,
+    "local_id": "2250",
+    "visitante_id": "360"
+   },
+   "cuotas": {
+    "casa": "DraftKings",
+    "p": [
+     0.38313253012048193,
+     0.25542168674698795,
+     0.3614457831325302
+    ],
+    "linea": 3.5,
+    "p_mas": 0.4032860343539955
+   },
+   "fuentes": {
+    "mercado": [
+     0.3831,
+     0.2554,
+     0.3614
+    ],
+    "losilla": [
+     0.3778,
+     0.2602,
+     0.362
+    ],
+    "publico": [
+     0.42,
+     0.27,
+     0.31
+    ]
+   },
+   "prob": [
+    0.3768,
+    0.2546,
+    0.3686
+   ],
+   "signos": "12",
+   "signo_simple": "1",
+   "signo_valor": "1"
+  },
+  {
+   "n": 13,
+   "local": "CELTA",
+   "visitante": "BOURNEMOUTH",
+   "dia": "JUE",
+   "hora": "18:45",
+   "div": 1,
+   "forma": {
+    "local": "DDEVD",
+    "visitante": "VVVVV"
+   },
+   "espn": {
+    "id": "401915519",
+    "liga": "uefa.europa",
+    "partido": "Celta Vigo - AFC Bournemouth",
+    "fecha": "2026-11-26T17:45Z",
+    "parecido": 1.0,
+    "local_id": "85",
+    "visitante_id": "349"
+   },
+   "cuotas": {
+    "casa": "DraftKings",
+    "p": [
+     0.25237240318030263,
+     0.2628879199794819,
+     0.4847396768402154
+    ],
+    "linea": 2.5,
+    "p_mas": 0.5052301255230125
+   },
+   "fuentes": {
+    "mercado": [
+     0.2524,
+     0.2629,
+     0.4847
+    ],
+    "losilla": [
+     0.249,
+     0.266,
+     0.485
+    ],
+    "publico": [
+     0.36,
+     0.22,
+     0.42
+    ]
+   },
+   "prob": [
+    0.2368,
+    0.2575,
+    0.5057
+   ],
+   "signos": "2",
+   "signo_simple": "2",
+   "signo_valor": "X"
+  },
+  {
+   "n": 14,
+   "local": "CRYSTAL PALACE",
+   "visitante": "R.SOCIEDAD",
+   "dia": "JUE",
+   "hora": "21:00",
+   "div": 5,
+   "forma": {
+    "local": "VDEDD",
+    "visitante": "VDEVD"
+   },
+   "espn": {
+    "id": "401915504",
+    "liga": "uefa.europa",
+    "partido": "Crystal Palace - Real Sociedad",
+    "fecha": "2026-11-26T20:00Z",
+    "parecido": 1.0,
+    "local_id": "384",
+    "visitante_id": "89"
+   },
+   "cuotas": {
+    "casa": "DraftKings",
+    "p": [
+     0.4594670406732118,
+     0.24151472650771388,
+     0.29901823281907436
+    ],
+    "linea": 2.5,
+    "p_mas": 0.6017069701280228
+   },
+   "fuentes": {
+    "mercado": [
+     0.4595,
+     0.2415,
+     0.299
+    ],
+    "losilla": [
+     0.4569,
+     0.2519,
+     0.2912
+    ],
+    "publico": [
+     0.45,
+     0.28,
+     0.27
+    ]
+   },
+   "prob": [
+    0.462,
+    0.2432,
+    0.2949
+   ],
+   "signos": "1",
+   "signo_simple": "1",
+   "signo_valor": "1"
+  },
+  {
+   "n": 15,
+   "local": "AT.MADRID",
+   "visitante": "VIKING",
+   "dia": "MIE",
+   "hora": "21:00",
+   "div": 1,
+   "forma": {
+    "local": "VVDDV",
+    "visitante": "VDVVD"
+   },
+   "espn": {
+    "id": "401915291",
+    "liga": "uefa.champions",
+    "partido": "Atlético Madrid - Viking FK",
+    "fecha": "2026-11-25T20:00Z",
+    "parecido": 1.0,
+    "local_id": "1068",
+    "visitante_id": "510"
+   },
+   "cuotas": {
+    "casa": "DraftKings",
+    "p": [
+     0.8646288209606986,
+     0.08733624454148471,
+     0.048034934497816595
+    ],
+    "linea": 3.5,
+    "p_mas": 0.5599461158509206
+   },
+   "fuentes": {
+    "mercado": [
+     0.8646,
+     0.0873,
+     0.048
+    ]
+   },
+   "prob": [
+    0.8819,
+    0.0775,
+    0.0406
+   ],
+   "goles_esperados": [
+    3.35,
+    0.62
+   ],
+   "goles": {
+    "L": [
+     0.0353,
+     0.1181,
+     0.1976,
+     0.6491
+    ],
+    "V": [
+     0.5383,
+     0.3334,
+     0.1032,
+     0.0251
+    ]
+   },
+   "goles_fuente": "cuotas",
+   "signos": "M-0",
+   "p_signos": 0.3494
+  }
+ ],
+ "resumen": {
+  "esperados": 10.0,
+  "p10": 0.633,
+  "p11": 0.3941,
+  "p12": 0.1806,
+  "p14": 0.007325,
+  "apuestas": 16,
+  "coste": 12.0
+ },
+ "resumen_simple": {
+  "esperados": 8.64,
+  "p10": 0.3111,
+  "p11": 0.1348,
+  "p12": 0.0406,
+  "p14": 0.000638,
+  "apuestas": 1,
+  "coste": 1.5
+ },
+ "resumen_valor": {
+  "esperados": 8.4,
+  "p10": 0.2571,
+  "p11": 0.1015,
+  "p12": 0.0274,
+  "p14": 0.000325,
+  "apuestas": 1,
+  "coste": 1.5
+ },
+ "valor": [
+  {
+   "n": 5,
+   "signo": "2",
+   "prob": 0.803,
+   "publico": 0.61,
+   "ratio": 1.32
+  }
+ ],
+ "inflados": [
+  {
+   "n": 6,
+   "signo": "1",
+   "prob": 0.03,
+   "publico": 0.16,
+   "diferencia": 0.13
+  },
+  {
+   "n": 13,
+   "signo": "1",
+   "prob": 0.237,
+   "publico": 0.36,
+   "diferencia": 0.123
+  },
+  {
+   "n": 5,
+   "signo": "1",
+   "prob": 0.072,
+   "publico": 0.18,
+   "diferencia": 0.108
+  },
+  {
+   "n": 8,
+   "signo": "1",
+   "prob": 0.199,
+   "publico": 0.27,
+   "diferencia": 0.071
+  }
+ ],
+ "dia": 6
+}
