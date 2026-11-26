@@ -76,7 +76,13 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "1-1",
+   "signo_real": "X",
+   "acierto": false,
+   "acierto_simple": false,
+   "acierto_valor": false,
+   "fallo": "sorpresa"
   },
   {
    "n": 2,
@@ -132,7 +138,12 @@
    ],
    "signos": "12",
    "signo_simple": "2",
-   "signo_valor": "2"
+   "signo_valor": "2",
+   "resultado": "0-1",
+   "signo_real": "2",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 3,
@@ -188,7 +199,13 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "2-2",
+   "signo_real": "X",
+   "acierto": false,
+   "acierto_simple": false,
+   "acierto_valor": false,
+   "fallo": "sorpresa"
   },
   {
    "n": 4,
@@ -244,7 +261,12 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "5-1",
+   "signo_real": "1",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 5,
@@ -300,7 +322,12 @@
    ],
    "signos": "2",
    "signo_simple": "2",
-   "signo_valor": "2"
+   "signo_valor": "2",
+   "resultado": "0-2",
+   "signo_real": "2",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 6,
@@ -356,7 +383,12 @@
    ],
    "signos": "2",
    "signo_simple": "2",
-   "signo_valor": "2"
+   "signo_valor": "2",
+   "resultado": "1-4",
+   "signo_real": "2",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 7,
@@ -412,7 +444,12 @@
    ],
    "signos": "12",
    "signo_simple": "2",
-   "signo_valor": "2"
+   "signo_valor": "2",
+   "resultado": "0-1",
+   "signo_real": "2",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 8,
@@ -468,7 +505,12 @@
    ],
    "signos": "2",
    "signo_simple": "2",
-   "signo_valor": "2"
+   "signo_valor": "2",
+   "resultado": "0-3",
+   "signo_real": "2",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 9,
@@ -524,7 +566,12 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "2-0",
+   "signo_real": "1",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 10,
@@ -580,7 +627,13 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "2-2",
+   "signo_real": "X",
+   "acierto": false,
+   "acierto_simple": false,
+   "acierto_valor": false,
+   "fallo": "sorpresa"
   },
   {
    "n": 11,
@@ -636,7 +689,12 @@
    ],
    "signos": "12",
    "signo_simple": "2",
-   "signo_valor": "2"
+   "signo_valor": "2",
+   "resultado": "0-1",
+   "signo_real": "2",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 12,
@@ -692,7 +750,13 @@
    ],
    "signos": "12",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "2-2",
+   "signo_real": "X",
+   "acierto": false,
+   "acierto_simple": false,
+   "acierto_valor": false,
+   "fallo": "igualado"
   },
   {
    "n": 13,
@@ -748,7 +812,12 @@
    ],
    "signos": "2",
    "signo_simple": "2",
-   "signo_valor": "X"
+   "signo_valor": "X",
+   "resultado": "1-2",
+   "signo_real": "2",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": false
   },
   {
    "n": 14,
@@ -804,7 +873,12 @@
    ],
    "signos": "1",
    "signo_simple": "1",
-   "signo_valor": "1"
+   "signo_valor": "1",
+   "resultado": "2-1",
+   "signo_real": "1",
+   "acierto": true,
+   "acierto_simple": true,
+   "acierto_valor": true
   },
   {
    "n": 15,
@@ -868,7 +942,9 @@
    },
    "goles_fuente": "cuotas",
    "signos": "M-0",
-   "p_signos": 0.3494
+   "p_signos": 0.3494,
+   "resultado": "2-0",
+   "signo_real": "1"
   }
  ],
  "resumen": {
@@ -937,5 +1013,103 @@
    "diferencia": 0.071
   }
  ],
- "dia": 6
+ "dia": 6,
+ "revision": {
+  "revisado": "2026-11-26T22:30+00:00",
+  "estado": "ESCRUTADA",
+  "jugados": 14,
+  "aciertos": 10,
+  "aciertos_sin_dobles": 10,
+  "jugada": {
+   "columna1": 10,
+   "columna2": 9,
+   "premio": 1.84,
+   "coste": 1.5
+  },
+  "esperados": 10.0,
+  "p_igual_o_mas": 0.633,
+  "pleno15": false,
+  "premio": 3.68,
+  "coste": 12.0,
+  "acertantes": [
+   {
+    "acierto": 15,
+    "acertantes": 1,
+    "premio": 71144.36
+   },
+   {
+    "acierto": 14,
+    "acertantes": 11,
+    "premio": 15307.72
+   },
+   {
+    "acierto": 13,
+    "acertantes": 147,
+    "premio": 536.94
+   },
+   {
+    "acierto": 12,
+    "acertantes": 1438,
+    "premio": 54.89
+   },
+   {
+    "acierto": 11,
+    "acertantes": 10111,
+    "premio": 7.81
+   },
+   {
+    "acierto": 10,
+    "acertantes": 51581,
+    "premio": 1.84
+   }
+  ],
+  "fallos": [
+   {
+    "n": 1,
+    "partido": "ARSENAL - B.DORTMUND",
+    "resultado": "1-1",
+    "puse": "1",
+    "salio": "X",
+    "prob": 0.179,
+    "tipo": "sorpresa",
+    "pista": null
+   },
+   {
+    "n": 3,
+    "partido": "MAN.CITY - NAPOLI",
+    "resultado": "2-2",
+    "puse": "1",
+    "salio": "X",
+    "prob": 0.133,
+    "tipo": "sorpresa",
+    "pista": null
+   },
+   {
+    "n": 10,
+    "partido": "PSG - ROMA",
+    "resultado": "2-2",
+    "puse": "1",
+    "salio": "X",
+    "prob": 0.156,
+    "tipo": "sorpresa",
+    "pista": null
+   },
+   {
+    "n": 12,
+    "partido": "SPORTING PORT. - MAN.UNITED",
+    "resultado": "2-2",
+    "puse": "1",
+    "salio": "X",
+    "prob": 0.255,
+    "tipo": "igualado",
+    "pista": null
+   }
+  ],
+  "logloss": {
+   "final": 0.8893,
+   "mercado": 0.8902,
+   "losilla": 0.9003,
+   "publico": 0.9723
+  }
+ }
 }
